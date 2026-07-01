@@ -30,11 +30,11 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-/* Language toggling */
-[data-en] { display: none; }
-body.lang-en [data-fr] { display: none; }
-body.lang-en [data-en] { display: inline; }
-body.lang-en [data-en].block { display: block; }
+/* Language toggling — English is default, French shown when body has .lang-fr */
+[data-fr] { display: none; }
+body.lang-fr [data-en] { display: none; }
+body.lang-fr [data-fr] { display: inline; }
+body.lang-fr [data-fr].block { display: block; }
 
 .eyebrow {
   font-family: var(--mono);
