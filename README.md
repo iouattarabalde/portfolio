@@ -14,6 +14,8 @@ Pages projet : galerie de stills en haut (cliquables pour agrandir en lightbox),
 
 **Règle** : le nombre de stills par projet doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes). Fleur de Peau en a 18.
 
+**Règle** : la vignette utilisée sur la page d'accueil (grille de travaux) doit être une image distincte, qui ne fait pas partie de la galerie de la page projet. Pour Fleur de Peau, la vignette est `project-01-20.jpg`, absente des 18 stills de la galerie.
+
 ## À faire
 1. ~~Uploader le reel sur Vimeo~~ fait
 2. Dupliquer `project.html` en `project-02.html` ... `project-12.html`, remplir titre/type/réalisation/DP et ajouter les stills en galerie
