@@ -31,10 +31,6 @@
               allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
               referrerpolicy="strict-origin-when-cross-origin" title="Ismael OB - Demo Reel" allowfullscreen></iframe>
     </div>
-    <div class="reel-caption">
-      <span class="rec"><span data-fr>Reel 2026</span><span data-en>2026 Reel</span></span>
-      <span>01:30</span>
-    </div>
   </div>
   <script src="https://player.vimeo.com/api/player.js"></script>
 </header>
@@ -172,13 +168,11 @@
     const nav = document.querySelector('.site-nav');
     const hero = document.querySelector('.hero');
     const frame = document.querySelector('.reel-frame');
-    const caption = document.querySelector('.reel-caption');
-    if (!nav || !hero || !frame || !caption) return;
+    if (!nav || !hero || !frame) return;
     const navH = nav.offsetHeight;
     const heroStyles = getComputedStyle(hero);
     const heroPadV = parseFloat(heroStyles.paddingTop) + parseFloat(heroStyles.paddingBottom);
-    const capH = caption.offsetHeight;
-    const available = window.innerHeight - navH - heroPadV - capH - 4;
+    const available = window.innerHeight - navH - heroPadV - 4;
     const maxWidthFromHeight = available * (16 / 9);
     frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px';
   }

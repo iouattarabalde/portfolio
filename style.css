@@ -154,27 +154,6 @@ h1, h2, h3 {
   position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
 }
 
-.reel-caption {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 14px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-dim);
-  border-top: 1px solid var(--line);
-}
-.reel-caption .rec { color: var(--accent); }
-.reel-caption .rec::before {
-  content: "";
-  display: inline-block;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
 /* ---------- Clients strip ---------- */
 .clients {
   padding: 20px clamp(20px, 4vw, 48px);
