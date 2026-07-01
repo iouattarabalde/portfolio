@@ -22,21 +22,26 @@
   </div>
 </nav>
 
-<section class="project-hero">
+<!-- Dupliquer .gallery-item pour chaque still du projet. data-full pointe vers l'image en pleine résolution (peut être la même que src). -->
+<section class="project-gallery">
+  <button class="gallery-item" data-full="assets/PLACEHOLDER-01.jpg">
+    <img src="assets/PLACEHOLDER-01.jpg" alt="Titre du projet — still 1" loading="lazy">
+  </button>
+  <button class="gallery-item" data-full="assets/PLACEHOLDER-02.jpg">
+    <img src="assets/PLACEHOLDER-02.jpg" alt="Titre du projet — still 2" loading="lazy">
+  </button>
+  <button class="gallery-item" data-full="assets/PLACEHOLDER-03.jpg">
+    <img src="assets/PLACEHOLDER-03.jpg" alt="Titre du projet — still 3" loading="lazy">
+  </button>
+</section>
+
+<section class="project-info">
   <a class="project-back" href="index.html#work">← <span data-fr>Retour aux travaux</span><span data-en>Back to work</span></a>
   <h1 class="project-title">Titre du projet</h1>
   <dl class="credits">
     <div>
-      <dt><span data-fr>Client</span><span data-en>Client</span></dt>
-      <dd>—</dd>
-    </div>
-    <div>
       <dt><span data-fr>Type</span><span data-en>Type</span></dt>
       <dd>—</dd>
-    </div>
-    <div>
-      <dt><span data-fr>Année</span><span data-en>Year</span></dt>
-      <dd>2026</dd>
     </div>
     <div>
       <dt><span data-fr>Réalisation</span><span data-en>Director</span></dt>
@@ -46,18 +51,13 @@
       <dt><span data-fr>Image</span><span data-en>DP</span></dt>
       <dd>—</dd>
     </div>
-    <div>
-      <dt><span data-fr>Étalonnage</span><span data-en>Colorist</span></dt>
-      <dd>Ismael OB</dd>
-    </div>
   </dl>
 </section>
 
-<section class="project-media">
-  <div class="frame"></div>
-  <!-- Dupliquer .frame pour chaque still ou clip supplémentaire -->
-</section>
-
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-fr>Fermer</span><span data-en>Close</span></button>
+  <img id="lightbox-img" src="" alt="">
+</div>
 
 <script>
   const btn = document.getElementById('lang-toggle');
@@ -73,6 +73,28 @@
     localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
     document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
     updateLangButton();
+  });
+
+  // Lightbox : clic sur une vignette de la galerie pour l'agrandir.
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  document.querySelectorAll('.gallery-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      lightboxImg.src = item.dataset.full || item.querySelector('img').src;
+      lightboxImg.alt = item.querySelector('img').alt;
+      lightbox.classList.add('open');
+    });
+  });
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    lightboxImg.src = '';
+  }
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLightbox();
   });
 </script>
 </body>

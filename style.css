@@ -288,9 +288,43 @@ h1, h2, h3 {
 }
 
 /* ---------- Project template ---------- */
-.project-hero {
-  padding: clamp(28px, 6vw, 56px) clamp(20px, 4vw, 48px);
+.project-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--grid-gap);
+  background: var(--line);
   border-bottom: 1px solid var(--line);
+}
+
+.gallery-item {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--bg-raised);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: zoom-in;
+}
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.gallery-item:hover img { transform: scale(1.03); }
+
+@media (max-width: 900px) {
+  .project-gallery { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .project-gallery { grid-template-columns: 1fr; }
+}
+
+.project-info {
+  padding: clamp(28px, 6vw, 48px) clamp(20px, 4vw, 48px);
 }
 
 .project-back {
@@ -299,16 +333,16 @@ h1, h2, h3 {
   text-transform: uppercase;
   color: var(--fg-dim);
   display: inline-block;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .project-back:hover { color: var(--accent); }
 
-.project-title { font-size: clamp(28px, 5vw, 44px); max-width: 18ch; margin-bottom: 24px; }
+.project-title { font-size: clamp(22px, 3.5vw, 32px); max-width: 24ch; margin-bottom: 18px; }
 
 .credits {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
   font-size: 12px;
 }
 .credits dt {
@@ -320,15 +354,39 @@ h1, h2, h3 {
 }
 .credits dd { margin: 0; }
 
-.project-media {
-  padding: clamp(24px, 5vw, 48px);
+/* ---------- Lightbox ---------- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 12, 12, 0.96);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: clamp(20px, 6vw, 64px);
+  cursor: zoom-out;
 }
-.project-media .frame {
+.lightbox.open { display: flex; }
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: clamp(20px, 4vw, 48px);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  background: transparent;
   border: 1px solid var(--line);
-  background: var(--bg-raised);
-  aspect-ratio: 16/9;
-  margin-bottom: 18px;
+  padding: 8px 14px;
+  cursor: pointer;
 }
+.lightbox-close:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ---------- Intake form ---------- */
 .form-wrap {
