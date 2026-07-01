@@ -291,19 +291,6 @@ h1, h2, h3 {
 
 .contact-grid a:hover { color: var(--accent); }
 
-/* ---------- Footer ---------- */
-footer {
-  padding: 20px clamp(20px, 4vw, 48px);
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-  border-top: 1px solid var(--line);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  color: var(--fg-faint);
-}
-
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .work-grid { grid-template-columns: repeat(2, 1fr); }
