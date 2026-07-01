@@ -74,6 +74,26 @@ h1, h2, h3 {
 
 .wordmark span { color: var(--accent); }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .nav-eyebrow { display: none; }
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -101,35 +121,17 @@ h1, h2, h3 {
 
 /* ---------- Hero ---------- */
 .hero {
-  position: relative;
-  padding: clamp(28px, 6vw, 56px) clamp(20px, 4vw, 48px) 0;
-}
-
-.hero-heading {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-  margin-bottom: 22px;
-}
-
-.hero-title {
-  font-size: clamp(28px, 5vw, 48px);
-  line-height: 1.05;
-  max-width: 14ch;
-}
-
-.hero-meta {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--fg-dim);
-  text-align: right;
-  line-height: 1.8;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - 73px);
+  padding: 20px clamp(20px, 4vw, 48px);
 }
 
 .reel-frame {
   position: relative;
+  width: 100%;
+  max-width: 1400px;
   border: 1px solid var(--line);
   background: var(--bg-raised);
 }

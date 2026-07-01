@@ -12,7 +12,10 @@
 <body class="lang-fr">
 
 <nav class="site-nav">
-  <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
+  <div class="brand">
+    <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
+    <span class="nav-eyebrow"><span data-fr>Coloriste — Montréal</span><span data-en>Colorist — Montreal</span></span>
+  </div>
   <div class="nav-links">
     <a href="#work"><span data-fr>Travaux</span><span data-en>Work</span></a>
     <a href="#contact"><span data-fr>Contact</span><span data-en>Contact</span></a>
@@ -22,18 +25,6 @@
 </nav>
 
 <header class="hero">
-  <div class="hero-heading">
-    <div>
-      <p class="eyebrow"><span data-fr>Coloriste — Montréal</span><span data-en>Colorist — Montreal</span></p>
-      <h1 class="hero-title"><span data-fr>La couleur comme outil narratif.</span><span data-en>Color as a narrative tool.</span></h1>
-    </div>
-    <div class="hero-meta">
-      DAVINCI RESOLVE<br>
-      REC.709 · DCI-P3 · HDR<br>
-      <span data-fr>DISPONIBLE À DISTANCE</span><span data-en>AVAILABLE REMOTE</span>
-    </div>
-  </div>
-
   <div class="reel-frame">
     <div class="reel-embed">
       <!-- Remplacer YOUR_VIMEO_ID par l'identifiant Vimeo du reel -->
@@ -178,6 +169,24 @@
     localStorage.setItem('iob-lang', body.classList.contains('lang-en') ? 'en' : 'fr');
     document.documentElement.lang = body.classList.contains('lang-en') ? 'en' : 'fr';
   });
+
+  // Dimensionne le reel pour qu'il remplisse l'écran sous la nav, entièrement visible sans scroll.
+  function sizeReel() {
+    const nav = document.querySelector('.site-nav');
+    const hero = document.querySelector('.hero');
+    const frame = document.querySelector('.reel-frame');
+    const caption = document.querySelector('.reel-caption');
+    if (!nav || !hero || !frame || !caption) return;
+    const navH = nav.offsetHeight;
+    const heroStyles = getComputedStyle(hero);
+    const heroPadV = parseFloat(heroStyles.paddingTop) + parseFloat(heroStyles.paddingBottom);
+    const capH = caption.offsetHeight;
+    const available = window.innerHeight - navH - heroPadV - capH - 4;
+    const maxWidthFromHeight = available * (16 / 9);
+    frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px';
+  }
+  window.addEventListener('load', sizeReel);
+  window.addEventListener('resize', sizeReel);
 </script>
 </body>
 </html>
