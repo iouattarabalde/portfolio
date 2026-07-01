@@ -12,6 +12,8 @@ Portfolio d'Ismael OB, coloriste basé à Montréal. Site statique, hébergé su
 
 Pages projet : galerie de stills en haut (cliquables pour agrandir en lightbox), infos condensées en bas (Type, Réalisation, DP seulement, pas de Client/Année/Étalonnage puisque c'est toujours Ismael OB).
 
+**Règle** : le nombre de stills par projet doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes). Fleur de Peau en a 18.
+
 ## À faire
 1. ~~Uploader le reel sur Vimeo~~ fait
 2. Dupliquer `project.html` en `project-02.html` ... `project-12.html`, remplir titre/type/réalisation/DP et ajouter les stills en galerie
