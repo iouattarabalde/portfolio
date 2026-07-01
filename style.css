@@ -154,27 +154,12 @@ h1, h2, h3 {
   position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
 }
 
-/* ---------- Clients strip ---------- */
-.clients {
-  padding: 20px clamp(20px, 4vw, 48px);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 28px;
-  border-bottom: 1px solid var(--line);
-  margin-top: clamp(28px, 6vw, 56px);
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--fg-dim);
-}
-.clients strong { color: var(--fg); font-weight: 500; }
-
 /* ---------- Work grid ---------- */
 .section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 40px clamp(20px, 4vw, 48px) 18px;
+  padding: clamp(28px, 6vw, 56px) clamp(20px, 4vw, 48px) 18px;
 }
 
 .work-grid {
@@ -184,17 +169,19 @@ h1, h2, h3 {
   background: var(--line);
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .work-card {
   position: relative;
   background: var(--bg);
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 16px;
+  padding: 12px;
 }
 
 .work-card .thumb {
@@ -216,23 +203,23 @@ h1, h2, h3 {
 .work-card-meta { position: relative; z-index: 1; }
 
 .work-card .type {
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 9px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .work-card .title {
   font-family: var(--display);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--fg);
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .work-card .client {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--fg-dim);
 }
 
