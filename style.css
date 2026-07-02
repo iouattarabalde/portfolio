@@ -239,10 +239,29 @@ h1, h2, h3 {
 }
 .work-card:hover .work-card-meta { opacity: 1; transform: translateY(0); }
 
-/* Touch devices have no hover: keep captions visible */
+/* Touch devices have no hover: captions stay visible, styled like a baked-in title card */
 @media (hover: none) {
-  .work-card::after,
-  .work-card-meta { opacity: 1; transform: none; }
+  .work-card::after {
+    opacity: 1;
+    background: linear-gradient(180deg, rgba(12,12,12,0) 65%, rgba(12,12,12,0.85) 100%);
+  }
+  .work-card-meta {
+    opacity: 1;
+    transform: none;
+    width: 100%;
+    text-align: center;
+  }
+  .work-card .type {
+    color: var(--fg-dim);
+  }
+  .work-card .title {
+    font-family: var(--display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 13px;
+    color: var(--accent);
+  }
 }
 
 .work-card .type {
@@ -302,12 +321,10 @@ h1, h2, h3 {
 /* ---------- Responsive ---------- */
 @media (max-width: 1000px) {
   .work-grid { grid-template-columns: repeat(3, 1fr); }
+  .work-card { aspect-ratio: 1 / 1; padding: 10px; }
 }
-@media (max-width: 700px) {
+@media (max-width: 360px) {
   .work-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-  .work-grid { grid-template-columns: 1fr; }
   .nav-links span.sep { display: none; }
 }
 
