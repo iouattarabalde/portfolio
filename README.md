@@ -3,21 +3,23 @@
 Portfolio d'Ismael OB, coloriste basé à Montréal. Site statique, hébergé sur GitHub Pages.
 
 ## Structure
-- `index.html` — page principale (hero reel + grille de travaux + contact)
-- `project.html` — gabarit à dupliquer pour chacun des projets restants (project-02.html, project-03.html, etc.)
-- `project-01.html` — Fleur de Peau (premier projet complété)
+- `index.html` — page principale (hero reel + grille de travaux, construite dynamiquement depuis `data/projects.json` + contact)
+- `project.html` — gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json`
+- `data/projects.json` — source de vérité pour tous les projets (titre, type, réalisation, DP, vignette, galerie ordonnée)
 - `intake-form.html` — formulaire d'intake client (envoie par mailto, pas de backend)
+- `admin/index.html` — outil d'auto-gestion (ajouter/modifier/supprimer des projets, glisser-déposer pour l'ordre de la galerie et des projets, upload + compression d'images automatique). Écrit directement dans le repo via l'API GitHub. Non listé dans la nav, non indexé (`robots.txt`), accès direct par l'URL `ismaelob.com/admin/`. Demande le token GitHub au premier chargement (stocké seulement dans le navigateur utilisé)
 - `style.css` — feuille de style partagée
-- `assets/` — stills et médias des projets
+- `video/` — reel auto-hébergé (`reel.mp4` + `poster.jpg`)
+- `assets/` — stills et vignettes des projets
 
 Pages projet : galerie de stills en haut (cliquables pour agrandir en lightbox), infos condensées en bas (Type, Réalisation, DP seulement, pas de Client/Année/Étalonnage puisque c'est toujours Ismael OB).
 
-**Règle** : le nombre de stills par projet doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes). Fleur de Peau en a 18.
+**Règle** : le nombre de stills par projet doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes).
 
-**Règle** : la vignette utilisée sur la page d'accueil (grille de travaux) doit être une image distincte, qui ne fait pas partie de la galerie de la page projet. Pour Fleur de Peau, la vignette est `project-01-20.jpg`, absente des 18 stills de la galerie.
+**Règle** : la vignette utilisée sur la page d'accueil doit être une image distincte, absente de la galerie de la page projet. L'admin l'impose structurellement (case d'upload séparée).
 
-## À faire
-1. ~~Uploader le reel sur Vimeo~~ fait
-2. Dupliquer `project.html` en `project-02.html` ... `project-12.html`, remplir titre/type/réalisation/DP et ajouter les stills en galerie
-3. Ajouter les stills restants dans `assets/`
-4. Mettre à jour les liens `href="project.html"` dans la grille de `index.html` vers chaque page projet au fur et à mesure
+## Ajouter/modifier un projet
+Le plus simple : `ismaelob.com/admin/`. Sinon, éditer `data/projects.json` à la main et ajouter les images dans `assets/`.
+
+## Historique
+Le site utilisait auparavant une page HTML statique dupliquée par projet (`project-01.html`, etc.). Passé à un modèle piloté par données (`data/projects.json` + gabarit unique) pour permettre l'auto-gestion via `admin/`.

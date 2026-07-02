@@ -51,105 +51,7 @@
     <p class="eyebrow"><span data-fr>Publicité · Vidéoclip · Film · Télé</span><span data-en>Advertising · Music video · Film · TV</span></p>
   </div>
 
-  <div class="work-grid">
-    <!-- Dupliquer ce bloc pour chacun des 12 projets. Lier vers project-01.html, project-02.html, etc. -->
-    <a class="work-card" href="project-01.html">
-      <div class="thumb" style="background-image:url('assets/project-01-20.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">TV</p>
-        <p class="title">Fleur de Peau</p>
-        <p class="client">— 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-02.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">MV</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-03.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">FILM</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-04.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">AD</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-05.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">MV</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-06.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">TV</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-07.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">AD</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-08.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">MV</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-09.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">FILM</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-10.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">YT</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-11.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">MV</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-    <a class="work-card" href="project.html">
-      <div class="thumb" style="background-image:url('assets/project-12.jpg')"></div>
-      <div class="work-card-meta">
-        <p class="type">FILM</p>
-        <p class="title">Titre du projet</p>
-        <p class="client">Client — 2026</p>
-      </div>
-    </a>
-  </div>
+  <div class="work-grid" id="work-grid"></div>
 </section>
 
 <section class="contact" id="contact">
@@ -218,6 +120,24 @@
       iconUnmuted.style.display = reelVideo.muted ? 'none' : 'block';
     });
   }
+
+  // Construit la grille de travaux à partir de data/projects.json.
+  fetch('data/projects.json')
+    .then((r) => r.json())
+    .then((data) => {
+      const grid = document.getElementById('work-grid');
+      if (!grid) return;
+      grid.innerHTML = data.projects.map((p) => `
+        <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}">
+          <div class="thumb" style="background-image:url('assets/${p.thumbnail}')"></div>
+          <div class="work-card-meta">
+            <p class="type">${p.type}</p>
+            <p class="title">${p.title}</p>
+          </div>
+        </a>
+      `).join('');
+    })
+    .catch((err) => console.error('Impossible de charger les projets:', err));
 </script>
 </body>
 </html>
