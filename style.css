@@ -358,10 +358,10 @@ h1, h2, h3 {
 .gallery-item:hover img { transform: scale(1.03); }
 
 @media (max-width: 900px) {
-  .project-gallery { grid-template-columns: repeat(2, 1fr); }
+  .gallery-item { aspect-ratio: 1 / 1; }
 }
-@media (max-width: 560px) {
-  .project-gallery { grid-template-columns: 1fr; }
+@media (max-width: 360px) {
+  .project-gallery { grid-template-columns: repeat(2, 1fr); }
 }
 
 .project-info {
