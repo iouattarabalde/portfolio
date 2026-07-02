@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Titre du projet — Ismael OB</title>
+<title id="page-title">Projet — Ismael OB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=4">
@@ -22,36 +22,34 @@
   </div>
 </nav>
 
-<!-- Dupliquer .gallery-item pour chaque still du projet. data-full pointe vers l'image en pleine résolution (peut être la même que src). -->
-<section class="project-gallery">
-  <button class="gallery-item" data-full="assets/PLACEHOLDER-01.jpg">
-    <img src="assets/PLACEHOLDER-01.jpg" alt="Titre du projet — still 1" loading="lazy">
-  </button>
-  <button class="gallery-item" data-full="assets/PLACEHOLDER-02.jpg">
-    <img src="assets/PLACEHOLDER-02.jpg" alt="Titre du projet — still 2" loading="lazy">
-  </button>
-  <button class="gallery-item" data-full="assets/PLACEHOLDER-03.jpg">
-    <img src="assets/PLACEHOLDER-03.jpg" alt="Titre du projet — still 3" loading="lazy">
-  </button>
-</section>
+<section class="project-gallery" id="project-gallery"></section>
 
-<section class="project-info">
+<section class="project-info" id="project-info" style="display:none;">
   <a class="project-back" href="index.html#work">← <span data-fr>Retour aux travaux</span><span data-en>Back to work</span></a>
-  <h1 class="project-title">Titre du projet</h1>
+  <h1 class="project-title" id="project-title"></h1>
   <dl class="credits">
     <div>
       <dt><span data-fr>Type</span><span data-en>Type</span></dt>
-      <dd>—</dd>
+      <dd id="project-type">—</dd>
     </div>
     <div>
       <dt><span data-fr>Réalisation</span><span data-en>Director</span></dt>
-      <dd>—</dd>
+      <dd id="project-director">—</dd>
     </div>
     <div>
       <dt><span data-fr>Image</span><span data-en>DP</span></dt>
-      <dd>—</dd>
+      <dd id="project-dp">—</dd>
     </div>
   </dl>
+</section>
+
+<section class="project-info" id="project-not-found" style="display:none;">
+  <p class="eyebrow"><span data-fr>Introuvable</span><span data-en>Not found</span></p>
+  <h1 class="project-title">
+    <span data-fr>Ce projet n'existe pas ou plus.</span>
+    <span data-en>This project doesn't exist.</span>
+  </h1>
+  <a class="project-back" href="index.html#work">← <span data-fr>Retour aux travaux</span><span data-en>Back to work</span></a>
 </section>
 
 <div class="lightbox" id="lightbox">
@@ -78,13 +76,15 @@
   // Lightbox : clic sur une vignette de la galerie pour l'agrandir.
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
-  document.querySelectorAll('.gallery-item').forEach((item) => {
-    item.addEventListener('click', () => {
-      lightboxImg.src = item.dataset.full || item.querySelector('img').src;
-      lightboxImg.alt = item.querySelector('img').alt;
-      lightbox.classList.add('open');
+  function wireLightbox() {
+    document.querySelectorAll('.gallery-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        lightboxImg.src = item.dataset.full || item.querySelector('img').src;
+        lightboxImg.alt = item.querySelector('img').alt;
+        lightbox.classList.add('open');
+      });
     });
-  });
+  }
   function closeLightbox() {
     lightbox.classList.remove('open');
     lightboxImg.src = '';
@@ -96,6 +96,40 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeLightbox();
   });
+
+  // Charge le projet demandé (?project=slug) depuis data/projects.json.
+  const params = new URLSearchParams(window.location.search);
+  const projectId = params.get('project');
+
+  fetch('data/projects.json')
+    .then((r) => r.json())
+    .then((data) => {
+      const project = data.projects.find((p) => p.id === projectId);
+      if (!project) {
+        document.getElementById('project-not-found').style.display = '';
+        return;
+      }
+
+      document.getElementById('page-title').textContent = project.title + ' — Ismael OB';
+      document.getElementById('project-title').textContent = project.title;
+      document.getElementById('project-type').textContent = project.type || '—';
+      document.getElementById('project-director').textContent = project.director || '—';
+      document.getElementById('project-dp').textContent = project.dp || '—';
+
+      const gallery = document.getElementById('project-gallery');
+      gallery.innerHTML = project.gallery.map((filename, i) => `
+        <button class="gallery-item" data-full="assets/${filename}">
+          <img src="assets/${filename}" alt="${project.title} — still ${i + 1}" loading="lazy">
+        </button>
+      `).join('');
+
+      document.getElementById('project-info').style.display = '';
+      wireLightbox();
+    })
+    .catch((err) => {
+      console.error('Impossible de charger le projet:', err);
+      document.getElementById('project-not-found').style.display = '';
+    });
 </script>
 </body>
 </html>

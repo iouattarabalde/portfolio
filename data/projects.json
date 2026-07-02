@@ -1,0 +1,32 @@
+{
+  "projects": [
+    {
+      "id": "fleur-de-peau",
+      "title": "Fleur de Peau",
+      "type": "TV",
+      "director": "Sophia Belahmer",
+      "dp": "Louka Boutin",
+      "thumbnail": "project-01-20.jpg",
+      "gallery": [
+        "project-01-01.jpg",
+        "project-01-02.jpg",
+        "project-01-03.jpg",
+        "project-01-04.jpg",
+        "project-01-05.jpg",
+        "project-01-06.jpg",
+        "project-01-07.jpg",
+        "project-01-08.jpg",
+        "project-01-09.jpg",
+        "project-01-10.jpg",
+        "project-01-11.jpg",
+        "project-01-12.jpg",
+        "project-01-13.jpg",
+        "project-01-14.jpg",
+        "project-01-15.jpg",
+        "project-01-17.jpg",
+        "project-01-18.jpg",
+        "project-01-19.jpg"
+      ]
+    }
+  ]
+}

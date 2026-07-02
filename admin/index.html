@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — Ismael OB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css?v=4">
+<style>
+  body { padding-bottom: 80px; }
+  .admin-wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 48px) clamp(20px, 4vw, 32px);
+  }
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 32px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .admin-header h1 { font-size: clamp(22px, 4vw, 30px); }
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--fg-dim);
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary {
+    background: var(--accent);
+    color: #0C0C0C;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { opacity: 0.85; color: #0C0C0C; }
+  .btn-danger:hover { border-color: #b5533f; color: #b5533f; }
+  .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+  /* Token gate */
+  #gate { max-width: 420px; margin: 15vh auto 0; text-align: center; }
+  #gate p { color: var(--fg-dim); font-size: 13px; margin-bottom: 20px; }
+  #gate input {
+    width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
+    color: var(--fg); font-family: var(--mono); font-size: 13px; padding: 12px; margin-bottom: 14px;
+  }
+  #gate-error { color: #d97757; font-size: 12px; margin-top: 12px; min-height: 16px; }
+
+  /* Project list */
+  .project-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    margin-bottom: 8px;
+    background: var(--bg-raised);
+    cursor: grab;
+  }
+  .project-row.dragging { opacity: 0.4; }
+  .project-row .handle { color: var(--fg-faint); font-size: 14px; letter-spacing: 2px; }
+  .project-row .row-thumb {
+    width: 64px; height: 40px; background-size: cover; background-position: center;
+    background-color: var(--bg); flex-shrink: 0;
+  }
+  .project-row .row-info { flex: 1; min-width: 0; }
+  .project-row .row-title { font-family: var(--display); font-size: 14px; font-weight: 600; }
+  .project-row .row-meta { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); text-transform: uppercase; }
+  .project-row .row-actions { display: flex; gap: 8px; }
+
+  .empty-state {
+    border: 1px dashed var(--line);
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: 13px;
+  }
+
+  /* Editor panel */
+  #editor {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(12,12,12,0.9);
+    z-index: 200;
+    overflow-y: auto;
+    padding: clamp(20px, 5vw, 60px) 16px;
+  }
+  #editor.open { display: block; }
+  .editor-panel {
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    padding: clamp(20px, 4vw, 36px);
+  }
+  .editor-panel h2 { font-size: 20px; margin-bottom: 24px; }
+  .field { margin-bottom: 20px; }
+  .field label {
+    display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--fg-dim); margin-bottom: 8px;
+  }
+  .field input, .field select {
+    width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
+    color: var(--fg); font-family: var(--mono); font-size: 14px; padding: 11px;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+  .field-hint { font-size: 11px; color: var(--fg-faint); margin-top: 6px; }
+
+  .thumb-picker { display: flex; align-items: center; gap: 14px; }
+  .thumb-preview {
+    width: 100px; height: 62px; background-size: cover; background-position: center;
+    background-color: var(--bg-raised); border: 1px solid var(--line); flex-shrink: 0;
+  }
+
+  .gallery-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .gallery-editor-item {
+    position: relative;
+    aspect-ratio: 4/3;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg-raised);
+    border: 1px solid var(--line);
+    cursor: grab;
+  }
+  .gallery-editor-item.dragging { opacity: 0.35; }
+  .gallery-editor-item .remove-btn {
+    position: absolute; top: 3px; right: 3px;
+    width: 18px; height: 18px; font-size: 11px; line-height: 1;
+    background: rgba(12,12,12,0.85); color: var(--fg); border: 1px solid var(--line);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .gallery-editor-item .remove-btn:hover { border-color: #b5533f; color: #b5533f; }
+  .gallery-count {
+    font-family: var(--mono); font-size: 11px; color: var(--fg-dim); margin-bottom: 10px;
+  }
+  .gallery-count.warn { color: #d9a757; }
+  .gallery-count.ok { color: var(--accent); }
+
+  .editor-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line);
+    gap: 12px; flex-wrap: wrap;
+  }
+  .save-status { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); }
+  .save-status.error { color: #d97757; }
+  .save-status.success { color: var(--accent); }
+
+  input[type="file"] {
+    font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <p class="eyebrow" style="margin-bottom:10px;">ISMAEL<span style="color:var(--accent)">OB</span> — ADMIN</p>
+  <p>Colle ton token GitHub (accès repo <code>portfolio</code>) pour continuer. Il reste seulement dans ce navigateur.</p>
+  <input type="password" id="token-input" placeholder="ghp_...">
+  <button class="btn btn-primary" id="connect-btn" style="width:100%;">Connexion</button>
+  <p id="gate-error"></p>
+</div>
+
+<div class="admin-wrap" id="dashboard" style="display:none;">
+  <div class="admin-header">
+    <h1>Projets</h1>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" id="logout-btn">Déconnexion</button>
+      <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
+    </div>
+  </div>
+  <p class="field-hint" style="margin-bottom:16px;">Glisse une ligne pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
+  <div id="project-list"></div>
+  <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
+</div>
+
+<div id="editor">
+  <div class="editor-panel">
+    <h2 id="editor-heading">Nouveau projet</h2>
+
+    <div class="field">
+      <label>Titre</label>
+      <input type="text" id="f-title" placeholder="Fleur de Peau">
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <select id="f-type">
+        <option value="AD">AD — Publicité</option>
+        <option value="MV">MV — Vidéoclip</option>
+        <option value="FILM">FILM</option>
+        <option value="TV">TV</option>
+        <option value="YT">YT — YouTube / Web</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Réalisation (Director)</label>
+      <input type="text" id="f-director" placeholder="Sophia Belahmer">
+    </div>
+    <div class="field">
+      <label>Image (DP)</label>
+      <input type="text" id="f-dp" placeholder="Louka Boutin">
+    </div>
+
+    <div class="field">
+      <label>Vignette (page d'accueil, distincte de la galerie)</label>
+      <div class="thumb-picker">
+        <div class="thumb-preview" id="thumb-preview"></div>
+        <input type="file" id="f-thumbnail" accept="image/*">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Galerie</label>
+      <p class="gallery-count" id="gallery-count">0 stills</p>
+      <div class="gallery-editor-grid" id="gallery-editor-grid"></div>
+      <input type="file" id="f-gallery-add" accept="image/*" multiple>
+      <p class="field-hint">Glisse les vignettes pour réordonner. Les nouvelles images sont compressées automatiquement avant l'envoi.</p>
+    </div>
+
+    <div class="editor-footer">
+      <div>
+        <button class="btn" id="cancel-btn">Annuler</button>
+        <button class="btn btn-danger" id="delete-project-btn" style="display:none;">Supprimer le projet</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="save-status" id="save-status"></span>
+        <button class="btn btn-primary" id="save-project-btn">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const OWNER = 'iouattarabalde';
+const REPO = 'portfolio';
+const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
+const TOKEN_KEY = 'iob_admin_token';
+
+let token = localStorage.getItem(TOKEN_KEY) || '';
+let projectsData = null;   // { projects: [...] }
+let projectsSha = null;    // sha of data/projects.json
+let editingIndex = null;   // index into projectsData.projects, or null for new
+let editorGallery = [];    // [{ filename, url, file (optional new File) }]
+let editorThumb = { filename: null, url: null, file: null };
+
+/* ---------- GitHub API helpers ---------- */
+
+async function ghGetFile(path) {
+  const res = await fetch(API + path, {
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+  return res.json();
+}
+
+async function ghPutFile(path, base64Content, message) {
+  const existing = await ghGetFile(path);
+  const body = { message, content: base64Content };
+  if (existing && existing.sha) body.sha = existing.sha;
+  const res = await fetch(API + path, {
+    method: 'PUT',
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`PUT ${path} → ${res.status} ${err.message || ''}`);
+  }
+  return res.json();
+}
+
+async function ghDeleteFile(path, sha, message) {
+  const res = await fetch(API + path, {
+    method: 'DELETE',
+    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' },
+    body: JSON.stringify({ message, sha })
+  });
+  return res.ok;
+}
+
+function b64EncodeUnicode(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function fetchProjects() {
+  const file = await ghGetFile('data/projects.json');
+  if (!file) {
+    projectsData = { projects: [] };
+    projectsSha = null;
+    return;
+  }
+  projectsData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+  projectsSha = file.sha;
+}
+
+async function saveProjectsJson(statusEl) {
+  const content = b64EncodeUnicode(JSON.stringify(projectsData, null, 2));
+  const result = await ghPutFile('data/projects.json', content, 'Admin : mise à jour projects.json');
+  projectsSha = result.content.sha;
+  if (statusEl) {
+    statusEl.textContent = 'Enregistré. En ligne dans ~1 min.';
+    statusEl.className = 'save-status success';
+  }
+}
+
+/* ---------- Image compression ---------- */
+
+function compressImage(file, maxWidth = 1920, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/* ---------- Slug ---------- */
+
+function slugify(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '') || 'projet';
+}
+
+function uniqueSlug(base) {
+  const existing = new Set(projectsData.projects.map((p) => p.id));
+  if (!existing.has(base)) return base;
+  let i = 2;
+  while (existing.has(`${base}-${i}`)) i++;
+  return `${base}-${i}`;
+}
+
+/* ---------- Auth gate ---------- */
+
+const gate = document.getElementById('gate');
+const dashboard = document.getElementById('dashboard');
+
+async function tryConnect(t) {
+  const errorEl = document.getElementById('gate-error');
+  errorEl.textContent = '';
+  token = t;
+  try {
+    await fetchProjects();
+    localStorage.setItem(TOKEN_KEY, token);
+    gate.style.display = 'none';
+    dashboard.style.display = '';
+    renderDashboard();
+  } catch (e) {
+    errorEl.textContent = 'Connexion refusée. Vérifie le token (accès repo requis).';
+    token = '';
+  }
+}
+
+document.getElementById('connect-btn').addEventListener('click', () => {
+  const t = document.getElementById('token-input').value.trim();
+  if (t) tryConnect(t);
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  localStorage.removeItem(TOKEN_KEY);
+  token = '';
+  location.reload();
+});
+
+if (token) {
+  tryConnect(token);
+}
+
+/* ---------- Dashboard ---------- */
+
+function renderDashboard() {
+  const list = document.getElementById('project-list');
+  if (!projectsData.projects.length) {
+    list.innerHTML = '<div class="empty-state">Aucun projet pour l\'instant. Clique « + Nouveau projet » pour commencer.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  projectsData.projects.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'project-row';
+    row.draggable = true;
+    row.dataset.index = i;
+    row.innerHTML = `
+      <span class="handle">⠿</span>
+      <div class="row-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
+      <div class="row-info">
+        <div class="row-title">${p.title}</div>
+        <div class="row-meta">${p.type} · ${p.gallery.length} stills</div>
+      </div>
+      <div class="row-actions">
+        <button class="btn" data-edit="${i}">Modifier</button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('[data-edit]').forEach((btn) => {
+    btn.addEventListener('click', () => openEditor(parseInt(btn.dataset.edit, 10)));
+  });
+
+  wireDragReorder(list);
+}
+
+function wireDragReorder(list) {
+  let dragEl = null;
+  list.querySelectorAll('.project-row').forEach((row) => {
+    row.addEventListener('dragstart', () => {
+      dragEl = row;
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend', async () => {
+      row.classList.remove('dragging');
+      const newOrder = Array.from(list.querySelectorAll('.project-row')).map((r) => parseInt(r.dataset.index, 10));
+      projectsData.projects = newOrder.map((i) => projectsData.projects[i]);
+      renderDashboard();
+      const statusEl = document.getElementById('dashboard-status');
+      statusEl.textContent = 'Enregistrement de l\'ordre…';
+      statusEl.className = 'save-status';
+      try {
+        await saveProjectsJson(statusEl);
+      } catch (e) {
+        statusEl.textContent = 'Erreur : ' + e.message;
+        statusEl.className = 'save-status error';
+      }
+    });
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const after = getDragAfterElement(list, e.clientY);
+      if (!dragEl) return;
+      if (after == null) list.appendChild(dragEl);
+      else list.insertBefore(dragEl, after);
+    });
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const els = [...container.querySelectorAll('.project-row:not(.dragging)')];
+  return els.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) return { offset, element: child };
+    return closest;
+  }, { offset: -Infinity }).element;
+}
+
+/* ---------- Editor ---------- */
+
+const editorEl = document.getElementById('editor');
+
+function openEditor(index) {
+  editingIndex = index;
+  const isNew = index === null;
+  const project = isNew ? null : projectsData.projects[index];
+
+  document.getElementById('editor-heading').textContent = isNew ? 'Nouveau projet' : 'Modifier le projet';
+  document.getElementById('f-title').value = project ? project.title : '';
+  document.getElementById('f-type').value = project ? project.type : 'AD';
+  document.getElementById('f-director').value = project ? project.director : '';
+  document.getElementById('f-dp').value = project ? project.dp : '';
+  document.getElementById('delete-project-btn').style.display = isNew ? 'none' : '';
+  document.getElementById('save-status').textContent = '';
+  document.getElementById('save-status').className = 'save-status';
+
+  editorThumb = project
+    ? { filename: project.thumbnail, url: `../assets/${project.thumbnail}`, file: null }
+    : { filename: null, url: null, file: null };
+  updateThumbPreview();
+
+  editorGallery = project
+    ? project.gallery.map((f) => ({ filename: f, url: `../assets/${f}`, file: null }))
+    : [];
+  renderGalleryEditor();
+
+  document.getElementById('f-thumbnail').value = '';
+  document.getElementById('f-gallery-add').value = '';
+
+  editorEl.classList.add('open');
+}
+
+document.getElementById('new-project-btn').addEventListener('click', () => openEditor(null));
+document.getElementById('cancel-btn').addEventListener('click', () => editorEl.classList.remove('open'));
+
+function updateThumbPreview() {
+  const el = document.getElementById('thumb-preview');
+  el.style.backgroundImage = editorThumb.url ? `url('${editorThumb.url}')` : 'none';
+}
+
+document.getElementById('f-thumbnail').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  editorThumb = { filename: null, url: URL.createObjectURL(file), file };
+  updateThumbPreview();
+});
+
+function renderGalleryEditor() {
+  const grid = document.getElementById('gallery-editor-grid');
+  grid.innerHTML = '';
+  editorGallery.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'gallery-editor-item';
+    div.draggable = true;
+    div.dataset.index = i;
+    div.style.backgroundImage = `url('${item.url}')`;
+    div.innerHTML = `<button class="remove-btn" type="button" data-remove="${i}">✕</button>`;
+    grid.appendChild(div);
+  });
+
+  grid.querySelectorAll('[data-remove]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editorGallery.splice(parseInt(btn.dataset.remove, 10), 1);
+      renderGalleryEditor();
+    });
+  });
+
+  wireGalleryDrag(grid);
+  updateGalleryCount();
+}
+
+function wireGalleryDrag(grid) {
+  let dragEl = null;
+  grid.querySelectorAll('.gallery-editor-item').forEach((item) => {
+    item.addEventListener('dragstart', () => {
+      dragEl = item;
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      const newOrder = Array.from(grid.querySelectorAll('.gallery-editor-item')).map((r) => parseInt(r.dataset.index, 10));
+      editorGallery = newOrder.map((i) => editorGallery[i]);
+      renderGalleryEditor();
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const after = getDragAfterElementGrid(grid, e.clientX, e.clientY);
+      if (!dragEl) return;
+      if (after == null) grid.appendChild(dragEl);
+      else grid.insertBefore(dragEl, after);
+    });
+  });
+}
+
+function getDragAfterElementGrid(container, x, y) {
+  const els = [...container.querySelectorAll('.gallery-editor-item:not(.dragging)')];
+  let closest = { dist: Infinity, element: null };
+  els.forEach((child) => {
+    const box = child.getBoundingClientRect();
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    const dist = Math.hypot(x - cx, y - cy);
+    if (dist < closest.dist) closest = { dist, element: child };
+  });
+  return closest.element;
+}
+
+function updateGalleryCount() {
+  const el = document.getElementById('gallery-count');
+  const n = editorGallery.length;
+  el.textContent = n + ' stills' + (n % 3 === 0 ? ' (multiple de 3 ✓)' : ' — vise un multiple de 3');
+  el.className = 'gallery-count ' + (n > 0 && n % 3 === 0 ? 'ok' : 'warn');
+}
+
+document.getElementById('f-gallery-add').addEventListener('change', (e) => {
+  Array.from(e.target.files).forEach((file) => {
+    editorGallery.push({ filename: null, url: URL.createObjectURL(file), file });
+  });
+  e.target.value = '';
+  renderGalleryEditor();
+});
+
+/* ---------- Save / Delete project ---------- */
+
+document.getElementById('save-project-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('save-status');
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { statusEl.textContent = 'Le titre est requis.'; statusEl.className = 'save-status error'; return; }
+  if (!editorThumb.filename && !editorThumb.file) { statusEl.textContent = 'Choisis une vignette.'; statusEl.className = 'save-status error'; return; }
+  if (!editorGallery.length) { statusEl.textContent = 'Ajoute au moins une image à la galerie.'; statusEl.className = 'save-status error'; return; }
+
+  const saveBtn = document.getElementById('save-project-btn');
+  saveBtn.disabled = true;
+  const slug = editingIndex !== null ? projectsData.projects[editingIndex].id : uniqueSlug(slugify(title));
+
+  try {
+    statusEl.className = 'save-status';
+
+    // Vignette
+    if (editorThumb.file) {
+      statusEl.textContent = 'Envoi de la vignette…';
+      const compressed = await compressImage(editorThumb.file);
+      const b64 = await blobToBase64(compressed);
+      const filename = `${slug}-cover.jpg`;
+      await ghPutFile(`assets/${filename}`, b64, `Admin : vignette pour ${title}`);
+      editorThumb.filename = filename;
+    }
+
+    // Galerie : upload des nouvelles images dans l'ordre affiché
+    for (let i = 0; i < editorGallery.length; i++) {
+      const item = editorGallery[i];
+      if (item.file) {
+        statusEl.textContent = `Envoi de l'image ${i + 1} / ${editorGallery.length}…`;
+        const compressed = await compressImage(item.file);
+        const b64 = await blobToBase64(compressed);
+        const filename = `${slug}-${Date.now()}-${i}.jpg`;
+        await ghPutFile(`assets/${filename}`, b64, `Admin : still ${i + 1} pour ${title}`);
+        item.filename = filename;
+      }
+    }
+
+    const projectEntry = {
+      id: slug,
+      title,
+      type: document.getElementById('f-type').value,
+      director: document.getElementById('f-director').value.trim(),
+      dp: document.getElementById('f-dp').value.trim(),
+      thumbnail: editorThumb.filename,
+      gallery: editorGallery.map((g) => g.filename)
+    };
+
+    if (editingIndex !== null) {
+      projectsData.projects[editingIndex] = projectEntry;
+    } else {
+      projectsData.projects.push(projectEntry);
+    }
+
+    statusEl.textContent = 'Enregistrement de projects.json…';
+    await saveProjectsJson(statusEl);
+
+    editorEl.classList.remove('open');
+    renderDashboard();
+  } catch (e) {
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+
+document.getElementById('delete-project-btn').addEventListener('click', async () => {
+  if (editingIndex === null) return;
+  if (!confirm('Supprimer ce projet ? Les images restent dans le repo mais le projet disparaît du site.')) return;
+  const statusEl = document.getElementById('save-status');
+  try {
+    projectsData.projects.splice(editingIndex, 1);
+    statusEl.textContent = 'Suppression…';
+    await saveProjectsJson(statusEl);
+    editorEl.classList.remove('open');
+    renderDashboard();
+  } catch (e) {
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+  }
+});
+</script>
+</body>
+</html>
