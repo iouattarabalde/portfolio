@@ -7,7 +7,7 @@
 <meta name="description" content="Ismael OB, coloriste basé à Montréal. Étalonnage pour publicités, vidéoclips, films et télévision.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -27,9 +27,20 @@
 <header class="hero">
   <div class="reel-frame">
     <div class="reel-embed">
-      <video autoplay muted loop playsinline preload="auto" title="Ismael OB - Demo Reel">
+      <video id="reel-video" autoplay muted loop playsinline preload="auto" poster="video/poster.jpg" title="Ismael OB - Demo Reel">
         <source src="video/reel.mp4" type="video/mp4">
       </video>
+      <button id="sound-toggle" type="button" aria-label="Toggle sound">
+        <svg id="icon-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 9V15H7L12 20V4L7 9H3Z" fill="currentColor"/>
+          <path d="M16 8L21 16M21 8L16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <svg id="icon-unmuted" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+          <path d="M3 9V15H7L12 20V4L7 9H3Z" fill="currentColor"/>
+          <path d="M16 8.5C17 9.5 17.5 10.7 17.5 12C17.5 13.3 17 14.5 16 15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M18.5 6C20.2 7.7 21 9.8 21 12C21 14.2 20.2 16.3 18.5 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
     </div>
   </div>
 </header>
@@ -194,6 +205,19 @@
   }
   window.addEventListener('load', sizeReel);
   window.addEventListener('resize', sizeReel);
+
+  // Activer/couper le son du reel.
+  const reelVideo = document.getElementById('reel-video');
+  const soundBtn = document.getElementById('sound-toggle');
+  const iconMuted = document.getElementById('icon-muted');
+  const iconUnmuted = document.getElementById('icon-unmuted');
+  if (reelVideo && soundBtn) {
+    soundBtn.addEventListener('click', () => {
+      reelVideo.muted = !reelVideo.muted;
+      iconMuted.style.display = reelVideo.muted ? 'block' : 'none';
+      iconUnmuted.style.display = reelVideo.muted ? 'none' : 'block';
+    });
+  }
 </script>
 </body>
 </html>
