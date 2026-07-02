@@ -150,8 +150,10 @@ h1, h2, h3 {
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 .reel-embed { position: relative; padding-top: 56.25%; }
-.reel-embed iframe {
+.reel-embed iframe,
+.reel-embed video {
   position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+  object-fit: cover;
 }
 
 /* ---------- Work grid ---------- */
