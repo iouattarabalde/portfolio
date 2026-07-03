@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><span>Intake</span> — Ismael OB</title>
+<title>Nouveau projet — Ismael OB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=7">
@@ -28,24 +28,19 @@
     <span data-fr>Parlons de votre projet</span><span data-en>Tell me about your project</span>
   </h1>
   <p style="color:var(--fg-dim); font-size:13px; margin-bottom:32px;">
-    <span data-fr>Ces informations permettent une soumission précise dès le premier échange.</span>
-    <span data-en>This information allows for an accurate quote from the first exchange.</span>
+    <span data-fr>Quelques informations pour démarrer, on précise le reste ensemble par la suite.</span>
+    <span data-en>A few details to get started, we'll figure out the rest together.</span>
   </p>
 
   <form id="intake-form">
     <div class="field">
       <label for="name"><span data-fr>Nom</span><span data-en>Name</span></label>
-      <input type="text" id="name" name="name" required>
+      <input type="text" id="name" name="name" placeholder="Nom — compagnie (optionnel)" required>
     </div>
 
     <div class="field">
       <label for="email"><span data-fr>Courriel</span><span data-en>Email</span></label>
       <input type="email" id="email" name="email" required>
-    </div>
-
-    <div class="field">
-      <label for="company"><span data-fr>Compagnie / studio</span><span data-en>Company / studio</span></label>
-      <input type="text" id="company" name="company">
     </div>
 
     <div class="field">
@@ -61,37 +56,8 @@
     </div>
 
     <div class="field">
-      <label for="camera"><span data-fr>Caméra(s) utilisée(s)</span><span data-en>Camera(s) used</span></label>
-      <input type="text" id="camera" name="camera" placeholder="ex. Sony FX6, ARRI Alexa Mini">
-    </div>
-
-    <div class="field">
-      <label for="editing"><span data-fr>Logiciel de montage</span><span data-en>Editing software</span></label>
-      <input type="text" id="editing" name="editing" placeholder="ex. Premiere Pro, Avid">
-    </div>
-
-    <div class="field">
-      <label for="deliverables"><span data-fr>Nombre de livrables et versions</span><span data-en>Number of deliverables and versions</span></label>
-      <input type="text" id="deliverables" name="deliverables" placeholder="ex. 1 master 60s + 3 déclinaisons 15s">
-    </div>
-
-    <div class="field">
-      <label for="delivery-type"><span data-fr>Type de livraison</span><span data-en>Delivery type</span></label>
-      <select id="delivery-type" name="delivery-type">
-        <option value=""></option>
-        <option value="clips-handles"><span data-fr>Clips individuels avec poignées</span><span data-en>Individual clips with handles</span></option>
-        <option value="timeline-export"><span data-fr>Export de la timeline complète</span><span data-en>Full timeline export</span></option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label for="resolution"><span data-fr>Résolution de livraison</span><span data-en>Delivery resolution</span></label>
-      <input type="text" id="resolution" name="resolution" placeholder="ex. UHD 4K, HD 1080p">
-    </div>
-
-    <div class="field">
-      <label for="vfx"><span data-fr>Présence de VFX (plaques, handoff de composition)</span><span data-en>VFX presence (plates, compositing handoff)</span></label>
-      <textarea id="vfx" name="vfx"></textarea>
+      <label for="description"><span data-fr>Décris ton projet</span><span data-en>Describe your project</span></label>
+      <textarea id="description" name="description" rows="5" placeholder="Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet." data-fr-placeholder="Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet." data-en-placeholder="Camera, editing software, deliverables, VFX... anything that helps understand the project."></textarea>
     </div>
 
     <div class="field">
@@ -99,15 +65,9 @@
       <input type="date" id="delivery-date" name="delivery-date">
     </div>
 
-    <div class="field">
-      <label for="notes"><span data-fr>Notes additionnelles</span><span data-en>Additional notes</span></label>
-      <textarea id="notes" name="notes"></textarea>
-    </div>
-
     <button type="submit" class="submit-btn"><span data-fr>Envoyer</span><span data-en>Send</span></button>
   </form>
 </div>
-
 
 <script>
   const btn = document.getElementById('lang-toggle');
@@ -117,12 +77,19 @@
   function updateLangButton() {
     btn.textContent = body.classList.contains('lang-fr') ? 'EN' : 'FR';
   }
+  function updatePlaceholder() {
+    const desc = document.getElementById('description');
+    const key = body.classList.contains('lang-fr') ? 'frPlaceholder' : 'enPlaceholder';
+    desc.placeholder = desc.dataset[key];
+  }
   updateLangButton();
+  updatePlaceholder();
   btn.addEventListener('click', () => {
     body.classList.toggle('lang-fr');
     localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
     document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
     updateLangButton();
+    updatePlaceholder();
   });
 
   // Pas de backend sur GitHub Pages : on compose un mailto avec les réponses.
@@ -132,19 +99,12 @@
     const lines = [
       'Nom: ' + f.get('name'),
       'Courriel: ' + f.get('email'),
-      'Compagnie: ' + f.get('company'),
       'Type de projet: ' + f.get('project-type'),
-      'Caméra(s): ' + f.get('camera'),
-      'Logiciel de montage: ' + f.get('editing'),
-      'Livrables: ' + f.get('deliverables'),
-      'Type de livraison: ' + f.get('delivery-type'),
-      'Résolution: ' + f.get('resolution'),
-      'VFX: ' + f.get('vfx'),
-      'Date souhaitée: ' + f.get('delivery-date'),
-      'Notes: ' + f.get('notes')
+      'Description: ' + f.get('description'),
+      'Date souhaitée: ' + f.get('delivery-date')
     ];
     const body = encodeURIComponent(lines.join('\n'));
-    const subject = encodeURIComponent('Nouveau projet — ' + (f.get('company') || f.get('name')));
+    const subject = encodeURIComponent('Nouveau projet — ' + f.get('name'));
     window.location.href = 'mailto:iouattarabalde@gmail.com?subject=' + subject + '&body=' + body;
   });
 </script>
