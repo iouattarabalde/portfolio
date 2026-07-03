@@ -204,6 +204,17 @@ h1, h2, h3 {
   padding: clamp(28px, 6vw, 56px) clamp(20px, 4vw, 48px) 18px;
 }
 
+/* On narrow screens the row above has no room to keep heading and category list side
+   by side — they were wrapping onto the same line with almost no gap. Stack them
+   instead, with breathing room between. */
+@media (max-width: 700px) {
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
 .work-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -254,30 +265,13 @@ h1, h2, h3 {
 }
 .work-card:hover .work-card-meta { opacity: 1; transform: translateY(0); }
 
-/* Touch devices can't hover, so the hover-reveal above would hide captions forever.
-   `(hover: none)` targets exactly that case: captions stay permanently visible, styled
-   bolder/centered like a baked-in title card since there's no interaction to reveal them. */
+/* Touch devices can't hover, so the hover-reveal above would never trigger — captions
+   used to be shown permanently here as a fallback, but the images read cleaner without
+   any text over them, so touch devices just never see the caption or its gradient scrim. */
 @media (hover: none) {
-  .work-card::after {
-    opacity: 1;
-    background: linear-gradient(180deg, rgba(12,12,12,0) 65%, rgba(12,12,12,0.85) 100%);
-  }
+  .work-card::after,
   .work-card-meta {
-    opacity: 1;
-    transform: none;
-    width: 100%;
-    text-align: center;
-  }
-  .work-card .type {
-    color: var(--fg-dim);
-  }
-  .work-card .title {
-    font-family: var(--display);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    font-size: 13px;
-    color: var(--accent);
+    display: none;
   }
 }
 
