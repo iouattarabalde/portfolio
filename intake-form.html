@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+  intake-form.html — the "Contact" nav link. 5-field lead form (kept short on purpose).
+  No backend (static GitHub Pages site), so submitting opens a pre-filled mailto: link
+  instead of posting to a server.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -66,6 +71,15 @@
 </div>
 
 <script>
+  // ---------------------------------------------------------------
+  // intake-form.html script overview:
+  //   1. Language toggle, also drives the textarea placeholder and the
+  //      Project Type <option> labels (which can't use CSS data-fr/data-en
+  //      spans — browsers render <option> as plain text, ignoring any HTML
+  //      inside it, so the options are rebuilt in JS instead)
+  //   2. Form submit -> builds a mailto: link (no backend on GitHub Pages)
+  // ---------------------------------------------------------------
+
   const btn = document.getElementById('lang-toggle');
   const body = document.body;
   const stored = localStorage.getItem('iob-lang');
@@ -76,8 +90,10 @@
   function updatePlaceholder() {
     const desc = document.getElementById('description');
     const key = body.classList.contains('lang-fr') ? 'frPlaceholder' : 'enPlaceholder';
-    desc.placeholder = desc.dataset[key];
+    desc.placeholder = desc.dataset[key]; // set from data-fr-placeholder/data-en-placeholder on the textarea
   }
+  // Rebuilds the Project Type <select> options in the current language, using the
+  // shared PROJECT_TYPES map from types.js. Preserves whatever was already selected.
   function updateTypeOptions() {
     const select = document.getElementById('project-type');
     const isFr = body.classList.contains('lang-fr');
@@ -86,6 +102,7 @@
       const t = PROJECT_TYPES[code];
       const acronym = isFr ? t.frAcronym : t.enAcronym;
       const label = isFr ? t.frLabel : t.enLabel;
+      // Skip the " — Label" part when acronym and label are the same word (FILM, WEB)
       const text = acronym.toLowerCase() === label.toLowerCase() ? acronym : `${acronym} — ${label}`;
       return `<option value="${code}">${text}</option>`;
     }).join('');
@@ -103,7 +120,8 @@
     updateTypeOptions();
   });
 
-  // Pas de backend sur GitHub Pages : on compose un mailto avec les réponses.
+  // No backend on GitHub Pages, so "submitting" just opens the visitor's email client
+  // with a pre-filled message instead of posting anywhere.
   document.getElementById('intake-form').addEventListener('submit', function (e) {
     e.preventDefault();
     const f = new FormData(this);
@@ -114,9 +132,10 @@
       'Description: ' + f.get('description'),
       'Date souhaitée: ' + f.get('delivery-date')
     ];
-    const body = encodeURIComponent(lines.join('\n'));
+    // Named mailBody (not "body") to avoid shadowing the document.body reference above
+    const mailBody = encodeURIComponent(lines.join('\n'));
     const subject = encodeURIComponent('Nouveau projet — ' + f.get('name'));
-    window.location.href = 'mailto:iouattarabalde@gmail.com?subject=' + subject + '&body=' + body;
+    window.location.href = 'mailto:iouattarabalde@gmail.com?subject=' + subject + '&body=' + mailBody;
   });
 </script>
 </body>

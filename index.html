@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  index.html — homepage: hero reel, work grid (built from data/projects.json), contact info.
+  Nav labels: "Projects" -> #work, "Info" -> #contact, "Contact" -> intake-form.html.
+  style.css is versioned (?v=7) as a cache-buster; bump the number on every CSS edit
+  across ALL pages that link it, or browsers may keep serving a stale stylesheet.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -25,6 +31,7 @@
   </div>
 </nav>
 
+<!-- Hero: self-hosted reel (video/reel.mp4), sized/muted via the script at the bottom -->
 <header class="hero">
   <div class="reel-frame">
     <div class="reel-embed">
@@ -46,6 +53,7 @@
   </div>
 </header>
 
+<!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
   <div class="section-head">
     <h2><span data-fr>Projets</span><span data-en>Projects</span></h2>
@@ -78,11 +86,20 @@
 
 
 <script>
+  // ---------------------------------------------------------------
+  // index.html script overview:
+  //   1. Language toggle (FR/EN), persisted in localStorage
+  //   2. Hero reel sizing (fills viewport below nav) + mute/unmute button
+  //   3. Work grid, rendered from data/projects.json (re-rendered on language change
+  //      so card captions switch between EN/FR acronyms without a page reload)
+  // ---------------------------------------------------------------
+
   const btn = document.getElementById('lang-toggle');
   const body = document.body;
   const stored = localStorage.getItem('iob-lang');
-  if (stored === 'fr') body.classList.add('lang-fr');
+  if (stored === 'fr') body.classList.add('lang-fr'); // English is the default; only opt into French if remembered
   function updateLangButton() {
+    // Button always shows the language you'd switch TO, not the current one
     btn.textContent = body.classList.contains('lang-fr') ? 'EN' : 'FR';
   }
   updateLangButton();
@@ -91,10 +108,14 @@
     localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
     document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
     updateLangButton();
-    renderWorkGrid();
+    renderWorkGrid(); // re-render so card type tags (AD/PUB, MV/CLIP, etc.) switch language too
   });
 
-  // Dimensionne le reel pour qu'il remplisse l'écran sous la nav, entièrement visible sans scroll.
+  // Sizes the reel so it exactly fills the space below the sticky nav, fully visible
+  // without scrolling on load. Math: available vertical space = viewport height minus
+  // nav height minus the hero's own padding. Since the reel is 16:9, we convert that
+  // available height into the matching width (height * 16/9) and cap the frame's
+  // max-width there — the CSS aspect-ratio box then derives the height from that width.
   function sizeReel() {
     const nav = document.querySelector('.site-nav');
     const hero = document.querySelector('.hero');
@@ -103,14 +124,16 @@
     const navH = nav.offsetHeight;
     const heroStyles = getComputedStyle(hero);
     const heroPadV = parseFloat(heroStyles.paddingTop) + parseFloat(heroStyles.paddingBottom);
-    const available = window.innerHeight - navH - heroPadV - 4;
+    const available = window.innerHeight - navH - heroPadV - 4; // 4px = small safety margin
     const maxWidthFromHeight = available * (16 / 9);
-    frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px';
+    frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px'; // 280px floor so it never gets absurdly small
   }
   window.addEventListener('load', sizeReel);
   window.addEventListener('resize', sizeReel);
 
-  // Activer/couper le son du reel.
+  // Mute/unmute button overlaid on the reel. Starts muted (required for autoplay to
+  // work in every browser); clicking just flips the video's own .muted property and
+  // swaps which SVG icon is shown.
   const reelVideo = document.getElementById('reel-video');
   const soundBtn = document.getElementById('sound-toggle');
   const iconMuted = document.getElementById('icon-muted');
@@ -123,7 +146,9 @@
     });
   }
 
-  // Construit la grille de travaux à partir de data/projects.json.
+  // Work grid: fetched once from data/projects.json and cached, then rendered into
+  // #work-grid. Re-render (renderWorkGrid) is called again on language toggle above,
+  // which is why the fetched list is cached in a variable instead of only used once.
   let cachedProjects = null;
   function renderWorkGrid() {
     const grid = document.getElementById('work-grid');
