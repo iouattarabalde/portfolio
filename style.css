@@ -303,6 +303,13 @@ h1, h2, h3 {
   font-size: 13px;
 }
 
+@media (max-width: 640px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
 .contact-grid dt {
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -314,6 +321,7 @@ h1, h2, h3 {
 .contact-grid dd {
   margin: 0;
   font-size: 15px;
+  overflow-wrap: break-word;
 }
 
 .contact-grid a:hover { color: var(--accent); }
