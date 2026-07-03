@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=7">
-<script src="../types.js"></script>
+<script src="../i18n.js"></script>
 <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -182,6 +182,44 @@
   input[type="file"] {
     font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
   }
+
+  /* Types de projet + Textes généraux editors, inside the "Textes du site" panel */
+  .type-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .type-row .type-code {
+    font-family: var(--mono); font-size: 11px; color: var(--fg-dim); text-transform: uppercase;
+  }
+  .type-row input {
+    background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+    font-family: var(--mono); font-size: 12px; padding: 8px;
+  }
+  .string-group-title {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--fg-faint); margin: 16px 0 8px;
+  }
+  .string-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .string-row .string-label {
+    font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+  }
+  .string-row input {
+    background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+    font-family: var(--mono); font-size: 12px; padding: 8px;
+  }
+  @media (max-width: 640px) {
+    .string-row { grid-template-columns: 1fr; }
+    .type-row { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -227,10 +265,12 @@
     <button class="btn btn-primary" id="upload-video-btn" style="margin-top:6px;">Compresser et publier</button>
   </div>
 
-  <!-- Coordonnées : email, localisation, disponibilité, Instagram — édite data/settings.json,
-       lu par la section contact de index.html et par le mailto d'intake-form.html. -->
+  <!-- Textes du site : coordonnées + tous les libellés bilingues + acronymes de type.
+       Édite data/settings.json et data/strings.json, lus par toutes les pages publiques. -->
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
-    <h2 style="font-size:16px; margin-bottom:14px;">Coordonnées</h2>
+    <h2 style="font-size:16px; margin-bottom:14px;">Textes du site</h2>
+
+    <h3 style="font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 14px;">Coordonnées</h3>
     <div class="field">
       <label>Courriel</label>
       <input type="email" id="s-email">
@@ -255,8 +295,17 @@
       <label>Instagram (nom d'utilisateur, sans @)</label>
       <input type="text" id="s-instagram" placeholder="he.smile_">
     </div>
-    <div style="display:flex; align-items:center; gap:12px;">
-      <button class="btn btn-primary" id="save-settings-btn">Enregistrer les coordonnées</button>
+
+    <h3 style="font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:28px 0 14px;">Types de projet</h3>
+    <p class="field-hint" style="margin-bottom:14px;">Acronyme + libellé, dans chaque langue. L'acronyme est ce qui s'affiche sur les vignettes.</p>
+    <div id="types-editor"></div>
+
+    <h3 style="font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:28px 0 14px;">Textes généraux</h3>
+    <p class="field-hint" style="margin-bottom:14px;">Tous les libellés du site (navigation, titres, formulaire), en français et en anglais.</p>
+    <div id="strings-editor"></div>
+
+    <div style="display:flex; align-items:center; gap:12px; margin-top:20px;">
+      <button class="btn btn-primary" id="save-settings-btn">Enregistrer les textes du site</button>
       <span class="save-status" id="settings-status"></span>
     </div>
   </div>
@@ -420,12 +469,16 @@ async function saveProjectsJson(statusEl) {
   }
 }
 
-/* ---------- Coordonnées (data/settings.json) ----------
-   Same read/write pattern as projects.json, but for the small set of contact details
-   shown in index.html's contact section and used as the intake form's mailto target. */
+/* ---------- Textes du site (data/settings.json + data/strings.json) ----------
+   Same read/write pattern as projects.json, but for two smaller files: contact
+   details (settings.json) and every other bilingual string + project type acronym
+   on the site (strings.json). Both are read fresh via ghGetFile (not the public
+   fetch()/loadI18n() path the live pages use) so edits are never based on a
+   possibly-cached copy, and merged over i18n.js's DEFAULT_STRINGS/DEFAULT_TYPES so
+   every field always has a value to show, even for a key that's never been saved. */
 
-// Loads settings.json into the six input fields of the Coordonnées panel. Falls back
-// to empty fields (rather than throwing) if the file doesn't exist yet.
+// Loads settings.json into the six Coordonnées input fields. Falls back to empty
+// fields (rather than throwing) if the file doesn't exist yet.
 async function loadSettingsIntoForm() {
   const file = await ghGetFile('data/settings.json');
   const s = file ? JSON.parse(decodeURIComponent(escape(atob(file.content)))) : {};
@@ -437,21 +490,150 @@ async function loadSettingsIntoForm() {
   document.getElementById('s-instagram').value = s.instagramHandle || '';
 }
 
+// Manifest for the "Textes généraux" editor: which data/strings.json key each row
+// edits, grouped by the page it appears on, with a plain-language description.
+// Add a new entry here (and a matching key in i18n.js's DEFAULT_STRINGS) any time a
+// new bilingual string is added to one of the public pages, and it shows up here too.
+const STRING_GROUPS = [
+  { title: 'Navigation', keys: [
+    { key: 'nav.eyebrow', label: 'Sous-titre à côté du logo' },
+    { key: 'nav.work', label: 'Lien "Projects"' },
+    { key: 'nav.info', label: 'Lien "Info"' },
+    { key: 'nav.contact', label: 'Lien "Contact"' }
+  ] },
+  { title: "Page d'accueil", keys: [
+    { key: 'work.heading', label: 'Titre de la section Projets' },
+    { key: 'work.categories', label: 'Liste des catégories sous le titre' },
+    { key: 'contact.heading', label: 'Titre de la section Info' },
+    { key: 'contact.email_label', label: 'Étiquette "Courriel"' },
+    { key: 'contact.location_label', label: 'Étiquette "Localisation"' }
+  ] },
+  { title: 'Page projet', keys: [
+    { key: 'project.back', label: 'Lien retour aux travaux' },
+    { key: 'project.type_label', label: 'Étiquette "Type"' },
+    { key: 'project.director_label', label: 'Étiquette "Réalisation"' },
+    { key: 'project.dp_label', label: 'Étiquette "Image (DP)"' },
+    { key: 'project.not_found_eyebrow', label: 'Sous-titre "Introuvable"' },
+    { key: 'project.not_found_heading', label: 'Message projet introuvable' },
+    { key: 'lightbox.close', label: 'Bouton fermer la galerie' }
+  ] },
+  { title: 'Formulaire Contact', keys: [
+    { key: 'intake.eyebrow', label: 'Sous-titre du formulaire' },
+    { key: 'intake.heading', label: 'Titre du formulaire' },
+    { key: 'intake.subheading', label: 'Texte sous le titre' },
+    { key: 'intake.name_label', label: 'Étiquette "Nom"' },
+    { key: 'intake.email_label', label: 'Étiquette "Courriel"' },
+    { key: 'intake.type_label', label: 'Étiquette "Type de projet"' },
+    { key: 'intake.description_label', label: 'Étiquette "Décris ton projet"' },
+    { key: 'intake.description_placeholder', label: "Texte d'exemple dans la description" },
+    { key: 'intake.date_label', label: 'Étiquette "Date de livraison"' },
+    { key: 'intake.submit', label: 'Bouton envoyer' }
+  ] }
+];
+
+function escapeAttr(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+function stringInputId(key, lang) {
+  return 'str-' + key.replace(/\./g, '-') + '-' + lang;
+}
+
+// Builds one FR/EN input pair per manifest entry, grouped under a heading per page.
+function renderStringsEditor(strings) {
+  document.getElementById('strings-editor').innerHTML = STRING_GROUPS.map((group) => `
+    <div class="string-group-title">${group.title}</div>
+    ${group.keys.map(({ key, label }) => {
+      const entry = strings[key] || {};
+      return `
+        <div class="string-row">
+          <span class="string-label">${label}</span>
+          <input type="text" id="${stringInputId(key, 'fr')}" value="${escapeAttr(entry.fr || '')}" placeholder="Français">
+          <input type="text" id="${stringInputId(key, 'en')}" value="${escapeAttr(entry.en || '')}" placeholder="English">
+        </div>
+      `;
+    }).join('')}
+  `).join('');
+}
+
+function collectStringsFromForm() {
+  const result = {};
+  STRING_GROUPS.forEach((group) => {
+    group.keys.forEach(({ key }) => {
+      result[key] = {
+        fr: document.getElementById(stringInputId(key, 'fr')).value,
+        en: document.getElementById(stringInputId(key, 'en')).value
+      };
+    });
+  });
+  return result;
+}
+
+function typeInputId(code, field) {
+  return 'type-' + code + '-' + field;
+}
+
+// One block per project type code (AD, MV, FILM, TV, WEB): acronym + label, each in
+// both languages. The code itself (left column) isn't editable — it's the id used in
+// data/projects.json and the intake form, changing it would break existing projects.
+function renderTypesEditor(types) {
+  document.getElementById('types-editor').innerHTML = Object.keys(types).map((code) => {
+    const t = types[code];
+    return `
+      <div class="type-row">
+        <span class="type-code">${code}</span>
+        <input type="text" id="${typeInputId(code, 'frAcronym')}" value="${escapeAttr(t.frAcronym)}" placeholder="Acronyme FR">
+        <input type="text" id="${typeInputId(code, 'enAcronym')}" value="${escapeAttr(t.enAcronym)}" placeholder="Acronym EN">
+      </div>
+      <div class="type-row">
+        <span></span>
+        <input type="text" id="${typeInputId(code, 'frLabel')}" value="${escapeAttr(t.frLabel)}" placeholder="Libellé FR">
+        <input type="text" id="${typeInputId(code, 'enLabel')}" value="${escapeAttr(t.enLabel)}" placeholder="Label EN">
+      </div>
+    `;
+  }).join('');
+}
+
+function collectTypesFromForm() {
+  const result = {};
+  Object.keys(DEFAULT_TYPES).forEach((code) => {
+    result[code] = {
+      frAcronym: document.getElementById(typeInputId(code, 'frAcronym')).value,
+      enAcronym: document.getElementById(typeInputId(code, 'enAcronym')).value,
+      frLabel: document.getElementById(typeInputId(code, 'frLabel')).value,
+      enLabel: document.getElementById(typeInputId(code, 'enLabel')).value
+    };
+  });
+  return result;
+}
+
+// Loads data/strings.json (falling back to i18n.js's defaults for anything missing)
+// and renders both the Types de projet and Textes généraux editors from it.
+async function loadStringsIntoForm() {
+  const file = await ghGetFile('data/strings.json');
+  const data = file ? JSON.parse(decodeURIComponent(escape(atob(file.content)))) : {};
+  renderStringsEditor(Object.assign({}, DEFAULT_STRINGS, data.strings || {}));
+  renderTypesEditor(Object.assign({}, DEFAULT_TYPES, data.types || {}));
+}
+
 document.getElementById('save-settings-btn').addEventListener('click', async () => {
   const statusEl = document.getElementById('settings-status');
-  const settings = {
-    email: document.getElementById('s-email').value.trim(),
-    locationFr: document.getElementById('s-location-fr').value.trim(),
-    locationEn: document.getElementById('s-location-en').value.trim(),
-    availabilityFr: document.getElementById('s-availability-fr').value.trim(),
-    availabilityEn: document.getElementById('s-availability-en').value.trim(),
-    instagramHandle: document.getElementById('s-instagram').value.trim().replace(/^@/, '')
-  };
   statusEl.textContent = 'Enregistrement…';
   statusEl.className = 'save-status';
   try {
-    const content = b64EncodeUnicode(JSON.stringify(settings, null, 2));
-    await ghPutFile('data/settings.json', content, 'Admin : mise à jour des coordonnées');
+    const settings = {
+      email: document.getElementById('s-email').value.trim(),
+      locationFr: document.getElementById('s-location-fr').value.trim(),
+      locationEn: document.getElementById('s-location-en').value.trim(),
+      availabilityFr: document.getElementById('s-availability-fr').value.trim(),
+      availabilityEn: document.getElementById('s-availability-en').value.trim(),
+      instagramHandle: document.getElementById('s-instagram').value.trim().replace(/^@/, '')
+    };
+    await ghPutFile('data/settings.json', b64EncodeUnicode(JSON.stringify(settings, null, 2)), 'Admin : mise à jour des coordonnées');
+
+    const payload = { strings: collectStringsFromForm(), types: collectTypesFromForm() };
+    await ghPutFile('data/strings.json', b64EncodeUnicode(JSON.stringify(payload, null, 2)), 'Admin : mise à jour des textes du site');
+
     statusEl.textContent = 'Enregistré. En ligne dans ~1 min.';
     statusEl.className = 'save-status success';
   } catch (e) {
@@ -537,6 +719,7 @@ async function tryConnect(t) {
     dashboard.style.display = '';
     renderDashboard();
     loadSettingsIntoForm().catch((e) => console.error('Impossible de charger les coordonnées:', e));
+    loadStringsIntoForm().catch((e) => console.error('Impossible de charger les textes du site:', e));
   } catch (e) {
     errorEl.textContent = 'Connexion refusée. Vérifie le token (accès repo requis).';
     token = '';
@@ -605,7 +788,6 @@ function renderDashboard() {
       </div>
       <div class="row-actions">
         <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>
-        <button class="btn" data-duplicate="${i}">Dupliquer</button>
         <button class="btn" data-edit="${i}">Modifier</button>
       </div>
     `;
@@ -614,9 +796,6 @@ function renderDashboard() {
 
   list.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => openEditor(parseInt(btn.dataset.edit, 10)));
-  });
-  list.querySelectorAll('[data-duplicate]').forEach((btn) => {
-    btn.addEventListener('click', () => duplicateProject(parseInt(btn.dataset.duplicate, 10)));
   });
 
   if (!filtering) wireDragReorder(list); // no drag handlers at all while filtered, not just visually disabled
@@ -760,27 +939,6 @@ function openEditor(index) {
   document.getElementById('f-gallery-add').value = '';
 
   editorEl.classList.add('open');
-}
-
-// Opens the editor as a *new* project (editingIndex stays null, so Save appends rather
-// than overwrites), pre-filled with a copy of an existing project's fields. Images are
-// referenced, not re-uploaded — the duplicate points at the exact same asset files
-// until/unless they're swapped out in the editor, so duplicating doesn't cost any
-// storage or upload time by itself.
-function duplicateProject(index) {
-  const src = projectsData.projects[index];
-  openEditor(null);
-  document.getElementById('editor-heading').textContent = 'Dupliquer : ' + src.title;
-  document.getElementById('f-title').value = src.title + ' (copie)';
-  document.getElementById('f-type').value = src.type;
-  document.getElementById('f-director').value = src.director;
-  document.getElementById('f-dp').value = src.dp;
-
-  editorThumb = { filename: src.thumbnail, url: `../assets/${src.thumbnail}`, file: null };
-  updateThumbPreview();
-
-  editorGallery = src.gallery.map((f) => ({ filename: f, url: `../assets/${f}`, file: null }));
-  renderGalleryEditor();
 }
 
 document.getElementById('new-project-btn').addEventListener('click', () => openEditor(null));

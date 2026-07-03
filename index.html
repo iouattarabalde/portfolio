@@ -14,19 +14,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=7">
-<script src="types.js"></script>
+<script src="i18n.js"></script>
 </head>
 <body>
 
 <nav class="site-nav">
   <div class="brand">
     <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
-    <span class="nav-eyebrow"><span data-fr>Coloriste</span><span data-en>Colorist</span></span>
+    <span class="nav-eyebrow"><span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span></span>
   </div>
   <div class="nav-links">
-    <a href="#work"><span data-fr>Projets</span><span data-en>Projects</span></a>
-    <a href="#contact"><span data-fr>Info</span><span data-en>Info</span></a>
-    <a href="intake-form.html"><span data-fr>Contact</span><span data-en>Contact</span></a>
+    <a href="#work"><span data-fr data-key="nav.work"></span><span data-en data-key="nav.work"></span></a>
+    <a href="#contact"><span data-fr data-key="nav.info"></span><span data-en data-key="nav.info"></span></a>
+    <a href="intake-form.html"><span data-fr data-key="nav.contact"></span><span data-en data-key="nav.contact"></span></a>
     <button id="lang-toggle" type="button" aria-label="Toggle language">FR</button>
   </div>
 </nav>
@@ -56,8 +56,8 @@
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
   <div class="section-head">
-    <h2><span data-fr>Projets</span><span data-en>Projects</span></h2>
-    <p class="eyebrow"><span data-fr>Publicité · Vidéoclip · Film · Série · Web</span><span data-en>Advertising · Music Video · Film · TV · Web</span></p>
+    <h2><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
+    <p class="eyebrow"><span data-fr data-key="work.categories"></span><span data-en data-key="work.categories"></span></p>
   </div>
 
   <div class="work-grid" id="work-grid"></div>
@@ -65,16 +65,16 @@
 
 <section class="contact" id="contact">
   <h2 class="contact-title">
-    <span data-fr>Disponible pour vos prochains projets.</span>
-    <span data-en>Available for your next project.</span>
+    <span data-fr data-key="contact.heading"></span>
+    <span data-en data-key="contact.heading"></span>
   </h2>
   <dl class="contact-grid">
     <div>
-      <dt><span data-fr>Courriel</span><span data-en>Email</span></dt>
+      <dt><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></dt>
       <dd><a id="contact-email" href="#"></a></dd>
     </div>
     <div>
-      <dt><span data-fr>Localisation</span><span data-en>Location</span></dt>
+      <dt><span data-fr data-key="contact.location_label"></span><span data-en data-key="contact.location_label"></span></dt>
       <dd><span data-fr id="contact-location-fr"></span><span data-en id="contact-location-en"></span><br><span data-fr id="contact-availability-fr"></span><span data-en id="contact-availability-en"></span></dd>
     </div>
     <div>
@@ -90,8 +90,9 @@
   // index.html script overview:
   //   1. Language toggle (FR/EN), persisted in localStorage
   //   2. Hero reel sizing (fills viewport below nav) + mute/unmute button
-  //   3. Work grid, rendered from data/projects.json (re-rendered on language change
-  //      so card captions switch between EN/FR acronyms without a page reload)
+  //   3. Work grid, rendered from data/projects.json once data/strings.json (i18n.js)
+  //      has also loaded, since card captions need the type acronyms it provides.
+  //      Re-rendered on language change so those acronyms switch too.
   // ---------------------------------------------------------------
 
   const btn = document.getElementById('lang-toggle');
@@ -164,13 +165,20 @@
       </a>
     `).join('');
   }
-  fetch('data/projects.json')
-    .then((r) => r.json())
-    .then((data) => {
+
+  // i18n (all static bilingual copy + project type acronyms) and the project list are
+  // independent fetches, loaded in parallel — applyStrings() needs the former, and
+  // renderWorkGrid() needs both (project data plus the type acronyms i18n provides).
+  Promise.all([
+    loadI18n(),
+    fetch('data/projects.json').then((r) => r.json())
+  ])
+    .then(([, data]) => {
+      applyStrings();
       cachedProjects = data.projects;
       renderWorkGrid();
     })
-    .catch((err) => console.error('Impossible de charger les projets:', err));
+    .catch((err) => console.error('Impossible de charger les données:', err));
 
   // Contact section: email, location, availability, Instagram — editable in the admin
   // ("Coordonnées" panel) without touching this file, since they're pulled from
