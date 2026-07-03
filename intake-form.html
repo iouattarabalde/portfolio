@@ -12,61 +12,61 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=7">
-<script src="types.js"></script>
+<script src="i18n.js"></script>
 </head>
 <body>
 
 <nav class="site-nav">
   <div class="brand">
     <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
-    <span class="nav-eyebrow"><span data-fr>Coloriste</span><span data-en>Colorist</span></span>
+    <span class="nav-eyebrow"><span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span></span>
   </div>
   <div class="nav-links">
-    <a href="index.html#work"><span data-fr>Projets</span><span data-en>Projects</span></a>
-    <a href="index.html#contact">Info</a>
+    <a href="index.html#work"><span data-fr data-key="nav.work"></span><span data-en data-key="nav.work"></span></a>
+    <a href="index.html#contact"><span data-fr data-key="nav.info"></span><span data-en data-key="nav.info"></span></a>
     <button id="lang-toggle" type="button" aria-label="Toggle language">FR</button>
   </div>
 </nav>
 
 <div class="form-wrap">
-  <p class="eyebrow"><span data-fr>Nouveau projet</span><span data-en>New project</span></p>
+  <p class="eyebrow"><span data-fr data-key="intake.eyebrow"></span><span data-en data-key="intake.eyebrow"></span></p>
   <h1 style="font-family:var(--display); font-size:clamp(24px,4vw,34px); margin:10px 0 8px;">
-    <span data-fr>Parlons de votre projet</span><span data-en>Tell me about your project</span>
+    <span data-fr data-key="intake.heading"></span><span data-en data-key="intake.heading"></span>
   </h1>
   <p style="color:var(--fg-dim); font-size:13px; margin-bottom:32px;">
-    <span data-fr>Quelques informations pour démarrer, on précise le reste ensemble par la suite.</span>
-    <span data-en>A few details to get started, we'll figure out the rest together.</span>
+    <span data-fr data-key="intake.subheading"></span>
+    <span data-en data-key="intake.subheading"></span>
   </p>
 
   <form id="intake-form">
     <div class="field">
-      <label for="name"><span data-fr>Nom</span><span data-en>Name</span></label>
+      <label for="name"><span data-fr data-key="intake.name_label"></span><span data-en data-key="intake.name_label"></span></label>
       <input type="text" id="name" name="name" placeholder="Nom — compagnie (optionnel)" required>
     </div>
 
     <div class="field">
-      <label for="email"><span data-fr>Courriel</span><span data-en>Email</span></label>
+      <label for="email"><span data-fr data-key="intake.email_label"></span><span data-en data-key="intake.email_label"></span></label>
       <input type="email" id="email" name="email" required>
     </div>
 
     <div class="field">
-      <label for="project-type"><span data-fr>Type de projet</span><span data-en>Project type</span></label>
+      <label for="project-type"><span data-fr data-key="intake.type_label"></span><span data-en data-key="intake.type_label"></span></label>
       <select id="project-type" name="project-type" required>
         <option value=""></option>
       </select>
     </div>
 
     <div class="field">
-      <label for="description"><span data-fr>Décris ton projet</span><span data-en>Describe your project</span></label>
-      <textarea id="description" name="description" rows="5" placeholder="Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet." data-fr-placeholder="Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet." data-en-placeholder="Camera, editing software, deliverables, VFX... anything that helps understand the project."></textarea>
+      <label for="description"><span data-fr data-key="intake.description_label"></span><span data-en data-key="intake.description_label"></span></label>
+      <textarea id="description" name="description" rows="5" data-placeholder-key="intake.description_placeholder"></textarea>
     </div>
 
     <div class="field">
-      <label for="delivery-date"><span data-fr>Date de livraison souhaitée</span><span data-en>Desired delivery date</span></label>
+      <label for="delivery-date"><span data-fr data-key="intake.date_label"></span><span data-en data-key="intake.date_label"></span></label>
       <input type="date" id="delivery-date" name="delivery-date">
     </div>
 
-    <button type="submit" class="submit-btn"><span data-fr>Envoyer</span><span data-en>Send</span></button>
+    <button type="submit" class="submit-btn"><span data-fr data-key="intake.submit"></span><span data-en data-key="intake.submit"></span></button>
   </form>
 </div>
 
@@ -77,7 +77,10 @@
   //      Project Type <option> labels (which can't use CSS data-fr/data-en
   //      spans — browsers render <option> as plain text, ignoring any HTML
   //      inside it, so the options are rebuilt in JS instead)
-  //   2. Form submit -> builds a mailto: link (no backend on GitHub Pages)
+  //   2. i18n.js is loaded twice: synchronously with its built-in defaults
+  //      (so the form looks right immediately), then again once data/strings.json
+  //      has actually loaded, in case anything's been edited in the admin
+  //   3. Form submit -> builds a mailto: link (no backend on GitHub Pages)
   // ---------------------------------------------------------------
 
   const btn = document.getElementById('lang-toggle');
@@ -90,10 +93,10 @@
   function updatePlaceholder() {
     const desc = document.getElementById('description');
     const key = body.classList.contains('lang-fr') ? 'frPlaceholder' : 'enPlaceholder';
-    desc.placeholder = desc.dataset[key]; // set from data-fr-placeholder/data-en-placeholder on the textarea
+    desc.placeholder = desc.dataset[key]; // set from data-fr-placeholder/data-en-placeholder, filled by applyStrings()
   }
   // Rebuilds the Project Type <select> options in the current language, using the
-  // shared PROJECT_TYPES map from types.js. Preserves whatever was already selected.
+  // shared PROJECT_TYPES map from i18n.js. Preserves whatever was already selected.
   function updateTypeOptions() {
     const select = document.getElementById('project-type');
     const isFr = body.classList.contains('lang-fr');
@@ -109,13 +112,26 @@
     select.value = previous;
   }
   updateLangButton();
-  updatePlaceholder();
-  updateTypeOptions();
   btn.addEventListener('click', () => {
     body.classList.toggle('lang-fr');
     localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
     document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
     updateLangButton();
+    updatePlaceholder();
+    updateTypeOptions();
+  });
+
+  // First pass with i18n.js's built-in defaults, so the form is fully readable before
+  // any network request finishes. applyStrings() needs data-key elements already in the
+  // DOM, which they are — it doesn't need the fetch to have completed, just the script.
+  applyStrings();
+  updatePlaceholder();
+  updateTypeOptions();
+
+  // Second pass once data/strings.json has actually loaded, in case any of these were
+  // edited in the admin — re-applies everything so edits show up without a hardcoded wait.
+  loadI18n().then(() => {
+    applyStrings();
     updatePlaceholder();
     updateTypeOptions();
   });
