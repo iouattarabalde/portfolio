@@ -1,4 +1,19 @@
 <!DOCTYPE html>
+<!--
+  admin/index.html — self-service CMS for the portfolio. Not linked from the site nav,
+  not indexed by search engines (see the robots meta tag and /robots.txt), reachable
+  directly at ismaelob.com/admin/.
+
+  How it works: this page talks straight to the GitHub REST API from the browser using
+  a personal access token pasted in once and kept in localStorage (never sent anywhere
+  but api.github.com). It reads and writes data/projects.json directly, and uploads
+  images/video into assets/ and video/ the same way — so saving here commits straight
+  to the repo and the live site updates itself within about a minute via GitHub Pages.
+
+  No build step, no npm install: ffmpeg.wasm and the Google Fonts are loaded from a CDN
+  at runtime via plain script/link tags, same zero-tooling approach as the rest of
+  the site.
+-->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -11,6 +26,8 @@
 <script src="../types.js"></script>
 <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 <style>
+  /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
+     from there — --bg, --accent, --line, --mono, etc. are all defined in that file). */
   body { padding-bottom: 80px; }
   .admin-wrap {
     max-width: 880px;
@@ -48,7 +65,7 @@
   .btn-danger:hover { border-color: #b5533f; color: #b5533f; }
   .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
 
-  /* Token gate */
+  /* Token gate — shown until a working GitHub token is supplied (see tryConnect() in the script) */
   #gate { max-width: 420px; margin: 15vh auto 0; text-align: center; }
   #gate p { color: var(--fg-dim); font-size: 13px; margin-bottom: 20px; }
   #gate input {
@@ -57,7 +74,7 @@
   }
   #gate-error { color: #d97757; font-size: 12px; margin-top: 12px; min-height: 16px; }
 
-  /* Project list */
+  /* Project list — one draggable row per project, reordering saves automatically (see wireDragReorder) */
   .project-row {
     display: flex;
     align-items: center;
@@ -87,7 +104,7 @@
     font-size: 13px;
   }
 
-  /* Editor panel */
+  /* Editor panel — full-screen overlay for adding/editing one project (see openEditor()) */
   #editor {
     display: none;
     position: fixed;
@@ -169,6 +186,7 @@
 </head>
 <body>
 
+<!-- Shown first; swapped for #dashboard once tryConnect() confirms the token works -->
 <div id="gate">
   <p class="eyebrow" style="margin-bottom:10px;">ISMAEL<span style="color:var(--accent)">OB</span> — ADMIN</p>
   <p>Colle ton token GitHub (accès repo <code>portfolio</code>) pour continuer. Il reste seulement dans ce navigateur.</p>
@@ -186,6 +204,8 @@
     </div>
   </div>
 
+  <!-- Hero reel upload: compressed in-browser with ffmpeg.wasm, then pushed to video/reel.mp4.
+       See the "Vidéo principale" section near the bottom of the script for the actual logic. -->
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
     <h2 style="font-size:16px; margin-bottom:14px;">Vidéo principale (hero)</h2>
     <video id="current-reel-preview" src="../video/reel.mp4" muted loop autoplay playsinline style="width:100%; max-width:360px; border:1px solid var(--line); display:block; margin-bottom:14px;"></video>
@@ -212,6 +232,8 @@
   <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
 </div>
 
+<!-- Add/edit project overlay. Filled in by openEditor(index) — index is null for a new
+     project, or the project's position in projectsData.projects to edit an existing one. -->
 <div id="editor">
   <div class="editor-panel">
     <h2 id="editor-heading">Nouveau projet</h2>
@@ -269,20 +291,40 @@
 </div>
 
 <script>
+// ---------------------------------------------------------------
+// admin/index.html script overview:
+//   1. GitHub API helpers (ghGetFile/ghPutFile) — every read and write goes through these
+//   2. Image compression (canvas-based, mirrors what's done with ffmpeg for consistency)
+//   3. Slug generation for new project ids/filenames
+//   4. Auth gate — token in, dashboard out
+//   5. Dashboard — project list with drag-to-reorder
+//   6. Editor — the add/edit project form, including gallery drag-to-reorder
+//   7. Save/Delete — where an edited project actually gets written back to GitHub
+//   8. Hero video upload — ffmpeg.wasm compression + publish
+// ---------------------------------------------------------------
+
 const OWNER = 'iouattarabalde';
 const REPO = 'portfolio';
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
-const TOKEN_KEY = 'iob_admin_token';
+const TOKEN_KEY = 'iob_admin_token'; // localStorage key the GitHub token is saved under
 
 let token = localStorage.getItem(TOKEN_KEY) || '';
-let projectsData = null;   // { projects: [...] }
-let projectsSha = null;    // sha of data/projects.json
-let editingIndex = null;   // index into projectsData.projects, or null for new
-let editorGallery = [];    // [{ filename, url, file (optional new File) }]
-let editorThumb = { filename: null, url: null, file: null };
+let projectsData = null;   // { projects: [...] } — the full, in-memory contents of data/projects.json
+let projectsSha = null;    // git blob sha of projects.json (not actually used for writes — see ghPutFile,
+                            // which always fetches a fresh sha right before writing to avoid conflicts)
+let editingIndex = null;   // index into projectsData.projects currently open in the editor, or null for a new project
+let editorGallery = [];    // draft gallery state while the editor is open: [{ filename, url, file (optional new File) }]
+let editorThumb = { filename: null, url: null, file: null }; // draft thumbnail state, same shape as one gallery item
 
-/* ---------- GitHub API helpers ---------- */
+/* ---------- GitHub API helpers ----------
+   All three wrap the Contents API (docs.github.com/en/rest/repos/contents).
+   Every write (ghPutFile) needs the target file's current sha if it already exists —
+   GitHub uses that to detect conflicting edits — so ghPutFile always does a fresh
+   ghGetFile first to fetch it, rather than trusting a sha cached earlier in the page. */
 
+// Fetches one file's metadata + base64 content. Returns null (not an error) if the
+// file doesn't exist yet, since "not found" is a perfectly normal case here (e.g.
+// checking whether a project's still image is new or being replaced).
 async function ghGetFile(path) {
   const res = await fetch(API + path, {
     headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
@@ -292,6 +334,7 @@ async function ghGetFile(path) {
   return res.json();
 }
 
+// Creates the file if it doesn't exist yet, or updates it in place if it does.
 async function ghPutFile(path, base64Content, message) {
   const existing = await ghGetFile(path);
   const body = { message, content: base64Content };
@@ -308,19 +351,14 @@ async function ghPutFile(path, base64Content, message) {
   return res.json();
 }
 
-async function ghDeleteFile(path, sha, message) {
-  const res = await fetch(API + path, {
-    method: 'DELETE',
-    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' },
-    body: JSON.stringify({ message, sha })
-  });
-  return res.ok;
-}
-
+// Encodes a JS string to base64 safely for non-ASCII characters (accented French text
+// in titles/names) — plain btoa() alone chokes on anything outside Latin1.
 function b64EncodeUnicode(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
+// Loads data/projects.json into the in-memory projectsData used by the whole dashboard.
+// An empty/missing file is treated as "no projects yet" rather than an error.
 async function fetchProjects() {
   const file = await ghGetFile('data/projects.json');
   if (!file) {
@@ -332,6 +370,8 @@ async function fetchProjects() {
   projectsSha = file.sha;
 }
 
+// Writes the current in-memory projectsData back to data/projects.json. Called after
+// every change: adding/editing/deleting a project, and reordering the project list.
 async function saveProjectsJson(statusEl) {
   const content = b64EncodeUnicode(JSON.stringify(projectsData, null, 2));
   const result = await ghPutFile('data/projects.json', content, 'Admin : mise à jour projects.json');
@@ -342,8 +382,13 @@ async function saveProjectsJson(statusEl) {
   }
 }
 
-/* ---------- Image compression ---------- */
+/* ---------- Image compression ----------
+   Client-side resize + re-encode via <canvas>, since there's no ffmpeg here — this is
+   the same idea as the ffmpeg resize/quality settings used elsewhere on the site, just
+   done with what the browser has built in. Runs on every new image before upload. */
 
+// Draws the image onto a canvas capped at maxWidth (aspect ratio preserved, no upscaling
+// past the source size since the resize only ever shrinks), then re-exports as JPEG.
 function compressImage(file, maxWidth = 1920, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -364,6 +409,8 @@ function compressImage(file, maxWidth = 1920, quality = 0.85) {
   });
 }
 
+// GitHub's Contents API wants file content as a plain base64 string (no data: URL prefix),
+// which is exactly what FileReader gives after the first comma — split it off.
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -373,13 +420,18 @@ function blobToBase64(blob) {
   });
 }
 
-/* ---------- Slug ---------- */
+/* ---------- Slug ----------
+   Every project gets a URL-safe id (e.g. "Fleur de Peau" -> "fleur-de-peau"), used both
+   as its project.html?project= link and as the filename prefix for its uploaded images. */
 
+// Strips accents, lowercases, and replaces anything that isn't a-z/0-9 with a single hyphen.
 function slugify(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '') || 'projet';
 }
 
+// Appends -2, -3, etc. if the plain slug is already taken by another project, so two
+// projects with similar titles never collide on the same id (and therefore filenames).
 function uniqueSlug(base) {
   const existing = new Set(projectsData.projects.map((p) => p.id));
   if (!existing.has(base)) return base;
@@ -388,7 +440,10 @@ function uniqueSlug(base) {
   return `${base}-${i}`;
 }
 
-/* ---------- Auth gate ---------- */
+/* ---------- Auth gate ----------
+   No real login system — just "does this token work?" Success is having fetchProjects()
+   not throw, which also happens to load the data the dashboard needs, so a working
+   connection and a populated dashboard happen in the same step. */
 
 const gate = document.getElementById('gate');
 const dashboard = document.getElementById('dashboard');
@@ -399,7 +454,7 @@ async function tryConnect(t) {
   token = t;
   try {
     await fetchProjects();
-    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token); // remembered so this only has to be pasted once per browser
     gate.style.display = 'none';
     dashboard.style.display = '';
     renderDashboard();
@@ -420,12 +475,15 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   location.reload();
 });
 
+// Auto-connect on page load if a token is already remembered from a previous visit
 if (token) {
   tryConnect(token);
 }
 
 /* ---------- Dashboard ---------- */
 
+// Renders one row per project (in their current data/projects.json order = the order
+// shown on the homepage). Re-called after every change: editing, deleting, reordering.
 function renderDashboard() {
   const list = document.getElementById('project-list');
   if (!projectsData.projects.length) {
@@ -437,7 +495,7 @@ function renderDashboard() {
     const row = document.createElement('div');
     row.className = 'project-row';
     row.draggable = true;
-    row.dataset.index = i;
+    row.dataset.index = i; // remembers this row's position in projectsData.projects for drag reordering
     row.innerHTML = `
       <span class="handle">⠿</span>
       <div class="row-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
@@ -459,6 +517,9 @@ function renderDashboard() {
   wireDragReorder(list);
 }
 
+// Native HTML5 drag-and-drop reordering for the project list. On drop, reads the new
+// DOM order back out (via each row's data-index), rebuilds projectsData.projects to
+// match, and immediately saves — no separate "save order" button, it's automatic.
 function wireDragReorder(list) {
   let dragEl = null;
   list.querySelectorAll('.project-row').forEach((row) => {
@@ -491,6 +552,8 @@ function wireDragReorder(list) {
   });
 }
 
+// Figures out which row the dragged one should be inserted before, based on vertical
+// mouse position — finds the closest row whose vertical midpoint is still below the cursor.
 function getDragAfterElement(container, y) {
   const els = [...container.querySelectorAll('.project-row:not(.dragging)')];
   return els.reduce((closest, child) => {
@@ -501,10 +564,16 @@ function getDragAfterElement(container, y) {
   }, { offset: -Infinity }).element;
 }
 
-/* ---------- Editor ---------- */
+/* ---------- Editor ----------
+   The whole editor works on draft state (editorThumb, editorGallery) that only gets
+   uploaded/committed when "Enregistrer" is clicked (see Save/Delete below) — closing
+   with "Annuler" just discards it, nothing is written until Save. */
 
 const editorEl = document.getElementById('editor');
 
+// Opens the editor pre-filled for an existing project (pass its index), or empty for
+// a new one (pass null). Existing images are referenced by their live ../assets/ URL;
+// nothing is re-uploaded unless actually replaced (see the Save handler's `.file` checks).
 function openEditor(index) {
   editingIndex = index;
   const isNew = index === null;
@@ -543,6 +612,8 @@ function updateThumbPreview() {
   el.style.backgroundImage = editorThumb.url ? `url('${editorThumb.url}')` : 'none';
 }
 
+// Picking a new thumbnail file swaps in a local blob URL for an instant preview —
+// no filename yet, that's assigned on Save once the file is actually uploaded.
 document.getElementById('f-thumbnail').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -550,6 +621,8 @@ document.getElementById('f-thumbnail').addEventListener('change', (e) => {
   updateThumbPreview();
 });
 
+// Redraws the gallery grid from the current editorGallery array (order = display order
+// = the order that ends up in projects.json on Save). Called after every add/remove/reorder.
 function renderGalleryEditor() {
   const grid = document.getElementById('gallery-editor-grid');
   grid.innerHTML = '';
@@ -565,7 +638,7 @@ function renderGalleryEditor() {
 
   grid.querySelectorAll('[data-remove]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-      e.stopPropagation();
+      e.stopPropagation(); // don't let the click also start a drag on the parent tile
       editorGallery.splice(parseInt(btn.dataset.remove, 10), 1);
       renderGalleryEditor();
     });
@@ -575,6 +648,8 @@ function renderGalleryEditor() {
   updateGalleryCount();
 }
 
+// Same drag-and-drop reordering pattern as the project list (wireDragReorder above),
+// adapted for a grid instead of a vertical list — see getDragAfterElementGrid.
 function wireGalleryDrag(grid) {
   let dragEl = null;
   grid.querySelectorAll('.gallery-editor-item').forEach((item) => {
@@ -598,6 +673,8 @@ function wireGalleryDrag(grid) {
   });
 }
 
+// Grid version of getDragAfterElement: a vertical list only needs Y position, but a
+// multi-column grid needs the nearest tile by straight-line distance in both X and Y.
 function getDragAfterElementGrid(container, x, y) {
   const els = [...container.querySelectorAll('.gallery-editor-item:not(.dragging)')];
   let closest = { dist: Infinity, element: null };
@@ -611,6 +688,8 @@ function getDragAfterElementGrid(container, x, y) {
   return closest.element;
 }
 
+// Live count + multiple-of-3 check shown under the gallery grid (see style.css comment
+// on .project-gallery for why 3 columns is the site-wide convention).
 function updateGalleryCount() {
   const el = document.getElementById('gallery-count');
   const n = editorGallery.length;
@@ -618,6 +697,7 @@ function updateGalleryCount() {
   el.className = 'gallery-count ' + (n > 0 && n % 3 === 0 ? 'ok' : 'warn');
 }
 
+// Newly picked files are appended (not uploaded yet — filename stays null until Save)
 document.getElementById('f-gallery-add').addEventListener('change', (e) => {
   Array.from(e.target.files).forEach((file) => {
     editorGallery.push({ filename: null, url: URL.createObjectURL(file), file });
@@ -626,7 +706,10 @@ document.getElementById('f-gallery-add').addEventListener('change', (e) => {
   renderGalleryEditor();
 });
 
-/* ---------- Save / Delete project ---------- */
+/* ---------- Save / Delete project ----------
+   This is the one place that actually writes to GitHub for a project: uploads any new
+   images (thumbnail + gallery), then writes the updated projects.json. Existing,
+   unchanged images are left alone — only items with a pending `.file` get uploaded. */
 
 document.getElementById('save-project-btn').addEventListener('click', async () => {
   const statusEl = document.getElementById('save-status');
@@ -637,12 +720,14 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
 
   const saveBtn = document.getElementById('save-project-btn');
   saveBtn.disabled = true;
+  // Editing keeps the project's existing id/slug (so its URL and existing filenames stay
+  // valid); a brand new project gets a fresh, collision-checked slug from its title.
   const slug = editingIndex !== null ? projectsData.projects[editingIndex].id : uniqueSlug(slugify(title));
 
   try {
     statusEl.className = 'save-status';
 
-    // Vignette
+    // Vignette (only if a new file was picked — see the f-thumbnail change handler above)
     if (editorThumb.file) {
       statusEl.textContent = 'Envoi de la vignette…';
       const compressed = await compressImage(editorThumb.file);
@@ -652,7 +737,11 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       editorThumb.filename = filename;
     }
 
-    // Galerie : upload des nouvelles images dans l'ordre affiché
+    // Galerie : upload des nouvelles images dans l'ordre affiché.
+    // Filenames use a timestamp, not the image's position in the list — a position-based
+    // name (still-01.jpg, still-02.jpg...) would collide with an existing file whenever
+    // reordering and new uploads happen in the same save, silently overwriting the wrong
+    // image. The timestamp guarantees every upload gets a unique name regardless of order.
     for (let i = 0; i < editorGallery.length; i++) {
       const item = editorGallery[i];
       if (item.file) {
@@ -665,6 +754,8 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       }
     }
 
+    // Build the final project record and either replace the edited entry in place
+    // (keeps its position in the homepage order) or append a new one at the end.
     const projectEntry = {
       id: slug,
       title,
@@ -672,7 +763,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       director: document.getElementById('f-director').value.trim(),
       dp: document.getElementById('f-dp').value.trim(),
       thumbnail: editorThumb.filename,
-      gallery: editorGallery.map((g) => g.filename)
+      gallery: editorGallery.map((g) => g.filename) // final order = current on-screen order
     };
 
     if (editingIndex !== null) {
@@ -694,6 +785,8 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
   }
 });
 
+// Removes the project from projects.json only — its uploaded images are left in
+// assets/ (orphaned but harmless) rather than deleted, to keep this simple and safe.
 document.getElementById('delete-project-btn').addEventListener('click', async () => {
   if (editingIndex === null) return;
   if (!confirm('Supprimer ce projet ? Les images restent dans le repo mais le projet disparaît du site.')) return;
@@ -710,13 +803,22 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   }
 });
 
-/* ---------- Vidéo principale (hero) ---------- */
+/* ---------- Vidéo principale (hero) ----------
+   Runs real H.264 re-encoding in the browser via ffmpeg.wasm (loaded in <head>), then
+   pushes the result straight to video/reel.mp4. Deliberately using the *single-thread*
+   core (core-st): the normal multi-thread ffmpeg.wasm core needs SharedArrayBuffer,
+   which only works if the page is served with Cross-Origin-Opener-Policy/
+   Cross-Origin-Embedder-Policy headers — GitHub Pages has no way to set those, so the
+   regular core would silently fail to load here. core-st is slower (one thread, no
+   hardware acceleration) but works with zero server configuration. */
 
-let ffmpegInstance = null;
+let ffmpegInstance = null; // ffmpeg.wasm is loaded once and reused for every video after that
 const videoProgressWrap = document.getElementById('video-progress-wrap');
 const videoProgressBar = document.getElementById('video-progress-bar');
 const videoStatusEl = document.getElementById('video-status');
 
+// Lazily creates and loads ffmpeg.wasm on first use (the core is a ~25MB download,
+// so this is skipped entirely if a video is never uploaded in a given session).
 async function getFFmpeg() {
   if (ffmpegInstance) return ffmpegInstance;
   const { createFFmpeg } = FFmpeg;
@@ -725,7 +827,7 @@ async function getFFmpeg() {
     // Core mono-thread : fonctionne sans les en-têtes COOP/COEP que GitHub Pages ne permet pas de configurer.
     corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
     progress: ({ ratio }) => {
-      if (ratio < 0 || !isFinite(ratio)) return;
+      if (ratio < 0 || !isFinite(ratio)) return; // ffmpeg reports -1 for some stages; ignore those
       const pct = Math.min(100, Math.round(ratio * 100));
       videoProgressBar.style.width = pct + '%';
       videoStatusEl.textContent = `Compression en cours… ${pct}%`;
@@ -736,6 +838,8 @@ async function getFFmpeg() {
   return ffmpegInstance;
 }
 
+// ffmpeg.wasm's virtual filesystem needs the input written under some filename — reuse
+// the original extension (.mov, .mp4, whatever) so ffmpeg can sniff the format correctly.
 function fileExt(name) {
   const m = name.match(/\.[^.]+$/);
   return m ? m[0] : '.mp4';
@@ -757,10 +861,14 @@ document.getElementById('upload-video-btn').addEventListener('click', async () =
 
     const inputName = 'input' + fileExt(file.name);
     videoStatusEl.textContent = 'Lecture du fichier…';
-    ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+    ffmpeg.FS('writeFile', inputName, await fetchFile(file)); // copies the file into ffmpeg's in-memory FS
 
     videoStatusEl.textContent = 'Compression en cours… 0%';
     videoProgressBar.style.width = '0%';
+    // Same encoding recipe used for the original reel: H.264, CRF 26 (quality target,
+    // ~4Mbps typical for this kind of footage) capped at 4000k so it never spikes too
+    // high on complex scenes, AAC audio kept at 128k, yuv420p for broad player support,
+    // faststart so the video begins playing before the whole file has downloaded.
     await ffmpeg.run(
       '-i', inputName,
       '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
@@ -773,16 +881,16 @@ document.getElementById('upload-video-btn').addEventListener('click', async () =
 
     const data = ffmpeg.FS('readFile', 'output.mp4');
     const blob = new Blob([data.buffer], { type: 'video/mp4' });
-    ffmpeg.FS('unlink', inputName);
-    ffmpeg.FS('unlink', 'output.mp4');
+    ffmpeg.FS('unlink', inputName);   // free the in-memory FS entries — large video
+    ffmpeg.FS('unlink', 'output.mp4'); // files would otherwise pile up across uploads
 
     videoStatusEl.textContent = `Envoi vers GitHub… (${(blob.size / 1024 / 1024).toFixed(1)} MB)`;
     const b64 = await blobToBase64(blob);
-    await ghPutFile('video/reel.mp4', b64, 'Admin : nouveau reel principal');
+    await ghPutFile('video/reel.mp4', b64, 'Admin : nouveau reel principal'); // always the same path — replaces the hero video in place
 
     videoProgressBar.style.width = '100%';
     videoStatusEl.textContent = 'Terminé. En ligne dans ~1 minute.';
-    document.getElementById('current-reel-preview').src = URL.createObjectURL(blob);
+    document.getElementById('current-reel-preview').src = URL.createObjectURL(blob); // instant local preview, doesn't wait for the GitHub Pages deploy
     fileInput.value = '';
   } catch (e) {
     videoStatusEl.textContent = 'Erreur : ' + e.message;

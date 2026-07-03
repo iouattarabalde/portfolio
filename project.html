@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  project.html — single dynamic template for every project (no more per-project HTML files).
+  Reads the project id from the URL query string (?project=slug), looks it up in
+  data/projects.json, and renders its gallery + credits. Visited as e.g.
+  project.html?project=fleur-de-peau, linked from the work grid on index.html.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -23,8 +29,10 @@
   </div>
 </nav>
 
+<!-- Filled by JS below once the project is found in projects.json -->
 <section class="project-gallery" id="project-gallery"></section>
 
+<!-- Hidden until the project is found and rendered (display:none avoids a flash of empty content) -->
 <section class="project-info" id="project-info" style="display:none;">
   <a class="project-back" href="index.html#work">← <span data-fr>Retour aux travaux</span><span data-en>Back to work</span></a>
   <h1 class="project-title" id="project-title"></h1>
@@ -44,6 +52,7 @@
   </dl>
 </section>
 
+<!-- Shown instead of project-info if the ?project= id doesn't match anything in projects.json -->
 <section class="project-info" id="project-not-found" style="display:none;">
   <p class="eyebrow"><span data-fr>Introuvable</span><span data-en>Not found</span></p>
   <h1 class="project-title">
@@ -53,12 +62,20 @@
   <a class="project-back" href="index.html#work">← <span data-fr>Retour aux travaux</span><span data-en>Back to work</span></a>
 </section>
 
+<!-- Full-screen image viewer, opened by clicking any gallery thumbnail (see wireLightbox below) -->
 <div class="lightbox" id="lightbox">
   <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-fr>Fermer</span><span data-en>Close</span></button>
   <img id="lightbox-img" src="" alt="">
 </div>
 
 <script>
+  // ---------------------------------------------------------------
+  // project.html script overview:
+  //   1. Language toggle (same pattern as index.html)
+  //   2. Lightbox (click a still to enlarge; close via ✕, Escape, or clicking the backdrop)
+  //   3. Load the requested project from data/projects.json and render it
+  // ---------------------------------------------------------------
+
   const btn = document.getElementById('lang-toggle');
   const body = document.body;
   const stored = localStorage.getItem('iob-lang');
@@ -75,7 +92,9 @@
     renderProjectType();
   });
 
-  // Lightbox : clic sur une vignette de la galerie pour l'agrandir.
+  // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails. It's called
+  // again after the gallery is (re)rendered from JSON, since those <button> elements
+  // don't exist yet when this script first runs.
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
   function wireLightbox() {
@@ -93,16 +112,16 @@
   }
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', (e) => {
-    if (e.target === lightbox) closeLightbox();
+    if (e.target === lightbox) closeLightbox(); // only closes on backdrop clicks, not the image itself
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeLightbox();
   });
 
-  // Charge le projet demandé (?project=slug) depuis data/projects.json.
+  // Which project to show comes from the URL, e.g. project.html?project=fleur-de-peau
   const params = new URLSearchParams(window.location.search);
   const projectId = params.get('project');
-  let currentProject = null;
+  let currentProject = null; // cached after fetch so renderProjectType() can re-run on language toggle
 
   function renderProjectType() {
     if (!currentProject) return;
@@ -126,6 +145,8 @@
       document.getElementById('project-director').textContent = project.director || '—';
       document.getElementById('project-dp').textContent = project.dp || '—';
 
+      // Gallery order matches the order of filenames in projects.json's "gallery" array —
+      // that's exactly what the admin's drag-and-drop reordering updates.
       const gallery = document.getElementById('project-gallery');
       gallery.innerHTML = project.gallery.map((filename, i) => `
         <button class="gallery-item" data-full="assets/${filename}">

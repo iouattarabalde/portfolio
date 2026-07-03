@@ -3,15 +3,15 @@
 
 :root {
   --bg: #0C0C0C;
-  --bg-raised: #131311;
-  --fg: #ECECE6;
-  --fg-dim: #8C8C86;
-  --fg-faint: #55554F;
-  --accent: #8A9A5B;
-  --line: #232320;
-  --grid-gap: 1px;
-  --display: "Space Grotesk", sans-serif;
-  --mono: "IBM Plex Mono", monospace;
+  --bg-raised: #131311;      /* slightly lighter panel background (cards, inputs, frames) */
+  --fg: #ECECE6;              /* primary text */
+  --fg-dim: #8C8C86;          /* secondary/label text */
+  --fg-faint: #55554F;        /* footer-level, lowest-emphasis text */
+  --accent: #8A9A5B;          /* olive accent, used for links/highlights/active states */
+  --line: #232320;            /* hairline borders and grid gaps */
+  --grid-gap: 1px;            /* shared gap for the work grid and project gallery */
+  --display: "Space Grotesk", sans-serif;  /* headings, titles, card captions */
+  --mono: "IBM Plex Mono", monospace;      /* body copy, labels, nav — technical/utility feel */
 }
 
 * { box-sizing: border-box; }
@@ -30,7 +30,11 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-/* Language toggling — English is default, French shown when body has .lang-fr */
+/* Language toggling — English is default, French shown when body has .lang-fr.
+   Every bilingual bit of copy is written twice inline as <span data-fr> / <span data-en>;
+   these four rules just show/hide the right one based on the class on <body>.
+   The JS in each page's language-toggle button flips this class and remembers the choice
+   in localStorage so it persists across pages. */
 [data-fr] { display: none; }
 body.lang-fr [data-en] { display: none; }
 body.lang-fr [data-fr] { display: inline; }
@@ -72,7 +76,7 @@ h1, h2, h3 {
   letter-spacing: 0.02em;
 }
 
-.wordmark span { color: var(--accent); }
+.wordmark span { color: var(--accent); } /* colors just the "OB" half of the ISMAELOB wordmark */
 
 .brand {
   display: flex;
@@ -90,6 +94,7 @@ h1, h2, h3 {
   border-left: 1px solid var(--line);
 }
 
+/* Hide the "Colorist" tag next to the wordmark once the nav gets tight, keeps the links from wrapping */
 @media (max-width: 640px) {
   .nav-eyebrow { display: none; }
 }
@@ -120,6 +125,8 @@ h1, h2, h3 {
 #lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ---------- Hero ---------- */
+/* Fills the screen below the sticky nav (100dvh minus the nav's own height, ~73px)
+   so the reel is fully visible on load without scrolling. */
 .hero {
   display: flex;
   align-items: center;
@@ -136,9 +143,9 @@ h1, h2, h3 {
   background: var(--bg-raised);
 }
 
+/* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle */
 .reel-frame::before,
-.reel-frame::after,
-.corner-tl, .corner-br {
+.reel-frame::after {
   content: "";
   position: absolute;
   width: 18px;
@@ -149,6 +156,9 @@ h1, h2, h3 {
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
+/* padding-top:56.25% is the classic 16:9 aspect-ratio box hack: it reserves the right height
+   based on the element's own width, so the absolutely-positioned video/iframe inside it
+   (next rule) always fills a proper 16:9 frame regardless of viewport size. */
 .reel-embed { position: relative; padding-top: 56.25%; }
 .reel-embed iframe,
 .reel-embed video {
@@ -156,6 +166,7 @@ h1, h2, h3 {
   object-fit: cover;
 }
 
+/* Mute/unmute button, floated over the bottom-right corner of the reel */
 #sound-toggle {
   position: absolute;
   bottom: 14px;
@@ -179,6 +190,8 @@ h1, h2, h3 {
 }
 
 /* ---------- Work grid ---------- */
+/* Anchor-link targets (#work, #contact in the nav) land below the sticky nav instead of
+   getting their heading clipped behind it. */
 #work,
 #contact {
   scroll-margin-top: 88px;
@@ -195,7 +208,7 @@ h1, h2, h3 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--grid-gap);
-  background: var(--line);
+  background: var(--line); /* shows through the gap as thin dividers between cards */
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
@@ -207,7 +220,7 @@ h1, h2, h3 {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-end; /* pins the caption to the bottom of the card */
   padding: 14px;
 }
 
@@ -217,10 +230,12 @@ h1, h2, h3 {
   background: var(--bg-raised);
   background-size: cover;
   background-position: center;
-  transition: transform 0.5s ease;
+  transition: transform 0.5s ease; /* slow zoom-in on hover, see rule below */
 }
 .work-card:hover .thumb { transform: scale(1.04); }
 
+/* Dark gradient scrim, hidden by default so the image reads clean (Shotdeck-style),
+   fades in on hover to make room for the caption text underneath it. */
 .work-card::after {
   content: "";
   position: absolute; inset: 0;
@@ -239,7 +254,9 @@ h1, h2, h3 {
 }
 .work-card:hover .work-card-meta { opacity: 1; transform: translateY(0); }
 
-/* Touch devices have no hover: captions stay visible, styled like a baked-in title card */
+/* Touch devices can't hover, so the hover-reveal above would hide captions forever.
+   `(hover: none)` targets exactly that case: captions stay permanently visible, styled
+   bolder/centered like a baked-in title card since there's no interaction to reveal them. */
 @media (hover: none) {
   .work-card::after {
     opacity: 1;
@@ -280,10 +297,6 @@ h1, h2, h3 {
   margin-bottom: 2px;
 }
 
-.work-card .client {
-  display: none;
-}
-
 /* ---------- Contact ---------- */
 .contact {
   padding: clamp(48px, 8vw, 96px) clamp(20px, 4vw, 48px);
@@ -303,6 +316,8 @@ h1, h2, h3 {
   font-size: 13px;
 }
 
+/* Below this width, auto-fit was squeezing the email address into a column too narrow
+   to hold it, which made it visually overlap the next field. One column per row fixes it. */
 @media (max-width: 640px) {
   .contact-grid {
     grid-template-columns: 1fr;
@@ -321,22 +336,26 @@ h1, h2, h3 {
 .contact-grid dd {
   margin: 0;
   font-size: 15px;
-  overflow-wrap: break-word;
+  overflow-wrap: break-word; /* safety net: long unbroken strings (emails) never overflow their column */
 }
 
 .contact-grid a:hover { color: var(--accent); }
 
-/* ---------- Responsive ---------- */
+/* ---------- Responsive: work grid column counts ---------- */
+/* Column counts step down gradually so the grid never collapses to a single wide column —
+   3 columns are kept even on small phones (see the 360px rule) to match the dense,
+   contact-sheet feel of the Shotdeck reference Ismael asked to match. */
 @media (max-width: 1000px) {
   .work-grid { grid-template-columns: repeat(3, 1fr); }
-  .work-card { aspect-ratio: 1 / 1; padding: 10px; }
+  .work-card { aspect-ratio: 1 / 1; padding: 10px; } /* near-square cards read better at this density */
 }
 @media (max-width: 360px) {
-  .work-grid { grid-template-columns: repeat(2, 1fr); }
-  .nav-links span.sep { display: none; }
+  .work-grid { grid-template-columns: repeat(2, 1fr); } /* only very small/older phones drop to 2 */
 }
 
 /* ---------- Project template ---------- */
+/* Shared by every project page (project.html renders one project's gallery + info from
+   data/projects.json, so this same CSS applies no matter which project is loaded). */
 .project-gallery {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -354,7 +373,7 @@ h1, h2, h3 {
   border: none;
   padding: 0;
   margin: 0;
-  cursor: zoom-in;
+  cursor: zoom-in; /* hints that clicking opens the lightbox */
 }
 .gallery-item img {
   width: 100%;
@@ -366,7 +385,7 @@ h1, h2, h3 {
 .gallery-item:hover img { transform: scale(1.03); }
 
 @media (max-width: 900px) {
-  .gallery-item { aspect-ratio: 1 / 1; }
+  .gallery-item { aspect-ratio: 1 / 1; } /* same squarer-on-mobile treatment as the work grid */
 }
 @media (max-width: 360px) {
   .project-gallery { grid-template-columns: repeat(2, 1fr); }
@@ -388,6 +407,8 @@ h1, h2, h3 {
 
 .project-title { font-size: clamp(22px, 3.5vw, 32px); max-width: 24ch; margin-bottom: 18px; }
 
+/* Type / Director / DP row under the title. Deliberately just these three fields —
+   Client, Year, and Colorist were dropped since Colorist is always Ismael OB anyway. */
 .credits {
   display: flex;
   flex-wrap: wrap;
@@ -404,6 +425,8 @@ h1, h2, h3 {
 .credits dd { margin: 0; }
 
 /* ---------- Lightbox ---------- */
+/* Full-screen overlay used by project.html's gallery. Opened/closed via the
+   .open class, toggled from JS on image click / close button / Escape key / backdrop click. */
 .lightbox {
   position: fixed;
   inset: 0;
@@ -419,7 +442,7 @@ h1, h2, h3 {
 .lightbox img {
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
+  object-fit: contain; /* never crops the enlarged image, unlike the grid thumbnails */
 }
 .lightbox-close {
   position: absolute;
@@ -438,6 +461,7 @@ h1, h2, h3 {
 .lightbox-close:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ---------- Intake form ---------- */
+/* Used by intake-form.html (the client-facing "Contact" form, 5 fields) */
 .form-wrap {
   max-width: 640px;
   margin: 0 auto;
