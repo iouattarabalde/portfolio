@@ -227,7 +227,45 @@
     <button class="btn btn-primary" id="upload-video-btn" style="margin-top:6px;">Compresser et publier</button>
   </div>
 
-  <p class="field-hint" style="margin-bottom:16px;">Glisse une ligne pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
+  <!-- Coordonnées : email, localisation, disponibilité, Instagram — édite data/settings.json,
+       lu par la section contact de index.html et par le mailto d'intake-form.html. -->
+  <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
+    <h2 style="font-size:16px; margin-bottom:14px;">Coordonnées</h2>
+    <div class="field">
+      <label>Courriel</label>
+      <input type="email" id="s-email">
+    </div>
+    <div class="field">
+      <label>Localisation (français)</label>
+      <input type="text" id="s-location-fr" placeholder="Montréal, QC">
+    </div>
+    <div class="field">
+      <label>Localisation (anglais)</label>
+      <input type="text" id="s-location-en" placeholder="Montreal, QC">
+    </div>
+    <div class="field">
+      <label>Disponibilité (français)</label>
+      <input type="text" id="s-availability-fr" placeholder="Disponible à distance">
+    </div>
+    <div class="field">
+      <label>Disponibilité (anglais)</label>
+      <input type="text" id="s-availability-en" placeholder="Available remote">
+    </div>
+    <div class="field">
+      <label>Instagram (nom d'utilisateur, sans @)</label>
+      <input type="text" id="s-instagram" placeholder="he.smile_">
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="btn btn-primary" id="save-settings-btn">Enregistrer les coordonnées</button>
+      <span class="save-status" id="settings-status"></span>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+    <p class="field-hint">Glisse une ligne pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
+    <button class="btn" id="undo-btn">Annuler le dernier changement</button>
+  </div>
+  <input type="text" id="project-search" placeholder="Rechercher un projet…" style="width:100%; background:var(--bg-raised); border:1px solid var(--line); color:var(--fg); font-family:var(--mono); font-size:13px; padding:10px 12px; margin-bottom:16px;">
   <div id="project-list"></div>
   <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
 </div>
@@ -382,6 +420,46 @@ async function saveProjectsJson(statusEl) {
   }
 }
 
+/* ---------- Coordonnées (data/settings.json) ----------
+   Same read/write pattern as projects.json, but for the small set of contact details
+   shown in index.html's contact section and used as the intake form's mailto target. */
+
+// Loads settings.json into the six input fields of the Coordonnées panel. Falls back
+// to empty fields (rather than throwing) if the file doesn't exist yet.
+async function loadSettingsIntoForm() {
+  const file = await ghGetFile('data/settings.json');
+  const s = file ? JSON.parse(decodeURIComponent(escape(atob(file.content)))) : {};
+  document.getElementById('s-email').value = s.email || '';
+  document.getElementById('s-location-fr').value = s.locationFr || '';
+  document.getElementById('s-location-en').value = s.locationEn || '';
+  document.getElementById('s-availability-fr').value = s.availabilityFr || '';
+  document.getElementById('s-availability-en').value = s.availabilityEn || '';
+  document.getElementById('s-instagram').value = s.instagramHandle || '';
+}
+
+document.getElementById('save-settings-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('settings-status');
+  const settings = {
+    email: document.getElementById('s-email').value.trim(),
+    locationFr: document.getElementById('s-location-fr').value.trim(),
+    locationEn: document.getElementById('s-location-en').value.trim(),
+    availabilityFr: document.getElementById('s-availability-fr').value.trim(),
+    availabilityEn: document.getElementById('s-availability-en').value.trim(),
+    instagramHandle: document.getElementById('s-instagram').value.trim().replace(/^@/, '')
+  };
+  statusEl.textContent = 'Enregistrement…';
+  statusEl.className = 'save-status';
+  try {
+    const content = b64EncodeUnicode(JSON.stringify(settings, null, 2));
+    await ghPutFile('data/settings.json', content, 'Admin : mise à jour des coordonnées');
+    statusEl.textContent = 'Enregistré. En ligne dans ~1 min.';
+    statusEl.className = 'save-status success';
+  } catch (e) {
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+  }
+});
+
 /* ---------- Image compression ----------
    Client-side resize + re-encode via <canvas>, since there's no ffmpeg here — this is
    the same idea as the ffmpeg resize/quality settings used elsewhere on the site, just
@@ -458,6 +536,7 @@ async function tryConnect(t) {
     gate.style.display = 'none';
     dashboard.style.display = '';
     renderDashboard();
+    loadSettingsIntoForm().catch((e) => console.error('Impossible de charger les coordonnées:', e));
   } catch (e) {
     errorEl.textContent = 'Connexion refusée. Vérifie le token (accès repo requis).';
     token = '';
@@ -483,27 +562,50 @@ if (token) {
 /* ---------- Dashboard ---------- */
 
 // Renders one row per project (in their current data/projects.json order = the order
-// shown on the homepage). Re-called after every change: editing, deleting, reordering.
+// shown on the homepage). Re-called after every change: editing, deleting, reordering,
+// and on every keystroke in the search box.
+//
+// Drag-to-reorder only makes sense against the *full* list — reordering a filtered
+// subset would scramble the underlying array in confusing ways — so search and
+// reordering are mutually exclusive: typing in the search box disables dragging
+// until the search is cleared again.
 function renderDashboard() {
   const list = document.getElementById('project-list');
+  const query = document.getElementById('project-search').value.trim().toLowerCase();
+  const filtering = query.length > 0;
+
+  const visible = filtering
+    ? projectsData.projects
+        .map((p, i) => ({ p, i }))
+        .filter(({ p }) => p.title.toLowerCase().includes(query) || p.type.toLowerCase().includes(query))
+    : projectsData.projects.map((p, i) => ({ p, i }));
+
   if (!projectsData.projects.length) {
     list.innerHTML = '<div class="empty-state">Aucun projet pour l\'instant. Clique « + Nouveau projet » pour commencer.</div>';
     return;
   }
+  if (!visible.length) {
+    list.innerHTML = '<div class="empty-state">Aucun projet ne correspond à la recherche.</div>';
+    return;
+  }
+
   list.innerHTML = '';
-  projectsData.projects.forEach((p, i) => {
+  visible.forEach(({ p, i }) => {
     const row = document.createElement('div');
     row.className = 'project-row';
-    row.draggable = true;
+    row.draggable = !filtering; // reordering disabled while a search is active, see comment above
+    if (filtering) row.style.cursor = 'default';
     row.dataset.index = i; // remembers this row's position in projectsData.projects for drag reordering
     row.innerHTML = `
-      <span class="handle">⠿</span>
+      <span class="handle">${filtering ? '' : '⠿'}</span>
       <div class="row-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
       <div class="row-info">
         <div class="row-title">${p.title}</div>
         <div class="row-meta">${projectTypeAcronym(p.type, true)} · ${p.gallery.length} stills</div>
       </div>
       <div class="row-actions">
+        <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>
+        <button class="btn" data-duplicate="${i}">Dupliquer</button>
         <button class="btn" data-edit="${i}">Modifier</button>
       </div>
     `;
@@ -513,9 +615,14 @@ function renderDashboard() {
   list.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => openEditor(parseInt(btn.dataset.edit, 10)));
   });
+  list.querySelectorAll('[data-duplicate]').forEach((btn) => {
+    btn.addEventListener('click', () => duplicateProject(parseInt(btn.dataset.duplicate, 10)));
+  });
 
-  wireDragReorder(list);
+  if (!filtering) wireDragReorder(list); // no drag handlers at all while filtered, not just visually disabled
 }
+
+document.getElementById('project-search').addEventListener('input', renderDashboard);
 
 // Native HTML5 drag-and-drop reordering for the project list. On drop, reads the new
 // DOM order back out (via each row's data-index), rebuilds projectsData.projects to
@@ -564,6 +671,57 @@ function getDragAfterElement(container, y) {
   }, { offset: -Infinity }).element;
 }
 
+/* ---------- Annuler le dernier changement ----------
+   Every save here is already a git commit, so "undo" doesn't need any special storage —
+   it just reads GitHub's own commit history for data/projects.json and republishes the
+   content as it was one commit ago. This adds a *new* commit rather than rewriting
+   history, so it's always safe to click and never destroys anything: a mistaken undo
+   can itself be undone the same way. Only covers project data (add/edit/delete/reorder),
+   not images or the hero video — those aren't tracked by this button. */
+document.getElementById('undo-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('dashboard-status');
+  statusEl.textContent = 'Recherche du dernier changement…';
+  statusEl.className = 'save-status';
+  try {
+    // Ask GitHub for the two most recent commits that touched this exact file.
+    // commits[0] is the current state; commits[1] is what we want to restore.
+    const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=data/projects.json&per_page=2`, {
+      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
+    });
+    if (!res.ok) throw new Error(`GET commits → ${res.status}`);
+    const commits = await res.json();
+    if (commits.length < 2) {
+      statusEl.textContent = 'Rien à annuler : un seul changement dans l\'historique.';
+      statusEl.className = 'save-status error';
+      return;
+    }
+
+    if (!confirm('Annuler le dernier changement sur les projets (ordre, ajout, modification ou suppression) ? Les images ne sont pas touchées.')) {
+      statusEl.textContent = '';
+      return;
+    }
+
+    statusEl.textContent = 'Annulation en cours…';
+    const previousSha = commits[1].sha;
+    const oldFileRes = await fetch(`${API}data/projects.json?ref=${previousSha}`, {
+      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
+    });
+    if (!oldFileRes.ok) throw new Error(`GET old version → ${oldFileRes.status}`);
+    const oldFile = await oldFileRes.json();
+
+    // Republish that older content as a brand new commit (a "revert", not a history rewrite)
+    await ghPutFile('data/projects.json', oldFile.content.replace(/\s/g, ''), 'Admin : annulation du dernier changement');
+
+    await fetchProjects(); // reload the now-reverted data into memory
+    renderDashboard();
+    statusEl.textContent = 'Dernier changement annulé.';
+    statusEl.className = 'save-status success';
+  } catch (e) {
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+  }
+});
+
 /* ---------- Editor ----------
    The whole editor works on draft state (editorThumb, editorGallery) that only gets
    uploaded/committed when "Enregistrer" is clicked (see Save/Delete below) — closing
@@ -602,6 +760,27 @@ function openEditor(index) {
   document.getElementById('f-gallery-add').value = '';
 
   editorEl.classList.add('open');
+}
+
+// Opens the editor as a *new* project (editingIndex stays null, so Save appends rather
+// than overwrites), pre-filled with a copy of an existing project's fields. Images are
+// referenced, not re-uploaded — the duplicate points at the exact same asset files
+// until/unless they're swapped out in the editor, so duplicating doesn't cost any
+// storage or upload time by itself.
+function duplicateProject(index) {
+  const src = projectsData.projects[index];
+  openEditor(null);
+  document.getElementById('editor-heading').textContent = 'Dupliquer : ' + src.title;
+  document.getElementById('f-title').value = src.title + ' (copie)';
+  document.getElementById('f-type').value = src.type;
+  document.getElementById('f-director').value = src.director;
+  document.getElementById('f-dp').value = src.dp;
+
+  editorThumb = { filename: src.thumbnail, url: `../assets/${src.thumbnail}`, file: null };
+  updateThumbPreview();
+
+  editorGallery = src.gallery.map((f) => ({ filename: f, url: `../assets/${f}`, file: null }));
+  renderGalleryEditor();
 }
 
 document.getElementById('new-project-btn').addEventListener('click', () => openEditor(null));
