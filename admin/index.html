@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=7">
 <script src="../types.js"></script>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 <style>
   body { padding-bottom: 80px; }
   .admin-wrap {
@@ -184,6 +185,28 @@
       <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
     </div>
   </div>
+
+  <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
+    <h2 style="font-size:16px; margin-bottom:14px;">Vidéo principale (hero)</h2>
+    <video id="current-reel-preview" src="../video/reel.mp4" muted loop autoplay playsinline style="width:100%; max-width:360px; border:1px solid var(--line); display:block; margin-bottom:14px;"></video>
+    <div class="field">
+      <label>Remplacer par une nouvelle vidéo</label>
+      <input type="file" id="f-video" accept="video/*">
+    </div>
+    <p class="field-hint">
+      Compressée automatiquement (H.264, débit ~4 Mbps, audio conservé) directement dans ton navigateur avant l'envoi.
+      Ça peut prendre plusieurs minutes selon la longueur du fichier et la puissance de ton appareil : ne ferme pas cette page pendant le traitement.
+      Si un fichier est très volumineux (plus d'un Go), le traitement peut être long ou instable, un export déjà raisonnable en taille fonctionne mieux.
+    </p>
+    <div id="video-progress-wrap" style="display:none; margin: 14px 0;">
+      <div style="background:var(--bg); border:1px solid var(--line); height:6px; overflow:hidden;">
+        <div id="video-progress-bar" style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
+      </div>
+      <p id="video-status" class="field-hint" style="margin-top:8px;"></p>
+    </div>
+    <button class="btn btn-primary" id="upload-video-btn" style="margin-top:6px;">Compresser et publier</button>
+  </div>
+
   <p class="field-hint" style="margin-bottom:16px;">Glisse une ligne pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
   <div id="project-list"></div>
   <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
@@ -684,6 +707,87 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   } catch (e) {
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
+  }
+});
+
+/* ---------- Vidéo principale (hero) ---------- */
+
+let ffmpegInstance = null;
+const videoProgressWrap = document.getElementById('video-progress-wrap');
+const videoProgressBar = document.getElementById('video-progress-bar');
+const videoStatusEl = document.getElementById('video-status');
+
+async function getFFmpeg() {
+  if (ffmpegInstance) return ffmpegInstance;
+  const { createFFmpeg } = FFmpeg;
+  ffmpegInstance = createFFmpeg({
+    log: false,
+    // Core mono-thread : fonctionne sans les en-têtes COOP/COEP que GitHub Pages ne permet pas de configurer.
+    corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
+    progress: ({ ratio }) => {
+      if (ratio < 0 || !isFinite(ratio)) return;
+      const pct = Math.min(100, Math.round(ratio * 100));
+      videoProgressBar.style.width = pct + '%';
+      videoStatusEl.textContent = `Compression en cours… ${pct}%`;
+    }
+  });
+  videoStatusEl.textContent = 'Chargement du moteur de compression (une seule fois)…';
+  await ffmpegInstance.load();
+  return ffmpegInstance;
+}
+
+function fileExt(name) {
+  const m = name.match(/\.[^.]+$/);
+  return m ? m[0] : '.mp4';
+}
+
+document.getElementById('upload-video-btn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('f-video');
+  const file = fileInput.files[0];
+  if (!file) { alert('Choisis un fichier vidéo d\'abord.'); return; }
+
+  const btn = document.getElementById('upload-video-btn');
+  btn.disabled = true;
+  videoProgressWrap.style.display = '';
+  videoProgressBar.style.width = '0%';
+
+  try {
+    const { fetchFile } = FFmpeg;
+    const ffmpeg = await getFFmpeg();
+
+    const inputName = 'input' + fileExt(file.name);
+    videoStatusEl.textContent = 'Lecture du fichier…';
+    ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+
+    videoStatusEl.textContent = 'Compression en cours… 0%';
+    videoProgressBar.style.width = '0%';
+    await ffmpeg.run(
+      '-i', inputName,
+      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
+      '-maxrate', '4000k', '-bufsize', '8000k',
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', '128k',
+      '-movflags', '+faststart',
+      'output.mp4'
+    );
+
+    const data = ffmpeg.FS('readFile', 'output.mp4');
+    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+    ffmpeg.FS('unlink', inputName);
+    ffmpeg.FS('unlink', 'output.mp4');
+
+    videoStatusEl.textContent = `Envoi vers GitHub… (${(blob.size / 1024 / 1024).toFixed(1)} MB)`;
+    const b64 = await blobToBase64(blob);
+    await ghPutFile('video/reel.mp4', b64, 'Admin : nouveau reel principal');
+
+    videoProgressBar.style.width = '100%';
+    videoStatusEl.textContent = 'Terminé. En ligne dans ~1 minute.';
+    document.getElementById('current-reel-preview').src = URL.createObjectURL(blob);
+    fileInput.value = '';
+  } catch (e) {
+    videoStatusEl.textContent = 'Erreur : ' + e.message;
+  } finally {
+    btn.disabled = false;
   }
 });
 </script>
