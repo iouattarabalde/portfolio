@@ -11,6 +11,7 @@ ffmpeg.wasm) est chargé depuis un CDN au moment de l'exécution.
 | `index.html` | Page principale : hero reel, grille de travaux (construite dynamiquement depuis `data/projects.json`), section contact |
 | `project.html` | Gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json` |
 | `data/projects.json` | Source de vérité pour tous les projets : titre, type, réalisation, DP, vignette, galerie ordonnée |
+| `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram — lues par la section contact de `index.html` et par le mailto d'`intake-form.html` |
 | `types.js` | Mapping bilingue des types de projet (AD/PUB, MV/CLIP, FILM, TV/Série, WEB), partagé par toutes les pages |
 | `intake-form.html` | Formulaire "Contact" (5 champs), envoie par mailto, pas de backend |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
@@ -62,7 +63,11 @@ directement avec l'API GitHub depuis le navigateur (token collé une fois, gard�
 met à jour tout seul via GitHub Pages, en général en moins d'une minute.
 
 Permet de :
+- Modifier les coordonnées du site (courriel, localisation, disponibilité, Instagram)
 - Ajouter / modifier / supprimer des projets (titre, type, réalisation, DP)
+- Dupliquer un projet existant (réutilise ses images telles quelles, à ajuster ensuite)
+- Rechercher/filtrer la liste de projets par titre ou type
+- Ouvrir un projet sur le site en direct depuis sa ligne ("Voir")
 - Glisser-déposer pour réordonner les projets sur la page d'accueil (sauvegarde automatique)
 - Uploader des images, compressées automatiquement (canvas, 1920px max, JPEG qualité 0.85)
 - Glisser-déposer pour réordonner la galerie d'un projet
@@ -70,6 +75,8 @@ Permet de :
   (version mono-thread `core-st`, seule à fonctionner sur GitHub Pages sans les en-têtes
   serveur COOP/COEP qu'on ne peut pas y configurer ; plus lente qu'un ffmpeg normal,
   peut prendre plusieurs minutes selon la longueur du fichier)
+- Annuler le dernier changement sur les projets (relit l'historique Git de `projects.json`
+  et republie la version précédente comme nouveau commit — ne touche pas aux images)
 
 ## Ajouter/modifier un projet
 

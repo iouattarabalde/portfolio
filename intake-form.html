@@ -120,6 +120,14 @@
     updateTypeOptions();
   });
 
+  // Destination address comes from data/settings.json (editable in the admin) rather
+  // than being hardcoded, so it stays in sync with the address shown on the homepage.
+  let destinationEmail = 'iouattarabalde@gmail.com'; // fallback in case the fetch below fails
+  fetch('data/settings.json')
+    .then((r) => r.json())
+    .then((s) => { destinationEmail = s.email; })
+    .catch((err) => console.error('Impossible de charger les coordonnées:', err));
+
   // No backend on GitHub Pages, so "submitting" just opens the visitor's email client
   // with a pre-filled message instead of posting anywhere.
   document.getElementById('intake-form').addEventListener('submit', function (e) {
@@ -135,7 +143,7 @@
     // Named mailBody (not "body") to avoid shadowing the document.body reference above
     const mailBody = encodeURIComponent(lines.join('\n'));
     const subject = encodeURIComponent('Nouveau projet — ' + f.get('name'));
-    window.location.href = 'mailto:iouattarabalde@gmail.com?subject=' + subject + '&body=' + mailBody;
+    window.location.href = 'mailto:' + destinationEmail + '?subject=' + subject + '&body=' + mailBody;
   });
 </script>
 </body>

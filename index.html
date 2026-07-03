@@ -71,15 +71,15 @@
   <dl class="contact-grid">
     <div>
       <dt><span data-fr>Courriel</span><span data-en>Email</span></dt>
-      <dd><a href="mailto:iouattarabalde@gmail.com">iouattarabalde@gmail.com</a></dd>
+      <dd><a id="contact-email" href="#"></a></dd>
     </div>
     <div>
       <dt><span data-fr>Localisation</span><span data-en>Location</span></dt>
-      <dd><span data-fr>Montréal, QC</span><span data-en>Montreal, QC</span><br><span data-fr>Disponible à distance</span><span data-en>Available remote</span></dd>
+      <dd><span data-fr id="contact-location-fr"></span><span data-en id="contact-location-en"></span><br><span data-fr id="contact-availability-fr"></span><span data-en id="contact-availability-en"></span></dd>
     </div>
     <div>
       <dt>Instagram</dt>
-      <dd><a href="https://instagram.com/he.smile_" target="_blank" rel="noopener">@he.smile_</a></dd>
+      <dd><a id="contact-instagram" href="#" target="_blank" rel="noopener"></a></dd>
     </div>
   </dl>
 </section>
@@ -171,6 +171,25 @@
       renderWorkGrid();
     })
     .catch((err) => console.error('Impossible de charger les projets:', err));
+
+  // Contact section: email, location, availability, Instagram — editable in the admin
+  // ("Coordonnées" panel) without touching this file, since they're pulled from
+  // data/settings.json rather than hardcoded here.
+  fetch('data/settings.json')
+    .then((r) => r.json())
+    .then((s) => {
+      const emailEl = document.getElementById('contact-email');
+      emailEl.textContent = s.email;
+      emailEl.href = 'mailto:' + s.email;
+      document.getElementById('contact-location-fr').textContent = s.locationFr;
+      document.getElementById('contact-location-en').textContent = s.locationEn;
+      document.getElementById('contact-availability-fr').textContent = s.availabilityFr;
+      document.getElementById('contact-availability-en').textContent = s.availabilityEn;
+      const igEl = document.getElementById('contact-instagram');
+      igEl.textContent = '@' + s.instagramHandle;
+      igEl.href = 'https://instagram.com/' + s.instagramHandle;
+    })
+    .catch((err) => console.error('Impossible de charger les coordonnées:', err));
 </script>
 </body>
 </html>
