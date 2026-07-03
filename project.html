@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=7">
+<script src="types.js"></script>
 </head>
 <body>
 
@@ -71,6 +72,7 @@
     localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
     document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
     updateLangButton();
+    renderProjectType();
   });
 
   // Lightbox : clic sur une vignette de la galerie pour l'agrandir.
@@ -100,6 +102,13 @@
   // Charge le projet demandé (?project=slug) depuis data/projects.json.
   const params = new URLSearchParams(window.location.search);
   const projectId = params.get('project');
+  let currentProject = null;
+
+  function renderProjectType() {
+    if (!currentProject) return;
+    const isFr = body.classList.contains('lang-fr');
+    document.getElementById('project-type').textContent = projectTypeAcronym(currentProject.type, isFr) || '—';
+  }
 
   fetch('data/projects.json')
     .then((r) => r.json())
@@ -109,10 +118,11 @@
         document.getElementById('project-not-found').style.display = '';
         return;
       }
+      currentProject = project;
 
       document.getElementById('page-title').textContent = project.title + ' — Ismael OB';
       document.getElementById('project-title').textContent = project.title;
-      document.getElementById('project-type').textContent = project.type || '—';
+      renderProjectType();
       document.getElementById('project-director').textContent = project.director || '—';
       document.getElementById('project-dp').textContent = project.dp || '—';
 

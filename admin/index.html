@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=7">
+<script src="../types.js"></script>
 <style>
   body { padding-bottom: 80px; }
   .admin-wrap {
@@ -202,8 +203,8 @@
         <option value="AD">AD — Publicité</option>
         <option value="MV">MV — Vidéoclip</option>
         <option value="FILM">FILM</option>
-        <option value="TV">TV</option>
-        <option value="YT">YT — YouTube / Web</option>
+        <option value="TV">TV — Série</option>
+        <option value="WEB">WEB</option>
       </select>
     </div>
     <div class="field">
@@ -419,7 +420,7 @@ function renderDashboard() {
       <div class="row-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
       <div class="row-info">
         <div class="row-title">${p.title}</div>
-        <div class="row-meta">${p.type} · ${p.gallery.length} stills</div>
+        <div class="row-meta">${projectTypeAcronym(p.type, true)} · ${p.gallery.length} stills</div>
       </div>
       <div class="row-actions">
         <button class="btn" data-edit="${i}">Modifier</button>
