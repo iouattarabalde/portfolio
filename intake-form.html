@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=7">
+<script src="types.js"></script>
 </head>
 <body>
 
@@ -47,11 +48,6 @@
       <label for="project-type"><span data-fr>Type de projet</span><span data-en>Project type</span></label>
       <select id="project-type" name="project-type" required>
         <option value=""></option>
-        <option value="AD">AD — <span data-fr>Publicité</span><span data-en>Advertising</span></option>
-        <option value="MV">MV — <span data-fr>Vidéoclip</span><span data-en>Music video</span></option>
-        <option value="FILM">FILM</option>
-        <option value="TV">TV</option>
-        <option value="YT">YT — YouTube / Web</option>
       </select>
     </div>
 
@@ -82,14 +78,29 @@
     const key = body.classList.contains('lang-fr') ? 'frPlaceholder' : 'enPlaceholder';
     desc.placeholder = desc.dataset[key];
   }
+  function updateTypeOptions() {
+    const select = document.getElementById('project-type');
+    const isFr = body.classList.contains('lang-fr');
+    const previous = select.value;
+    select.innerHTML = '<option value=""></option>' + Object.keys(PROJECT_TYPES).map((code) => {
+      const t = PROJECT_TYPES[code];
+      const acronym = isFr ? t.frAcronym : t.enAcronym;
+      const label = isFr ? t.frLabel : t.enLabel;
+      const text = acronym.toLowerCase() === label.toLowerCase() ? acronym : `${acronym} — ${label}`;
+      return `<option value="${code}">${text}</option>`;
+    }).join('');
+    select.value = previous;
+  }
   updateLangButton();
   updatePlaceholder();
+  updateTypeOptions();
   btn.addEventListener('click', () => {
     body.classList.toggle('lang-fr');
     localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
     document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
     updateLangButton();
     updatePlaceholder();
+    updateTypeOptions();
   });
 
   // Pas de backend sur GitHub Pages : on compose un mailto avec les réponses.
