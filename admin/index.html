@@ -29,9 +29,9 @@
      from there — --bg, --accent, --line, --mono, etc. are all defined in that file). */
   body { padding-bottom: 80px; }
   .admin-wrap {
-    max-width: 880px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: clamp(28px, 5vw, 48px) clamp(20px, 4vw, 32px);
+    padding: clamp(28px, 5vw, 48px) clamp(20px, 4vw, 48px);
   }
   .admin-header {
     display: flex;
@@ -238,6 +238,18 @@
     <button class="btn" id="logout-btn">Déconnexion</button>
   </div>
 
+  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+    <h2 style="font-size:16px;">Projets</h2>
+    <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
+  </div>
+  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+    <p class="field-hint">Glisse une ligne pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
+    <button class="btn" id="undo-btn">Annuler le dernier changement</button>
+  </div>
+  <input type="text" id="project-search" placeholder="Rechercher un projet…" style="width:100%; background:var(--bg-raised); border:1px solid var(--line); color:var(--fg); font-family:var(--mono); font-size:13px; padding:10px 12px; margin-bottom:16px;">
+  <div id="project-list"></div>
+  <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
+
   <!-- Textes du site : coordonnées + tous les libellés bilingues + acronymes de type.
        Édite data/settings.json et data/strings.json, lus par toutes les pages publiques. -->
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
@@ -282,18 +294,6 @@
       <span class="save-status" id="settings-status"></span>
     </div>
   </div>
-
-  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
-    <h2 style="font-size:16px;">Projets</h2>
-    <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
-  </div>
-  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-    <p class="field-hint">Glisse une ligne pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
-    <button class="btn" id="undo-btn">Annuler le dernier changement</button>
-  </div>
-  <input type="text" id="project-search" placeholder="Rechercher un projet…" style="width:100%; background:var(--bg-raised); border:1px solid var(--line); color:var(--fg); font-family:var(--mono); font-size:13px; padding:10px 12px; margin-bottom:16px;">
-  <div id="project-list"></div>
-  <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
 </div>
 
 <!-- Add/edit project overlay. Filled in by openEditor(index) — index is null for a new
