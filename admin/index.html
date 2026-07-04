@@ -142,13 +142,13 @@
 
   .gallery-editor-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* matches .project-gallery on the live site */
     gap: 6px;
     margin-bottom: 12px;
   }
   .gallery-editor-item {
     position: relative;
-    aspect-ratio: 4/3;
+    aspect-ratio: 16 / 9; /* matches .gallery-item on the live site */
     background-size: cover;
     background-position: center;
     background-color: var(--bg-raised);
