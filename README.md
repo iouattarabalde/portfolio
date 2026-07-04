@@ -1,8 +1,8 @@
 # ismaelob.com
 
 Portfolio d'Ismael OB, coloriste basé à Montréal. Site statique, hébergé sur GitHub Pages,
-sans build step ni dépendances npm — tout ce qui n'est pas HTML/CSS/JS maison (polices,
-ffmpeg.wasm) est chargé depuis un CDN au moment de l'exécution.
+sans build step ni dépendances npm — tout ce qui n'est pas HTML/CSS/JS maison (les polices)
+est chargé depuis un CDN au moment de l'exécution.
 
 ## Structure
 
@@ -85,14 +85,18 @@ Permet de :
 - Glisser-déposer pour réordonner les projets sur la page d'accueil (sauvegarde automatique)
 - Uploader des images, compressées automatiquement (canvas, 1920px max, JPEG qualité 0.85)
 - Glisser-déposer pour réordonner la galerie d'un projet
-- Remplacer le reel principal — compression vidéo H.264 dans le navigateur via ffmpeg.wasm
-  (version mono-thread `core-st`, seule à fonctionner sur GitHub Pages sans les en-têtes
-  serveur COOP/COEP qu'on ne peut pas y configurer ; plus lente qu'un ffmpeg normal,
-  peut prendre plusieurs minutes selon la longueur du fichier)
 - Annuler le dernier changement sur les projets (relit l'historique Git de `projects.json`
   et republie la version précédente comme nouveau commit — ne touche pas aux images)
 
 Pas de bouton "dupliquer" un projet — volontairement retiré, "+ Nouveau projet" suffit.
+
+**Le reel principal (`video/reel.mp4`) ne se change pas depuis l'admin.** Une tentative avec
+ffmpeg.wasm (compression dans le navigateur) a été faite puis retirée : sa seule variante
+compatible avec GitHub Pages (mono-thread, sans les en-têtes serveur COOP/COEP qu'on ne peut
+pas y configurer) ne peut pas tourner dans un thread séparé, donc elle gèle l'onglet le temps
+du traitement, sans limite fiable au-delà de quelques dizaines de MB. Pour remplacer le reel,
+envoyer le fichier vidéo à Claude par le chat, qui le compresse avec un vrai ffmpeg côté
+serveur et le publie directement.
 
 ## Ajouter/modifier un projet
 

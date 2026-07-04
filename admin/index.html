@@ -10,7 +10,7 @@
   images/video into assets/ and video/ the same way — so saving here commits straight
   to the repo and the live site updates itself within about a minute via GitHub Pages.
 
-  No build step, no npm install: ffmpeg.wasm and the Google Fonts are loaded from a CDN
+  No build step, no npm install: Google Fonts are loaded from a CDN
   at runtime via plain script/link tags, same zero-tooling approach as the rest of
   the site.
 -->
@@ -24,7 +24,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=8">
 <script src="../i18n.js"></script>
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
      from there — --bg, --accent, --line, --mono, etc. are all defined in that file). */
@@ -239,29 +238,6 @@
     <button class="btn" id="logout-btn">Déconnexion</button>
   </div>
 
-  <!-- Hero reel upload: compressed in-browser with ffmpeg.wasm, then pushed to video/reel.mp4.
-       See the "Vidéo principale" section near the bottom of the script for the actual logic. -->
-  <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
-    <h2 style="font-size:16px; margin-bottom:14px;">Vidéo principale (hero)</h2>
-    <video id="current-reel-preview" src="../video/reel.mp4" muted loop autoplay playsinline style="width:100%; max-width:360px; border:1px solid var(--line); display:block; margin-bottom:14px;"></video>
-    <div class="field">
-      <label>Remplacer par une nouvelle vidéo</label>
-      <input type="file" id="f-video" accept="video/*">
-    </div>
-    <p class="field-hint">
-      Compressée automatiquement (H.264, débit ~4 Mbps, audio conservé) directement dans ton navigateur avant l'envoi.
-      Ça peut prendre plusieurs minutes selon la longueur du fichier et la puissance de ton appareil : ne ferme pas cette page pendant le traitement.
-      Au-delà de 300MB, le navigateur peut sembler figé pendant le traitement (normal, juste lent) — pour un gros fichier, envoyer la vidéo à Claude par le chat reste plus fiable.
-    </p>
-    <div id="video-progress-wrap" style="display:none; margin: 14px 0;">
-      <div style="background:var(--bg); border:1px solid var(--line); height:6px; overflow:hidden;">
-        <div id="video-progress-bar" style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
-      </div>
-      <p id="video-status" class="field-hint" style="margin-top:8px;"></p>
-    </div>
-    <button class="btn btn-primary" id="upload-video-btn" style="margin-top:6px;">Compresser et publier</button>
-  </div>
-
   <!-- Textes du site : coordonnées + tous les libellés bilingues + acronymes de type.
        Édite data/settings.json et data/strings.json, lus par toutes les pages publiques. -->
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
@@ -382,13 +358,17 @@
 // ---------------------------------------------------------------
 // admin/index.html script overview:
 //   1. GitHub API helpers (ghGetFile/ghPutFile) — every read and write goes through these
-//   2. Image compression (canvas-based, mirrors what's done with ffmpeg for consistency)
+//   2. Image compression (canvas-based, mirrors the ffmpeg settings used server-side for consistency)
 //   3. Slug generation for new project ids/filenames
 //   4. Auth gate — token in, dashboard out
 //   5. Dashboard — project list with drag-to-reorder
 //   6. Editor — the add/edit project form, including gallery drag-to-reorder
 //   7. Save/Delete — where an edited project actually gets written back to GitHub
-//   8. Hero video upload — ffmpeg.wasm compression + publish
+//
+// No hero video upload here — ffmpeg.wasm's single-thread build (the only one that
+// works without server headers GitHub Pages can't provide) can't run off the main
+// thread, so it freezes the tab on anything but small files. Replacing the hero reel
+// goes through Claude in chat instead, which compresses it with real ffmpeg.
 // ---------------------------------------------------------------
 
 const OWNER = 'iouattarabalde';
@@ -1141,120 +1121,6 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   }
 });
 
-/* ---------- Vidéo principale (hero) ----------
-   Runs real H.264 re-encoding in the browser via ffmpeg.wasm (loaded in <head>), then
-   pushes the result straight to video/reel.mp4. Deliberately using the *single-thread*
-   core (core-st): the normal multi-thread ffmpeg.wasm core needs SharedArrayBuffer,
-   which only works if the page is served with Cross-Origin-Opener-Policy/
-   Cross-Origin-Embedder-Policy headers — GitHub Pages has no way to set those, so the
-   regular core would silently fail to load here. core-st is slower (one thread, no
-   hardware acceleration) but works with zero server configuration. */
-
-let ffmpegInstance = null; // ffmpeg.wasm is loaded once and reused for every video after that
-const videoProgressWrap = document.getElementById('video-progress-wrap');
-const videoProgressBar = document.getElementById('video-progress-bar');
-const videoStatusEl = document.getElementById('video-status');
-
-// Lazily creates and loads ffmpeg.wasm on first use (the core is a ~25MB download,
-// so this is skipped entirely if a video is never uploaded in a given session).
-async function getFFmpeg() {
-  if (ffmpegInstance) return ffmpegInstance;
-  const { createFFmpeg } = FFmpeg;
-  ffmpegInstance = createFFmpeg({
-    log: false,
-    // Core mono-thread : fonctionne sans les en-têtes COOP/COEP que GitHub Pages ne permet pas de configurer.
-    // mainName:'main' est requis avec ce core mono-thread — sans lui, le wrapper cherche
-    // "proxy_main" (l'entrée multi-thread), qui n'existe pas dans ce build, d'où l'erreur
-    // "Cannot call unknown function proxy_main" si ce paramètre est omis.
-    corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
-    mainName: 'main',
-    progress: ({ ratio }) => {
-      if (ratio < 0 || !isFinite(ratio)) return; // ffmpeg reports -1 for some stages; ignore those
-      const pct = Math.min(100, Math.round(ratio * 100));
-      videoProgressBar.style.width = pct + '%';
-      videoStatusEl.textContent = `Compression en cours… ${pct}%`;
-    }
-  });
-  videoStatusEl.textContent = 'Chargement du moteur de compression (une seule fois)…';
-  await ffmpegInstance.load();
-  return ffmpegInstance;
-}
-
-// ffmpeg.wasm's virtual filesystem needs the input written under some filename — reuse
-// the original extension (.mov, .mp4, whatever) so ffmpeg can sniff the format correctly.
-function fileExt(name) {
-  const m = name.match(/\.[^.]+$/);
-  return m ? m[0] : '.mp4';
-}
-
-document.getElementById('upload-video-btn').addEventListener('click', async () => {
-  const fileInput = document.getElementById('f-video');
-  const file = fileInput.files[0];
-  if (!file) { alert('Choisis un fichier vidéo d\'abord.'); return; }
-
-  // Reading a large file into ffmpeg.wasm's virtual filesystem happens on the main
-  // thread and can block it long enough for the browser to think the page has frozen
-  // (Chrome's own "Page Unresponsive" prompt) — warn before attempting anything past
-  // ~300MB rather than let that happen silently.
-  const sizeMB = file.size / 1024 / 1024;
-  if (sizeMB > 300) {
-    const proceed = confirm(
-      `Ce fichier fait ${Math.round(sizeMB)}MB. Au-delà de 300MB, le navigateur peut sembler figé ` +
-      `pendant plusieurs minutes (ce n'est pas nécessairement planté, juste très lent). ` +
-      `Pour un fichier de cette taille, il est plus fiable de l'envoyer directement à Claude par le chat. ` +
-      `Continuer quand même ?`
-    );
-    if (!proceed) return;
-  }
-
-  const btn = document.getElementById('upload-video-btn');
-  btn.disabled = true;
-  videoProgressWrap.style.display = '';
-  videoProgressBar.style.width = '0%';
-
-  try {
-    const { fetchFile } = FFmpeg;
-    const ffmpeg = await getFFmpeg();
-
-    const inputName = 'input' + fileExt(file.name);
-    videoStatusEl.textContent = 'Lecture du fichier…';
-    ffmpeg.FS('writeFile', inputName, await fetchFile(file)); // copies the file into ffmpeg's in-memory FS
-
-    videoStatusEl.textContent = 'Compression en cours… 0%';
-    videoProgressBar.style.width = '0%';
-    // Same encoding recipe used for the original reel: H.264, CRF 26 (quality target,
-    // ~4Mbps typical for this kind of footage) capped at 4000k so it never spikes too
-    // high on complex scenes, AAC audio kept at 128k, yuv420p for broad player support,
-    // faststart so the video begins playing before the whole file has downloaded.
-    await ffmpeg.run(
-      '-i', inputName,
-      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
-      '-maxrate', '4000k', '-bufsize', '8000k',
-      '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-b:a', '128k',
-      '-movflags', '+faststart',
-      'output.mp4'
-    );
-
-    const data = ffmpeg.FS('readFile', 'output.mp4');
-    const blob = new Blob([data.buffer], { type: 'video/mp4' });
-    ffmpeg.FS('unlink', inputName);   // free the in-memory FS entries — large video
-    ffmpeg.FS('unlink', 'output.mp4'); // files would otherwise pile up across uploads
-
-    videoStatusEl.textContent = `Envoi vers GitHub… (${(blob.size / 1024 / 1024).toFixed(1)} MB)`;
-    const b64 = await blobToBase64(blob);
-    await ghPutFile('video/reel.mp4', b64, 'Admin : nouveau reel principal'); // always the same path — replaces the hero video in place
-
-    videoProgressBar.style.width = '100%';
-    videoStatusEl.textContent = 'Terminé. En ligne dans ~1 minute.';
-    document.getElementById('current-reel-preview').src = URL.createObjectURL(blob); // instant local preview, doesn't wait for the GitHub Pages deploy
-    fileInput.value = '';
-  } catch (e) {
-    videoStatusEl.textContent = 'Erreur : ' + e.message;
-  } finally {
-    btn.disabled = false;
-  }
-});
 </script>
 </body>
 </html>
