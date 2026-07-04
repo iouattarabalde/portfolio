@@ -236,10 +236,7 @@
 <div class="admin-wrap" id="dashboard" style="display:none;">
   <div class="admin-header">
     <h1>Projets</h1>
-    <div style="display:flex; gap:8px;">
-      <button class="btn" id="logout-btn">Déconnexion</button>
-      <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
-    </div>
+    <button class="btn" id="logout-btn">Déconnexion</button>
   </div>
 
   <!-- Hero reel upload: compressed in-browser with ffmpeg.wasm, then pushed to video/reel.mp4.
@@ -310,6 +307,10 @@
     </div>
   </div>
 
+  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+    <h2 style="font-size:16px;">Projets</h2>
+    <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
+  </div>
   <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
     <p class="field-hint">Glisse une ligne pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
     <button class="btn" id="undo-btn">Annuler le dernier changement</button>
