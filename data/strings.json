@@ -20,9 +20,9 @@
       "fr": "Projets",
       "en": "Projects"
     },
-    "work.categories": {
-      "fr": "Publicité · Vidéoclip · Film · Série · Web",
-      "en": "Advertising · Music Video · Film · TV · Web"
+    "work.filter_all": {
+      "fr": "Tous",
+      "en": "All"
     },
     "contact.heading": {
       "fr": "Disponible pour vos prochains projets.",

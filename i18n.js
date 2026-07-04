@@ -16,7 +16,7 @@ const DEFAULT_STRINGS = {
   'nav.contact': { fr: 'Contact', en: 'Contact' },
 
   'work.heading': { fr: 'Projets', en: 'Projects' },
-  'work.categories': { fr: 'Publicité · Vidéoclip · Film · Série · Web', en: 'Advertising · Music Video · Film · TV · Web' },
+  'work.filter_all': { fr: 'Tous', en: 'All' },
 
   'contact.heading': { fr: 'Disponible pour vos prochains projets.', en: 'Available for your next project.' },
   'contact.email_label': { fr: 'Courriel', en: 'Email' },

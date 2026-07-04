@@ -13,7 +13,7 @@
 <meta name="description" content="Ismael OB, coloriste basé à Montréal. Étalonnage pour publicités, vidéoclips, films et télévision.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -57,7 +57,7 @@
 <section id="work">
   <div class="section-head">
     <h2><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
-    <p class="eyebrow"><span data-fr data-key="work.categories"></span><span data-en data-key="work.categories"></span></p>
+    <div class="category-filter" id="category-filter"></div>
   </div>
 
   <div class="work-grid" id="work-grid"></div>
@@ -109,6 +109,7 @@
     localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
     document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
     updateLangButton();
+    renderCategoryFilter(); // re-render so filter labels switch language too
     renderWorkGrid(); // re-render so card type tags (AD/PUB, MV/CLIP, etc.) switch language too
   });
 
@@ -150,12 +151,16 @@
   // Work grid: fetched once from data/projects.json and cached, then rendered into
   // #work-grid. Re-render (renderWorkGrid) is called again on language toggle above,
   // which is why the fetched list is cached in a variable instead of only used once.
+  // activeFilter holds a project type code (e.g. 'TV') to show only that category, or
+  // null to show everything — set by clicking a button in the category filter bar.
   let cachedProjects = null;
+  let activeFilter = null;
   function renderWorkGrid() {
     const grid = document.getElementById('work-grid');
     if (!grid || !cachedProjects) return;
     const isFr = body.classList.contains('lang-fr');
-    grid.innerHTML = cachedProjects.map((p) => `
+    const visible = activeFilter ? cachedProjects.filter((p) => p.type === activeFilter) : cachedProjects;
+    grid.innerHTML = visible.map((p) => `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}">
         <div class="thumb" style="background-image:url('assets/${p.thumbnail}')"></div>
         <div class="work-card-meta">
@@ -164,6 +169,31 @@
         </div>
       </a>
     `).join('');
+  }
+
+  // Category filter bar: one button per entry in PROJECT_TYPES (from i18n.js), plus an
+  // "All"/"Tous" button to clear the filter. Rebuilt on language toggle since the labels
+  // are bilingual; clicking a button just sets activeFilter and re-renders the grid —
+  // it doesn't refetch anything, filtering happens against the already-cached project list.
+  function renderCategoryFilter() {
+    const container = document.getElementById('category-filter');
+    if (!container) return;
+    const isFr = body.classList.contains('lang-fr');
+    const allLabel = STRINGS['work.filter_all'] ? (isFr ? STRINGS['work.filter_all'].fr : STRINGS['work.filter_all'].en) : 'All';
+    const items = [{ code: null, label: allLabel }].concat(
+      Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
+    );
+    container.innerHTML = items.map((item, i) => `
+      ${i > 0 ? '<span class="sep">·</span>' : ''}
+      <button type="button" class="${activeFilter === item.code ? 'active' : ''}" data-filter="${item.code || ''}">${item.label}</button>
+    `).join('');
+    container.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        activeFilter = btn.dataset.filter || null;
+        renderCategoryFilter();
+        renderWorkGrid();
+      });
+    });
   }
 
   // i18n (all static bilingual copy + project type acronyms) and the project list are
@@ -176,6 +206,7 @@
     .then(([, data]) => {
       applyStrings();
       cachedProjects = data.projects;
+      renderCategoryFilter();
       renderWorkGrid();
     })
     .catch((err) => console.error('Impossible de charger les données:', err));
