@@ -8,7 +8,7 @@ est chargé depuis un CDN au moment de l'exécution.
 
 | Fichier / dossier | Rôle |
 |---|---|
-| `index.html` | Page principale : hero reel, grille de travaux (construite dynamiquement depuis `data/projects.json`), section contact |
+| `index.html` | Page principale : hero reel, filtre de catégories + grille de travaux (construits dynamiquement depuis `data/projects.json`), section contact |
 | `project.html` | Gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json` |
 | `data/projects.json` | Source de vérité pour tous les projets : titre, type, réalisation, DP, vignette, galerie ordonnée |
 | `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram |
@@ -16,17 +16,19 @@ est chargé depuis un CDN au moment de l'exécution.
 | `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin |
 | `intake-form.html` | Formulaire "Contact" (5 champs), envoie par mailto, pas de backend |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
-| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=7`, actuellement) |
+| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=12` actuellement — bumper ce numéro sur les 4 pages à chaque édition, sinon certains navigateurs gardent l'ancienne feuille en cache) |
 | `video/reel.mp4` | Reel auto-hébergé |
 | `assets/` | Stills et vignettes des projets |
 | `.nojekyll`, `robots.txt`, `CNAME` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom) |
 
 ## Navigation
 
-**Work** → `#work` · **Info** → `#contact` · **Contact** → `intake-form.html`
+**Projects** → `#work` · **Info** → `#contact` · **Contact** → `intake-form.html`
 (le libellé "Contact" pointe vers le formulaire, pas vers la section coordonnées, qui elle s'appelle "Info")
 
 ## Catégories de projet
+
+Liste actuelle (éditable dans l'admin, sous "Textes du site → Types de projet") :
 
 | | EN | FR |
 |---|---|---|
@@ -34,11 +36,20 @@ est chargé depuis un CDN au moment de l'exécution.
 | Music Video | MV | CLIP |
 | Film | FILM | FILM |
 | TV | TV | Série |
-| Web | WEB | WEB |
 
-Le code canonique (AD/MV/FILM/TV/WEB) est ce qui est stocké dans `data/projects.json` ;
-l'acronyme et le libellé affichés changent selon la langue active, via `data/strings.json`
-(section "types"). Éditables dans l'admin, sous "Textes du site → Types de projet".
+Le code canonique est ce qui est stocké dans `data/projects.json` ; l'acronyme et le
+libellé affichés changent selon la langue active, via `data/strings.json` (section
+"types"). Un type peut être ajouté/retiré à tout moment dans l'admin — la liste des
+catégories sur la page d'accueil et le menu du formulaire Contact se régénèrent
+automatiquement à partir de cette même source, jamais besoin de les toucher séparément.
+Avant de retirer un type déjà utilisé par un projet existant, le réassigner d'abord
+(sinon son acronyme s'affiche tel quel, sans traduction, sur ce projet).
+
+## Filtre de catégories (page d'accueil)
+
+Sous le titre "Projects", la liste des catégories est cliquable : "All"/"Tous" affiche
+tout, chaque catégorie filtre la grille sur ce type. Généré en JS (`renderCategoryFilter`
+dans `index.html`) à partir des mêmes types de projet, pas de configuration séparée.
 
 ## Pages projet
 
@@ -46,9 +57,19 @@ Galerie de stills en haut (cliquables pour agrandir en lightbox), infos condens�
 (Type, Réalisation, DP seulement — pas de Client/Année/Étalonnage, puisque l'étalonnage
 est toujours Ismael OB).
 
+**Lightbox** : flèches à l'écran + flèches du clavier (←/→) pour naviguer entre les stills,
+boucle entre la première et la dernière image. Le curseur reste normal partout dans le
+lightbox sauf sur les boutons cliquables (Close, flèches).
+
 **Règles à respecter pour chaque projet** (imposées structurellement dans l'admin) :
 - Le nombre de stills doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes)
 - La vignette de la page d'accueil doit être une image distincte, absente de la galerie
+
+**Note sur les fichiers orphelins** : retirer une image de la galerie d'un projet dans
+l'admin (ou supprimer un projet entier) ne supprime pas le fichier de `assets/`, seulement
+la référence dans `projects.json`. Ces fichiers orphelins sont inoffensifs mais s'accumulent
+avec le temps ; un ménage occasionnel (comparer `assets/` aux fichiers réellement référencés
+dans `projects.json`) permet de les retirer.
 
 ## Bilinguisme et textes éditables
 
@@ -67,7 +88,10 @@ absent ou qu'une clé manque, les valeurs par défaut intégrées à `i18n.js` p
 Ajouter un nouveau texte bilingue quelque part sur le site demande trois choses : une entrée
 dans `DEFAULT_STRINGS` (`i18n.js`), la même entrée dans `data/strings.json`, et les deux
 `<span data-key="...">` dans le HTML. Pour qu'il soit aussi éditable dans l'admin, ajouter
-une ligne dans `STRING_GROUPS` (`admin/index.html`).
+une ligne dans `STRING_GROUPS` (`admin/index.html`). Les deux fichiers doivent rester en
+miroir exact (mêmes clés des deux côtés) — un désalignement ne casse rien visuellement
+(repli silencieux sur la valeur par défaut ou absence du champ dans l'admin) mais vaut la
+peine d'être vérifié après une modification de la liste des textes.
 
 ## Admin (`ismaelob.com/admin/`)
 
@@ -76,15 +100,18 @@ directement avec l'API GitHub depuis le navigateur (token collé une fois, gard�
 `localStorage`), donc chaque sauvegarde commit directement dans le repo — le site se
 met à jour tout seul via GitHub Pages, en général en moins d'une minute.
 
+Section "Projets" en premier sur la page (ajout, recherche, réordonnancement), "Textes
+du site" ensuite. Largeur du tableau de bord : 1400px sur desktop.
+
 Permet de :
-- Modifier tous les textes du site — coordonnées, navigation, titres, formulaire, et les
-  acronymes/libellés de chaque type de projet, en français et en anglais
 - Ajouter / modifier / supprimer des projets (titre, type, réalisation, DP)
 - Rechercher/filtrer la liste de projets par titre ou type
 - Ouvrir un projet sur le site en direct depuis sa ligne ("Voir")
 - Glisser-déposer pour réordonner les projets sur la page d'accueil (sauvegarde automatique)
 - Uploader des images, compressées automatiquement (canvas, 1920px max, JPEG qualité 0.85)
 - Glisser-déposer pour réordonner la galerie d'un projet
+- Modifier tous les textes du site — coordonnées, navigation, titres, formulaire, et les
+  acronymes/libellés de chaque type de projet, en français et en anglais
 - Annuler le dernier changement sur les projets (relit l'historique Git de `projects.json`
   et republie la version précédente comme nouveau commit — ne touche pas aux images)
 
@@ -102,6 +129,15 @@ serveur et le publie directement.
 
 Le plus simple : `ismaelob.com/admin/`. Sinon, éditer `data/projects.json` à la main et
 ajouter les images dans `assets/`.
+
+## À savoir sur le déploiement
+
+Uploader beaucoup d'images d'un coup (un nouveau projet avec sa galerie complète, par
+exemple) crée autant de commits rapprochés, un par fichier. GitHub Pages a parfois du mal
+à suivre et un déploiement échoue silencieusement (le site reste sur l'ancienne version).
+Si un changement récent n'apparaît pas après une minute ou deux, ce n'est généralement pas
+un problème de données, un nouveau commit (n'importe lequel) suffit à relancer un
+déploiement propre.
 
 ## Historique
 

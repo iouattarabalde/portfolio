@@ -6,9 +6,11 @@
 
   How it works: this page talks straight to the GitHub REST API from the browser using
   a personal access token pasted in once and kept in localStorage (never sent anywhere
-  but api.github.com). It reads and writes data/projects.json directly, and uploads
-  images/video into assets/ and video/ the same way — so saving here commits straight
-  to the repo and the live site updates itself within about a minute via GitHub Pages.
+  but api.github.com). It reads and writes data/projects.json, data/settings.json, and
+  data/strings.json directly, and uploads images into assets/ the same way — so saving
+  here commits straight to the repo and the live site updates itself within about a
+  minute via GitHub Pages. The hero video (video/reel.mp4) is NOT editable here — see
+  the script overview further down for why, and how to replace it instead.
 
   No build step, no npm install: Google Fonts are loaded from a CDN
   at runtime via plain script/link tags, same zero-tooling approach as the rest of
