@@ -1,42 +1,140 @@
 {
   "strings": {
-    "nav.eyebrow": { "fr": "Coloriste", "en": "Colorist" },
-    "nav.work": { "fr": "Projets", "en": "Projects" },
-    "nav.info": { "fr": "Info", "en": "Info" },
-    "nav.contact": { "fr": "Contact", "en": "Contact" },
-
-    "work.heading": { "fr": "Projets", "en": "Projects" },
-    "work.categories": { "fr": "Publicité · Vidéoclip · Film · Série · Web", "en": "Advertising · Music Video · Film · TV · Web" },
-
-    "contact.heading": { "fr": "Disponible pour vos prochains projets.", "en": "Available for your next project." },
-    "contact.email_label": { "fr": "Courriel", "en": "Email" },
-    "contact.location_label": { "fr": "Localisation", "en": "Location" },
-
-    "project.back": { "fr": "Retour aux travaux", "en": "Back to work" },
-    "project.type_label": { "fr": "Type", "en": "Type" },
-    "project.director_label": { "fr": "Réalisation", "en": "Director" },
-    "project.dp_label": { "fr": "Image", "en": "DP" },
-    "project.not_found_eyebrow": { "fr": "Introuvable", "en": "Not found" },
-    "project.not_found_heading": { "fr": "Ce projet n'existe pas ou plus.", "en": "This project doesn't exist." },
-
-    "lightbox.close": { "fr": "Fermer", "en": "Close" },
-
-    "intake.eyebrow": { "fr": "Nouveau projet", "en": "New project" },
-    "intake.heading": { "fr": "Parlons de votre projet", "en": "Tell me about your project" },
-    "intake.subheading": { "fr": "Quelques informations pour démarrer, on précise le reste ensemble par la suite.", "en": "A few details to get started, we'll figure out the rest together." },
-    "intake.name_label": { "fr": "Nom", "en": "Name" },
-    "intake.email_label": { "fr": "Courriel", "en": "Email" },
-    "intake.type_label": { "fr": "Type de projet", "en": "Project type" },
-    "intake.description_label": { "fr": "Décris ton projet", "en": "Describe your project" },
-    "intake.description_placeholder": { "fr": "Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet.", "en": "Camera, editing software, deliverables, VFX... anything that helps understand the project." },
-    "intake.date_label": { "fr": "Date de livraison souhaitée", "en": "Desired delivery date" },
-    "intake.submit": { "fr": "Envoyer", "en": "Send" }
+    "nav.eyebrow": {
+      "fr": "Coloriste",
+      "en": "Colorist"
+    },
+    "nav.work": {
+      "fr": "Projets",
+      "en": "Projects"
+    },
+    "nav.info": {
+      "fr": "Info",
+      "en": "Info"
+    },
+    "nav.contact": {
+      "fr": "Contact",
+      "en": "Contact"
+    },
+    "work.heading": {
+      "fr": "Projets",
+      "en": "Projects"
+    },
+    "work.categories": {
+      "fr": "Publicité · Vidéoclip · Film · Série · Web",
+      "en": "Advertising · Music Video · Film · TV · Web"
+    },
+    "contact.heading": {
+      "fr": "Disponible pour vos prochains projets.",
+      "en": "Available for your next project."
+    },
+    "contact.email_label": {
+      "fr": "Courriel",
+      "en": "Email"
+    },
+    "contact.location_label": {
+      "fr": "Localisation",
+      "en": "Location"
+    },
+    "project.back": {
+      "fr": "Retour aux projets",
+      "en": "Back to projects"
+    },
+    "project.type_label": {
+      "fr": "Type",
+      "en": "Type"
+    },
+    "project.director_label": {
+      "fr": "Réalisation",
+      "en": "Director"
+    },
+    "project.dp_label": {
+      "fr": "Image",
+      "en": "DP"
+    },
+    "project.not_found_eyebrow": {
+      "fr": "Introuvable",
+      "en": "Not found"
+    },
+    "project.not_found_heading": {
+      "fr": "Ce projet n'existe pas.",
+      "en": "This project doesn't exist."
+    },
+    "lightbox.close": {
+      "fr": "Fermer",
+      "en": "Close"
+    },
+    "intake.eyebrow": {
+      "fr": "Nouveau projet",
+      "en": "New project"
+    },
+    "intake.heading": {
+      "fr": "Parlons de votre projet",
+      "en": "Tell me about your project"
+    },
+    "intake.subheading": {
+      "fr": "Quelques informations pour démarrer, on précise le reste ensemble par la suite.",
+      "en": "A few details to get started, we'll figure out the rest together."
+    },
+    "intake.name_label": {
+      "fr": "Nom",
+      "en": "Name"
+    },
+    "intake.email_label": {
+      "fr": "Courriel",
+      "en": "Email"
+    },
+    "intake.type_label": {
+      "fr": "Type de projet",
+      "en": "Project type"
+    },
+    "intake.description_label": {
+      "fr": "Décris ton projet",
+      "en": "Describe your project"
+    },
+    "intake.description_placeholder": {
+      "fr": "Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet.",
+      "en": "Camera, editing software, deliverables, VFX... anything that helps understand the project."
+    },
+    "intake.date_label": {
+      "fr": "Date de livraison souhaitée",
+      "en": "Desired delivery date"
+    },
+    "intake.submit": {
+      "fr": "Envoyer",
+      "en": "Send"
+    }
   },
   "types": {
-    "AD":   { "enAcronym": "AD",   "frAcronym": "PUB",  "enLabel": "Advertising", "frLabel": "Publicité" },
-    "MV":   { "enAcronym": "MV",   "frAcronym": "CLIP", "enLabel": "Music Video", "frLabel": "Vidéoclip" },
-    "FILM": { "enAcronym": "FILM", "frAcronym": "FILM", "enLabel": "Film",        "frLabel": "Film" },
-    "TV":   { "enAcronym": "TV",   "frAcronym": "TV",   "enLabel": "TV",          "frLabel": "Série" },
-    "WEB":  { "enAcronym": "WEB",  "frAcronym": "WEB",  "enLabel": "Web",         "frLabel": "Web" }
+    "AD": {
+      "frAcronym": "PUB",
+      "enAcronym": "AD",
+      "frLabel": "Publicité",
+      "enLabel": "Advertising"
+    },
+    "MV": {
+      "frAcronym": "CLIP",
+      "enAcronym": "MV",
+      "frLabel": "Vidéoclip",
+      "enLabel": "Music Video"
+    },
+    "FILM": {
+      "frAcronym": "FILM",
+      "enAcronym": "FILM",
+      "frLabel": "Film",
+      "enLabel": "Film"
+    },
+    "TV": {
+      "frAcronym": "TV",
+      "enAcronym": "TV",
+      "frLabel": "Série",
+      "enLabel": "TV"
+    },
+    "WEB": {
+      "frAcronym": "WEB",
+      "enAcronym": "WEB",
+      "frLabel": "Web",
+      "enLabel": "Web"
+    }
   }
 }
