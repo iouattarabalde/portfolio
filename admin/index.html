@@ -251,7 +251,7 @@
     <p class="field-hint">
       Compressée automatiquement (H.264, débit ~4 Mbps, audio conservé) directement dans ton navigateur avant l'envoi.
       Ça peut prendre plusieurs minutes selon la longueur du fichier et la puissance de ton appareil : ne ferme pas cette page pendant le traitement.
-      Si un fichier est très volumineux (plus d'un Go), le traitement peut être long ou instable, un export déjà raisonnable en taille fonctionne mieux.
+      Au-delà de 300MB, le navigateur peut sembler figé pendant le traitement (normal, juste lent) — pour un gros fichier, envoyer la vidéo à Claude par le chat reste plus fiable.
     </p>
     <div id="video-progress-wrap" style="display:none; margin: 14px 0;">
       <div style="background:var(--bg); border:1px solid var(--line); height:6px; overflow:hidden;">
@@ -1191,6 +1191,21 @@ document.getElementById('upload-video-btn').addEventListener('click', async () =
   const fileInput = document.getElementById('f-video');
   const file = fileInput.files[0];
   if (!file) { alert('Choisis un fichier vidéo d\'abord.'); return; }
+
+  // Reading a large file into ffmpeg.wasm's virtual filesystem happens on the main
+  // thread and can block it long enough for the browser to think the page has frozen
+  // (Chrome's own "Page Unresponsive" prompt) — warn before attempting anything past
+  // ~300MB rather than let that happen silently.
+  const sizeMB = file.size / 1024 / 1024;
+  if (sizeMB > 300) {
+    const proceed = confirm(
+      `Ce fichier fait ${Math.round(sizeMB)}MB. Au-delà de 300MB, le navigateur peut sembler figé ` +
+      `pendant plusieurs minutes (ce n'est pas nécessairement planté, juste très lent). ` +
+      `Pour un fichier de cette taille, il est plus fiable de l'envoyer directement à Claude par le chat. ` +
+      `Continuer quand même ?`
+    );
+    if (!proceed) return;
+  }
 
   const btn = document.getElementById('upload-video-btn');
   btn.disabled = true;
