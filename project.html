@@ -12,7 +12,7 @@
 <title id="page-title">Projet — Ismael OB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -65,7 +65,9 @@
 <!-- Full-screen image viewer, opened by clicking any gallery thumbnail (see wireLightbox below) -->
 <div class="lightbox" id="lightbox">
   <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-fr data-key="lightbox.close"></span><span data-en data-key="lightbox.close"></span></button>
+  <button class="lightbox-nav lightbox-prev" id="lightbox-prev" type="button" aria-label="Previous image">←</button>
   <img id="lightbox-img" src="" alt="">
+  <button class="lightbox-nav lightbox-next" id="lightbox-next" type="button" aria-label="Next image">→</button>
 </div>
 
 <script>
@@ -93,18 +95,32 @@
     renderProjectType(); // re-run so the Type field switches acronym language too
   });
 
-  // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails. It's called
-  // again after the gallery is (re)rendered from JSON, since those <button> elements
-  // don't exist yet when this script first runs.
+  // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails, opening each
+  // at its own index. It's called again after the gallery is (re)rendered from JSON,
+  // since those <button> elements don't exist yet when this script first runs.
+  // Navigation (arrows + keyboard) loops: past the last image wraps to the first and
+  // vice versa, via the (i + length) % length trick in openLightboxAt.
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxPrev = document.getElementById('lightbox-prev');
+  const lightboxNext = document.getElementById('lightbox-next');
+  let lightboxIndex = -1;
+
+  function openLightboxAt(index) {
+    if (!currentProject) return;
+    const gallery = currentProject.gallery;
+    lightboxIndex = (index + gallery.length) % gallery.length; // loops both directions
+    const filename = gallery[lightboxIndex];
+    lightboxImg.src = `assets/${filename}`;
+    lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
+    lightbox.classList.add('open');
+    const hasMultiple = gallery.length > 1;
+    lightboxPrev.style.display = hasMultiple ? '' : 'none';
+    lightboxNext.style.display = hasMultiple ? '' : 'none';
+  }
   function wireLightbox() {
-    document.querySelectorAll('.gallery-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        lightboxImg.src = item.dataset.full || item.querySelector('img').src;
-        lightboxImg.alt = item.querySelector('img').alt;
-        lightbox.classList.add('open');
-      });
+    document.querySelectorAll('.gallery-item').forEach((item, idx) => {
+      item.addEventListener('click', () => openLightboxAt(idx));
     });
   }
   function closeLightbox() {
@@ -112,11 +128,16 @@
     lightboxImg.src = '';
   }
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); openLightboxAt(lightboxIndex - 1); });
+  lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); openLightboxAt(lightboxIndex + 1); });
   lightbox.addEventListener('click', (e) => {
     if (e.target === lightbox) closeLightbox(); // only closes on backdrop clicks, not the image itself
   });
   document.addEventListener('keydown', (e) => {
+    if (!lightbox.classList.contains('open')) return;
     if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft') openLightboxAt(lightboxIndex - 1);
+    else if (e.key === 'ArrowRight') openLightboxAt(lightboxIndex + 1);
   });
 
   // Which project to show comes from the URL, e.g. project.html?project=fleur-de-peau
