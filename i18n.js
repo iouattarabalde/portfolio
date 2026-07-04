@@ -47,8 +47,7 @@ const DEFAULT_TYPES = {
   AD:   { enAcronym: 'AD',   frAcronym: 'PUB',  enLabel: 'Advertising', frLabel: 'Publicité' },
   MV:   { enAcronym: 'MV',   frAcronym: 'CLIP', enLabel: 'Music Video', frLabel: 'Vidéoclip' },
   FILM: { enAcronym: 'FILM', frAcronym: 'FILM', enLabel: 'Film',        frLabel: 'Film' },
-  TV:   { enAcronym: 'TV',   frAcronym: 'TV',   enLabel: 'TV',          frLabel: 'Série' },
-  WEB:  { enAcronym: 'WEB',  frAcronym: 'WEB',  enLabel: 'Web',         frLabel: 'Web' }
+  TV:   { enAcronym: 'TV',   frAcronym: 'TV',   enLabel: 'TV',          frLabel: 'Série' }
 };
 
 // Live copies, overwritten by loadI18n() once data/strings.json has loaded successfully.

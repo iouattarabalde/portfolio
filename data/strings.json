@@ -129,12 +129,6 @@
       "enAcronym": "TV",
       "frLabel": "Série",
       "enLabel": "TV"
-    },
-    "WEB": {
-      "frAcronym": "WEB",
-      "enAcronym": "WEB",
-      "frLabel": "Web",
-      "enLabel": "Web"
     }
   }
 }
