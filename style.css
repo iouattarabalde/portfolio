@@ -454,6 +454,29 @@ h1, h2, h3 {
 }
 .lightbox-close:hover { color: var(--accent); border-color: var(--accent); }
 
+/* Prev/next arrows, one fixed to each edge, vertically centered regardless of image size */
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display);
+  font-size: 20px;
+  color: var(--fg-dim);
+  background: rgba(12, 12, 12, 0.5);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  z-index: 1; /* stays above the full-bleed image */
+}
+.lightbox-nav:hover { color: var(--accent); border-color: var(--accent); }
+.lightbox-prev { left: clamp(10px, 3vw, 28px); }
+.lightbox-next { right: clamp(10px, 3vw, 28px); }
+
 /* ---------- Intake form ---------- */
 /* Used by intake-form.html (the client-facing "Contact" form, 5 fields) */
 .form-wrap {
