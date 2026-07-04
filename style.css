@@ -218,8 +218,14 @@ h1, h2, h3 {
 /* Category filter bar: same look as the old static .eyebrow text it replaced, but each
    category is a real button — click one to show only that type, click it again (or
    "All") to clear the filter. Rebuilt in JS (renderCategoryFilter) from PROJECT_TYPES,
-   so it can never drift out of sync with the types actually used in data/projects.json. */
+   so it can never drift out of sync with the types actually used in data/projects.json.
+   Separators are a CSS ::before on each button (except the first) rather than a
+   standalone element between buttons — that way a separator always travels with the
+   button after it when the row wraps, instead of dangling alone at the end of a line. */
 .category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 8px;
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.18em;
@@ -229,6 +235,7 @@ h1, h2, h3 {
   background: none;
   border: none;
   padding: 0;
+  margin: 0;
   font: inherit;
   letter-spacing: inherit;
   text-transform: inherit;
@@ -237,17 +244,19 @@ h1, h2, h3 {
   cursor: pointer;
   transition: opacity 0.2s, color 0.2s;
 }
+.category-filter button:not(:first-child)::before {
+  content: "·";
+  display: inline-block;
+  margin: 0 8px;
+  color: var(--accent);
+  opacity: 0.55;
+}
 .category-filter button:hover { opacity: 1; }
 .category-filter button.active {
   opacity: 1;
   color: var(--fg);
   text-decoration: underline;
   text-underline-offset: 4px;
-}
-.category-filter .sep {
-  color: var(--accent);
-  opacity: 0.55;
-  margin: 0 8px;
 }
 
 .work-grid {
@@ -371,15 +380,9 @@ h1, h2, h3 {
 .contact-grid a:hover { color: var(--accent); }
 
 /* ---------- Responsive: work grid column counts ---------- */
-/* Column counts step down gradually so the grid never collapses to a single wide column —
-   3 columns are kept even on small phones (see the 360px rule) to match the dense,
-   contact-sheet feel of the Shotdeck reference Ismael asked to match. */
 @media (max-width: 1000px) {
-  .work-grid { grid-template-columns: repeat(3, 1fr); }
+  .work-grid { grid-template-columns: repeat(2, 1fr); }
   .work-card { aspect-ratio: 1 / 1; padding: 10px; } /* near-square cards read better at this density */
-}
-@media (max-width: 360px) {
-  .work-grid { grid-template-columns: repeat(2, 1fr); } /* only very small/older phones drop to 2 */
 }
 
 /* ---------- Project template ---------- */

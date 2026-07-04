@@ -13,7 +13,7 @@
 <meta name="description" content="Ismael OB, coloriste basé à Montréal. Étalonnage pour publicités, vidéoclips, films et télévision.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -183,8 +183,7 @@
     const items = [{ code: null, label: allLabel }].concat(
       Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
     );
-    container.innerHTML = items.map((item, i) => `
-      ${i > 0 ? '<span class="sep">·</span>' : ''}
+    container.innerHTML = items.map((item) => `
       <button type="button" class="${activeFilter === item.code ? 'active' : ''}" data-filter="${item.code || ''}">${item.label}</button>
     `).join('');
     container.querySelectorAll('button').forEach((btn) => {
