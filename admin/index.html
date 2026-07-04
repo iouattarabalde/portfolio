@@ -205,15 +205,21 @@
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 8px;
-    align-items: center;
+    align-items: start;
     margin-bottom: 6px;
   }
   .string-row .string-label {
     font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+    padding-top: 8px;
   }
-  .string-row input {
+  .string-row input,
+  .string-row textarea {
     background: var(--bg); border: 1px solid var(--line); color: var(--fg);
     font-family: var(--mono); font-size: 12px; padding: 8px;
+    width: 100%;
+  }
+  .string-row textarea {
+    resize: vertical;
   }
   @media (max-width: 640px) {
     .string-row { grid-template-columns: 1fr; }
@@ -260,20 +266,14 @@
       <label>Courriel</label>
       <input type="email" id="s-email">
     </div>
-    <div class="field">
-      <label>Localisation (français)</label>
+    <div class="string-row" style="margin-bottom:16px;">
+      <span class="string-label">Localisation</span>
       <input type="text" id="s-location-fr" placeholder="Montréal, QC">
-    </div>
-    <div class="field">
-      <label>Localisation (anglais)</label>
       <input type="text" id="s-location-en" placeholder="Montreal, QC">
     </div>
-    <div class="field">
-      <label>Disponibilité (français)</label>
+    <div class="string-row" style="margin-bottom:16px;">
+      <span class="string-label">Disponibilité</span>
       <input type="text" id="s-availability-fr" placeholder="Disponible à distance">
-    </div>
-    <div class="field">
-      <label>Disponibilité (anglais)</label>
       <input type="text" id="s-availability-en" placeholder="Available remote">
     </div>
     <div class="field">
@@ -501,19 +501,19 @@ const STRING_GROUPS = [
   { title: 'Formulaire Contact', keys: [
     { key: 'intake.eyebrow', label: 'Sous-titre du formulaire' },
     { key: 'intake.heading', label: 'Titre du formulaire' },
-    { key: 'intake.subheading', label: 'Texte sous le titre' },
+    { key: 'intake.subheading', label: 'Texte sous le titre', multiline: true },
     { key: 'intake.name_label', label: 'Étiquette "Nom"' },
     { key: 'intake.email_label', label: 'Étiquette "Courriel"' },
     { key: 'intake.type_label', label: 'Étiquette "Type de projet"' },
     { key: 'intake.description_label', label: 'Étiquette "Décris ton projet"' },
-    { key: 'intake.description_placeholder', label: "Texte d'exemple dans la description" },
+    { key: 'intake.description_placeholder', label: "Texte d'exemple dans la description", multiline: true },
     { key: 'intake.date_label', label: 'Étiquette "Date de livraison"' },
     { key: 'intake.submit', label: 'Bouton envoyer' }
   ] }
 ];
 
 function escapeAttr(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function stringInputId(key, lang) {
@@ -521,16 +521,24 @@ function stringInputId(key, lang) {
 }
 
 // Builds one FR/EN input pair per manifest entry, grouped under a heading per page.
+// Entries flagged multiline (long sentences that don't fit legibly on one line) render
+// as a 2-row <textarea> instead of a single-line <input> — same id either way, so
+// collectStringsFromForm() below doesn't need to know or care which one it is.
 function renderStringsEditor(strings) {
   document.getElementById('strings-editor').innerHTML = STRING_GROUPS.map((group) => `
     <div class="string-group-title">${group.title}</div>
-    ${group.keys.map(({ key, label }) => {
+    ${group.keys.map(({ key, label, multiline }) => {
       const entry = strings[key] || {};
+      const frId = stringInputId(key, 'fr');
+      const enId = stringInputId(key, 'en');
+      const field = (id, value, placeholder) => multiline
+        ? `<textarea id="${id}" rows="2" placeholder="${placeholder}">${escapeAttr(value)}</textarea>`
+        : `<input type="text" id="${id}" value="${escapeAttr(value)}" placeholder="${placeholder}">`;
       return `
         <div class="string-row">
           <span class="string-label">${label}</span>
-          <input type="text" id="${stringInputId(key, 'fr')}" value="${escapeAttr(entry.fr || '')}" placeholder="Français">
-          <input type="text" id="${stringInputId(key, 'en')}" value="${escapeAttr(entry.en || '')}" placeholder="English">
+          ${field(frId, entry.fr || '', 'Français')}
+          ${field(enId, entry.en || '', 'English')}
         </div>
       `;
     }).join('')}
