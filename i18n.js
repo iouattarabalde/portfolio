@@ -26,6 +26,7 @@ const DEFAULT_STRINGS = {
   'project.type_label': { fr: 'Type', en: 'Type' },
   'project.director_label': { fr: 'Réalisation', en: 'Director' },
   'project.dp_label': { fr: 'Image', en: 'DP' },
+  'project.artist_label': { fr: 'Artiste', en: 'Artist' },
   'project.not_found_eyebrow': { fr: 'Introuvable', en: 'Not found' },
   'project.not_found_heading': { fr: "Ce projet n'existe pas ou plus.", en: "This project doesn't exist." },
 

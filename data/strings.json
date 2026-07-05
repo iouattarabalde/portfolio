@@ -52,6 +52,10 @@
       "fr": "Image",
       "en": "DP"
     },
+    "project.artist_label": {
+      "fr": "Artiste",
+      "en": "Artist"
+    },
     "project.not_found_eyebrow": {
       "fr": "Introuvable",
       "en": "Not found"
