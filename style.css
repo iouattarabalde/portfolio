@@ -313,10 +313,11 @@ h1, h2, h3 {
 }
 
 .work-card .artist {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--fg-dim);
-  margin-bottom: 2px;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 1px;
 }
 
 .work-card .title {
