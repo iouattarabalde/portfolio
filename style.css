@@ -334,38 +334,50 @@ h1, h2, h3 {
   border-top: 1px solid var(--line);
 }
 
-/* Photo + heading/bio side by side on desktop, stacked on narrow screens */
-.contact-intro {
+/* Two columns: photo + contact info stacked on the left, heading + bio on the right.
+   Fills the width instead of leaving a large empty gap next to a wide, sparse info grid. */
+.contact-columns {
   display: flex;
+  gap: clamp(32px, 5vw, 64px);
   align-items: flex-start;
-  gap: clamp(24px, 4vw, 40px);
-  margin-bottom: 28px;
+}
+
+.contact-left {
+  flex: 0 0 clamp(200px, 22vw, 280px);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 }
 
 .contact-photo {
-  width: 120px;
-  height: 120px;
+  width: 100%;
+  aspect-ratio: 4 / 5;
   object-fit: cover;
   border: 1px solid var(--line);
-  flex-shrink: 0;
   background: var(--bg-raised); /* shows while the image loads */
 }
 
-@media (max-width: 640px) {
-  .contact-intro {
+.contact-right {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px; /* optical alignment with the top of the photo */
+}
+
+@media (max-width: 700px) {
+  .contact-columns {
     flex-direction: column;
-    align-items: flex-start;
   }
-  .contact-photo {
-    width: 96px;
-    height: 96px;
+  .contact-left {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 260px;
   }
 }
 
 .contact-title {
   font-size: clamp(26px, 4vw, 40px);
   max-width: 16ch;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .contact-bio {
@@ -375,23 +387,16 @@ h1, h2, h3 {
   line-height: 1.6;
 }
 
-.contact-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px;
+/* Contact info: stacked single column (not a wide grid) since it now lives in the
+   narrower left column alongside the photo. */
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   font-size: 13px;
 }
 
-/* Below this width, auto-fit was squeezing the email address into a column too narrow
-   to hold it, which made it visually overlap the next field. One column per row fixes it. */
-@media (max-width: 640px) {
-  .contact-grid {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
-}
-
-.contact-grid dt {
+.contact-info dt {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -399,13 +404,13 @@ h1, h2, h3 {
   margin-bottom: 6px;
 }
 
-.contact-grid dd {
+.contact-info dd {
   margin: 0;
   font-size: 15px;
-  overflow-wrap: break-word; /* safety net: long unbroken strings (emails) never overflow their column */
+  overflow-wrap: break-word; /* safety net: long unbroken strings (emails) never overflow */
 }
 
-.contact-grid a:hover { color: var(--accent); }
+.contact-info a:hover { color: var(--accent); }
 
 /* ---------- Responsive: work grid column counts ---------- */
 @media (max-width: 1000px) {
