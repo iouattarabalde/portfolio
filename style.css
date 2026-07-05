@@ -334,23 +334,17 @@ h1, h2, h3 {
   border-top: 1px solid var(--line);
 }
 
-/* Two columns: photo + contact info stacked on the left, heading + bio on the right.
-   Fills the width instead of leaving a large empty gap next to a wide, sparse info grid. */
+/* Photo on the left (wide), heading + bio + contact info stacked on the right —
+   info sits below the bio to fill out the column instead of leaving it mostly empty. */
 .contact-columns {
   display: flex;
   gap: clamp(32px, 5vw, 64px);
   align-items: flex-start;
 }
 
-.contact-left {
-  flex: 0 0 clamp(200px, 22vw, 280px);
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
 .contact-photo {
-  width: 100%;
+  flex: 0 0 clamp(280px, 34vw, 440px);
+  width: clamp(280px, 34vw, 440px);
   aspect-ratio: 4 / 5;
   object-fit: cover;
   border: 1px solid var(--line);
@@ -367,10 +361,9 @@ h1, h2, h3 {
   .contact-columns {
     flex-direction: column;
   }
-  .contact-left {
-    flex: 0 0 auto;
+  .contact-photo {
     width: 100%;
-    max-width: 260px;
+    max-width: 320px;
   }
 }
 
@@ -383,17 +376,25 @@ h1, h2, h3 {
 .contact-bio {
   font-size: 14px;
   color: var(--fg-dim);
-  max-width: 46ch;
+  max-width: 52ch;
   line-height: 1.6;
+  margin-bottom: 40px;
 }
 
-/* Contact info: stacked single column (not a wide grid) since it now lives in the
-   narrower left column alongside the photo. */
+/* Contact info: horizontal row filling the width of the right column, echoing the
+   original three-item layout but now paired with the heading/bio above it. */
 .contact-info {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 24px;
   font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .contact-info {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
 }
 
 .contact-info dt {
