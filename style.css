@@ -215,48 +215,33 @@ h1, h2, h3 {
   }
 }
 
-/* Category filter bar: same look as the old static .eyebrow text it replaced, but each
-   category is a real button — click one to show only that type, click it again (or
-   "All") to clear the filter. Rebuilt in JS (renderCategoryFilter) from PROJECT_TYPES,
-   so it can never drift out of sync with the types actually used in data/projects.json.
-   Separators are a CSS ::before on each button (except the first) rather than a
-   standalone element between buttons — that way a separator always travels with the
-   button after it when the row wraps, instead of dangling alone at the end of a line. */
+/* Category filter bar: bordered chip buttons (not plain inline text) so the fact that
+   these are clickable filters, not decorative copy, reads at a glance — click one to
+   show only that type, click it again (or "All") to clear the filter. Rebuilt in JS
+   (renderCategoryFilter) from PROJECT_TYPES, so it can never drift out of sync with the
+   types actually used in data/projects.json. */
 .category-filter {
   display: flex;
   flex-wrap: wrap;
-  row-gap: 8px;
+  gap: 8px;
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .category-filter button {
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  color: var(--accent);
-  opacity: 0.55;
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 7px 14px;
+  color: var(--fg-dim);
   cursor: pointer;
-  transition: opacity 0.2s, color 0.2s;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-.category-filter button:not(:first-child)::before {
-  content: "·";
-  display: inline-block;
-  margin: 0 8px;
-  color: var(--accent);
-  opacity: 0.55;
-}
-.category-filter button:hover { opacity: 1; }
+.category-filter button:hover { border-color: var(--accent); color: var(--accent); }
 .category-filter button.active {
-  opacity: 1;
-  color: var(--fg);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(138, 154, 91, 0.12);
 }
 
 .work-grid {

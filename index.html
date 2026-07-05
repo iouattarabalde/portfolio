@@ -13,7 +13,7 @@
 <meta name="description" content="Ismael OB, coloriste basé à Montréal. Étalonnage pour publicités, vidéoclips, films et télévision.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=14">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -35,7 +35,7 @@
 <header class="hero">
   <div class="reel-frame">
     <div class="reel-embed">
-      <video id="reel-video" autoplay muted loop playsinline preload="auto" title="Ismael OB - Demo Reel">
+      <video id="reel-video" autoplay muted loop playsinline preload="auto" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
         <source src="video/reel.mp4" type="video/mp4">
       </video>
       <button id="sound-toggle" type="button" aria-label="Toggle sound">
@@ -71,7 +71,7 @@
   <dl class="contact-grid">
     <div>
       <dt><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></dt>
-      <dd><a id="contact-email" href="#"></a></dd>
+      <dd><a id="contact-email" href="#" target="_blank" rel="noopener"></a></dd>
     </div>
     <div>
       <dt><span data-fr data-key="contact.location_label"></span><span data-en data-key="contact.location_label"></span></dt>
