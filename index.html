@@ -13,7 +13,7 @@
 <meta name="description" content="Ismael OB, coloriste basé à Montréal. Étalonnage pour publicités, vidéoclips, films et télévision.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -64,10 +64,19 @@
 </section>
 
 <section class="contact" id="contact">
-  <h2 class="contact-title">
-    <span data-fr data-key="contact.heading"></span>
-    <span data-en data-key="contact.heading"></span>
-  </h2>
+  <div class="contact-intro">
+    <img id="contact-photo" class="contact-photo" src="" alt="Ismael OB">
+    <div>
+      <h2 class="contact-title">
+        <span data-fr data-key="contact.heading"></span>
+        <span data-en data-key="contact.heading"></span>
+      </h2>
+      <p class="contact-bio">
+        <span data-fr id="contact-bio-fr"></span>
+        <span data-en id="contact-bio-en"></span>
+      </p>
+    </div>
+  </div>
   <dl class="contact-grid">
     <div>
       <dt><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></dt>
@@ -211,12 +220,17 @@
     })
     .catch((err) => console.error('Impossible de charger les données:', err));
 
-  // Contact section: email, location, availability, Instagram — editable in the admin
-  // ("Coordonnées" panel) without touching this file, since they're pulled from
+  // Contact section: photo, bio, email, location, availability, Instagram — editable in
+  // the admin ("Coordonnées" panel) without touching this file, since they're pulled from
   // data/settings.json rather than hardcoded here.
   fetch('data/settings.json')
     .then((r) => r.json())
     .then((s) => {
+      if (s.photoFilename) {
+        document.getElementById('contact-photo').src = 'assets/' + s.photoFilename;
+      }
+      document.getElementById('contact-bio-fr').textContent = s.bioFr || '';
+      document.getElementById('contact-bio-en').textContent = s.bioEn || '';
       const emailEl = document.getElementById('contact-email');
       emailEl.textContent = s.email;
       emailEl.href = 'mailto:' + s.email;

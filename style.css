@@ -334,10 +334,45 @@ h1, h2, h3 {
   border-top: 1px solid var(--line);
 }
 
+/* Photo + heading/bio side by side on desktop, stacked on narrow screens */
+.contact-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(24px, 4vw, 40px);
+  margin-bottom: 28px;
+}
+
+.contact-photo {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+  background: var(--bg-raised); /* shows while the image loads */
+}
+
+@media (max-width: 640px) {
+  .contact-intro {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .contact-photo {
+    width: 96px;
+    height: 96px;
+  }
+}
+
 .contact-title {
   font-size: clamp(26px, 4vw, 40px);
   max-width: 16ch;
-  margin-bottom: 28px;
+  margin-bottom: 12px;
+}
+
+.contact-bio {
+  font-size: 14px;
+  color: var(--fg-dim);
+  max-width: 46ch;
+  line-height: 1.6;
 }
 
 .contact-grid {

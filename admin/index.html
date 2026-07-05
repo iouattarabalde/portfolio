@@ -24,7 +24,7 @@
 <title>Admin — Ismael OB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css?v=16">
+<link rel="stylesheet" href="../style.css?v=17">
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -265,6 +265,16 @@
 
     <h3 style="font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 14px;">Coordonnées</h3>
     <div class="field">
+      <label>Photo</label>
+      <img id="s-photo-preview" src="" alt="" style="width:96px; height:96px; object-fit:cover; border:1px solid var(--line); background:var(--bg); display:block; margin-bottom:10px;">
+      <input type="file" id="s-photo" accept="image/*">
+    </div>
+    <div class="string-row" style="margin-bottom:16px;">
+      <span class="string-label">Bio courte</span>
+      <textarea id="s-bio-fr" rows="3" placeholder="Français"></textarea>
+      <textarea id="s-bio-en" rows="3" placeholder="English"></textarea>
+    </div>
+    <div class="field">
       <label>Courriel</label>
       <input type="email" id="s-email">
     </div>
@@ -463,8 +473,13 @@ async function saveProjectsJson(statusEl) {
    possibly-cached copy, and merged over i18n.js's DEFAULT_STRINGS/DEFAULT_TYPES so
    every field always has a value to show, even for a key that's never been saved. */
 
-// Loads settings.json into the six Coordonnées input fields. Falls back to empty
-// fields (rather than throwing) if the file doesn't exist yet.
+// Loads settings.json into the Coordonnées fields. Falls back to empty fields (rather
+// than throwing) if the file doesn't exist yet. The profile photo filename is tracked
+// separately (currentPhotoFilename) so Save knows whether to keep it unchanged or
+// upload a replacement — see the s-photo change handler and the Save handler below.
+let currentPhotoFilename = null;
+let newPhotoFile = null;
+
 async function loadSettingsIntoForm() {
   const file = await ghGetFile('data/settings.json');
   const s = file ? JSON.parse(decodeURIComponent(escape(atob(file.content)))) : {};
@@ -474,7 +489,20 @@ async function loadSettingsIntoForm() {
   document.getElementById('s-availability-fr').value = s.availabilityFr || '';
   document.getElementById('s-availability-en').value = s.availabilityEn || '';
   document.getElementById('s-instagram').value = s.instagramHandle || '';
+  document.getElementById('s-bio-fr').value = s.bioFr || '';
+  document.getElementById('s-bio-en').value = s.bioEn || '';
+  currentPhotoFilename = s.photoFilename || null;
+  document.getElementById('s-photo-preview').src = currentPhotoFilename ? `../assets/${currentPhotoFilename}` : '';
 }
+
+// New file picked -> instant local preview, matching the project editor's pattern.
+// The actual upload only happens when "Enregistrer les textes du site" is clicked.
+document.getElementById('s-photo').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  newPhotoFile = file;
+  document.getElementById('s-photo-preview').src = URL.createObjectURL(file);
+});
 
 // Manifest for the "Textes généraux" editor: which data/strings.json key each row
 // edits, grouped by the page it appears on, with a plain-language description.
@@ -616,13 +644,28 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
   statusEl.textContent = 'Enregistrement…';
   statusEl.className = 'save-status';
   try {
+    // Photo: only touched if a new file was actually picked (see the s-photo change
+    // handler above) — otherwise currentPhotoFilename just carries forward unchanged.
+    if (newPhotoFile) {
+      statusEl.textContent = 'Envoi de la photo…';
+      const compressed = await compressImage(newPhotoFile, 800, 0.85); // displayed at 96-120px, no need for a large source
+      const b64 = await blobToBase64(compressed);
+      await ghPutFile('assets/profile-photo.jpg', b64, 'Admin : mise à jour de la photo de profil');
+      currentPhotoFilename = 'profile-photo.jpg';
+      newPhotoFile = null;
+    }
+
+    statusEl.textContent = 'Enregistrement…';
     const settings = {
       email: document.getElementById('s-email').value.trim(),
       locationFr: document.getElementById('s-location-fr').value.trim(),
       locationEn: document.getElementById('s-location-en').value.trim(),
       availabilityFr: document.getElementById('s-availability-fr').value.trim(),
       availabilityEn: document.getElementById('s-availability-en').value.trim(),
-      instagramHandle: document.getElementById('s-instagram').value.trim().replace(/^@/, '')
+      instagramHandle: document.getElementById('s-instagram').value.trim().replace(/^@/, ''),
+      bioFr: document.getElementById('s-bio-fr').value.trim(),
+      bioEn: document.getElementById('s-bio-en').value.trim(),
+      photoFilename: currentPhotoFilename
     };
     await ghPutFile('data/settings.json', b64EncodeUnicode(JSON.stringify(settings, null, 2)), 'Admin : mise à jour des coordonnées');
 
