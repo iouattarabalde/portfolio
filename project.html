@@ -12,7 +12,7 @@
 <title id="page-title">Projet — Ismael OB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -40,6 +40,10 @@
     <div>
       <dt><span data-fr data-key="project.type_label"></span><span data-en data-key="project.type_label"></span></dt>
       <dd id="project-type">—</dd>
+    </div>
+    <div id="project-artist-wrap" style="display:none;">
+      <dt><span data-fr data-key="project.artist_label"></span><span data-en data-key="project.artist_label"></span></dt>
+      <dd id="project-artist">—</dd>
     </div>
     <div>
       <dt><span data-fr data-key="project.director_label"></span><span data-en data-key="project.director_label"></span></dt>
@@ -171,6 +175,10 @@
       document.getElementById('page-title').textContent = project.title + ' — Ismael OB';
       document.getElementById('project-title').textContent = project.title;
       renderProjectType();
+      if (project.artist) {
+        document.getElementById('project-artist').textContent = project.artist;
+        document.getElementById('project-artist-wrap').style.display = '';
+      }
       document.getElementById('project-director').textContent = project.director || '—';
       document.getElementById('project-dp').textContent = project.dp || '—';
 
