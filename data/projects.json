@@ -73,8 +73,9 @@
     },
     {
       "id": "ethanol",
-      "title": "Éthanol - Charlie Juste",
+      "title": "Éthanol",
       "type": "MV",
+      "artist": "Charlie Juste",
       "director": "Marie Luciani",
       "dp": "Clémentine Martin",
       "thumbnail": "ethanol-cover.jpg",
