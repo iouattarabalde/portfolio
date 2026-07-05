@@ -8,10 +8,6 @@
       "fr": "Projets",
       "en": "Projects"
     },
-    "nav.info": {
-      "fr": "Info",
-      "en": "Info"
-    },
     "nav.contact": {
       "fr": "Contact",
       "en": "Contact"
@@ -67,46 +63,6 @@
     "lightbox.close": {
       "fr": "Fermer",
       "en": "Close"
-    },
-    "intake.eyebrow": {
-      "fr": "Nouveau projet",
-      "en": "New project"
-    },
-    "intake.heading": {
-      "fr": "Parlons de votre projet",
-      "en": "Tell me about your project"
-    },
-    "intake.subheading": {
-      "fr": "Quelques informations pour démarrer, on précise le reste ensemble par la suite.",
-      "en": "A few details to get started, we'll figure out the rest together."
-    },
-    "intake.name_label": {
-      "fr": "Nom",
-      "en": "Name"
-    },
-    "intake.email_label": {
-      "fr": "Courriel",
-      "en": "Email"
-    },
-    "intake.type_label": {
-      "fr": "Type de projet",
-      "en": "Project type"
-    },
-    "intake.description_label": {
-      "fr": "Décris ton projet",
-      "en": "Describe your project"
-    },
-    "intake.description_placeholder": {
-      "fr": "Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet.",
-      "en": "Camera, editing software, deliverables, VFX... anything that helps understand the project."
-    },
-    "intake.date_label": {
-      "fr": "Date de livraison souhaitée",
-      "en": "Desired delivery date"
-    },
-    "intake.submit": {
-      "fr": "Envoyer",
-      "en": "Send"
     }
   },
   "types": {

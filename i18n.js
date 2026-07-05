@@ -1,4 +1,4 @@
-// i18n.js — shared across index.html, project.html, intake-form.html, and admin/index.html.
+// i18n.js — shared across index.html, project.html, and admin/index.html.
 //
 // Everything editable from the admin's "Textes du site" panel lives in data/strings.json:
 // general UI copy (nav labels, headings, form labels) plus project type acronyms/labels.
@@ -12,7 +12,6 @@
 const DEFAULT_STRINGS = {
   'nav.eyebrow': { fr: 'Coloriste', en: 'Colorist' },
   'nav.work': { fr: 'Projets', en: 'Projects' },
-  'nav.info': { fr: 'Info', en: 'Info' },
   'nav.contact': { fr: 'Contact', en: 'Contact' },
 
   'work.heading': { fr: 'Projets', en: 'Projects' },
@@ -30,18 +29,7 @@ const DEFAULT_STRINGS = {
   'project.not_found_eyebrow': { fr: 'Introuvable', en: 'Not found' },
   'project.not_found_heading': { fr: "Ce projet n'existe pas ou plus.", en: "This project doesn't exist." },
 
-  'lightbox.close': { fr: 'Fermer', en: 'Close' },
-
-  'intake.eyebrow': { fr: 'Nouveau projet', en: 'New project' },
-  'intake.heading': { fr: 'Parlons de votre projet', en: 'Tell me about your project' },
-  'intake.subheading': { fr: 'Quelques informations pour démarrer, on précise le reste ensemble par la suite.', en: "A few details to get started, we'll figure out the rest together." },
-  'intake.name_label': { fr: 'Nom', en: 'Name' },
-  'intake.email_label': { fr: 'Courriel', en: 'Email' },
-  'intake.type_label': { fr: 'Type de projet', en: 'Project type' },
-  'intake.description_label': { fr: 'Décris ton projet', en: 'Describe your project' },
-  'intake.description_placeholder': { fr: 'Caméra, logiciel de montage, livrables, VFX... tout ce qui aide à comprendre le projet.', en: 'Camera, editing software, deliverables, VFX... anything that helps understand the project.' },
-  'intake.date_label': { fr: 'Date de livraison souhaitée', en: 'Desired delivery date' },
-  'intake.submit': { fr: 'Envoyer', en: 'Send' }
+  'lightbox.close': { fr: 'Fermer', en: 'Close' }
 };
 
 const DEFAULT_TYPES = {
@@ -86,15 +74,6 @@ function applyStrings() {
     if (!entry) return;
     if (el.hasAttribute('data-fr') && entry.fr) el.textContent = entry.fr;
     else if (el.hasAttribute('data-en') && entry.en) el.textContent = entry.en;
-  });
-  // Placeholder text (e.g. the intake form's textarea) can't live in a data-fr/data-en
-  // span since it's an attribute, not content — data-placeholder-key elements get their
-  // data-fr-placeholder/data-en-placeholder attributes updated instead.
-  document.querySelectorAll('[data-placeholder-key]').forEach((el) => {
-    const entry = STRINGS[el.dataset.placeholderKey];
-    if (!entry) return;
-    if (entry.fr) el.dataset.frPlaceholder = entry.fr;
-    if (entry.en) el.dataset.enPlaceholder = entry.en;
   });
 }
 

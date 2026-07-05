@@ -298,7 +298,7 @@
     <div id="types-editor"></div>
 
     <h3 style="font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:28px 0 14px;">Textes généraux</h3>
-    <p class="field-hint" style="margin-bottom:14px;">Tous les libellés du site (navigation, titres, formulaire), en français et en anglais.</p>
+    <p class="field-hint" style="margin-bottom:14px;">Tous les libellés du site (navigation, titres, textes de la page projet), en français et en anglais.</p>
     <div id="strings-editor"></div>
 
     <div style="display:flex; align-items:center; gap:12px; margin-top:20px;">
@@ -512,13 +512,12 @@ const STRING_GROUPS = [
   { title: 'Navigation', keys: [
     { key: 'nav.eyebrow', label: 'Sous-titre à côté du logo' },
     { key: 'nav.work', label: 'Lien "Projects"' },
-    { key: 'nav.info', label: 'Lien "Info"' },
     { key: 'nav.contact', label: 'Lien "Contact"' }
   ] },
   { title: "Page d'accueil", keys: [
     { key: 'work.heading', label: 'Titre de la section Projets' },
     { key: 'work.filter_all', label: 'Bouton "Tous" du filtre de catégories' },
-    { key: 'contact.heading', label: 'Titre de la section Info' },
+    { key: 'contact.heading', label: 'Titre de la section Contact' },
     { key: 'contact.email_label', label: 'Étiquette "Courriel"' },
     { key: 'contact.location_label', label: 'Étiquette "Localisation"' }
   ] },
@@ -531,18 +530,6 @@ const STRING_GROUPS = [
     { key: 'project.not_found_eyebrow', label: 'Sous-titre "Introuvable"' },
     { key: 'project.not_found_heading', label: 'Message projet introuvable' },
     { key: 'lightbox.close', label: 'Bouton fermer la galerie' }
-  ] },
-  { title: 'Formulaire Contact', keys: [
-    { key: 'intake.eyebrow', label: 'Sous-titre du formulaire' },
-    { key: 'intake.heading', label: 'Titre du formulaire' },
-    { key: 'intake.subheading', label: 'Texte sous le titre', multiline: true },
-    { key: 'intake.name_label', label: 'Étiquette "Nom"' },
-    { key: 'intake.email_label', label: 'Étiquette "Courriel"' },
-    { key: 'intake.type_label', label: 'Étiquette "Type de projet"' },
-    { key: 'intake.description_label', label: 'Étiquette "Décris ton projet"' },
-    { key: 'intake.description_placeholder', label: "Texte d'exemple dans la description", multiline: true },
-    { key: 'intake.date_label', label: 'Étiquette "Date de livraison"' },
-    { key: 'intake.submit', label: 'Bouton envoyer' }
   ] }
 ];
 
@@ -596,9 +583,9 @@ function typeInputId(code, field) {
   return 'type-' + code + '-' + field;
 }
 
-// One block per project type code (AD, MV, FILM, TV, WEB): acronym + label, each in
+// One block per project type code (AD, MV, FILM, TV): acronym + label, each in
 // both languages. The code itself (left column) isn't editable — it's the id used in
-// data/projects.json and the intake form, changing it would break existing projects.
+// data/projects.json, changing it would break existing projects.
 function renderTypesEditor(types) {
   document.getElementById('types-editor').innerHTML = Object.keys(types).map((code) => {
     const t = types[code];

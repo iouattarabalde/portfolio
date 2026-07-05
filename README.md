@@ -12,9 +12,8 @@ est chargé depuis un CDN au moment de l'exécution.
 | `project.html` | Gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json` |
 | `data/projects.json` | Source de vérité pour tous les projets : titre, type, réalisation, DP, vignette, galerie ordonnée |
 | `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram |
-| `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de formulaire (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
+| `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
 | `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin |
-| `intake-form.html` | Formulaire "Contact" (5 champs), envoie par mailto, pas de backend |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
 | `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=12` actuellement — bumper ce numéro sur les 4 pages à chaque édition, sinon certains navigateurs gardent l'ancienne feuille en cache) |
 | `video/reel.mp4` | Reel auto-hébergé |
@@ -23,8 +22,12 @@ est chargé depuis un CDN au moment de l'exécution.
 
 ## Navigation
 
-**Projects** → `#work` · **Info** → `#contact` · **Contact** → `intake-form.html`
-(le libellé "Contact" pointe vers le formulaire, pas vers la section coordonnées, qui elle s'appelle "Info")
+**Projects** → `#work` · **Contact** → `#contact`
+
+Pas de page de formulaire distincte : le lien "Contact" pointe directement vers la
+section coordonnées de la page d'accueil (email, localisation, Instagram, photo, bio).
+Un ancien formulaire (`intake-form.html`) a été retiré : sans backend, il ne faisait que
+construire un lien `mailto:`, sans réel avantage sur un lien courriel direct.
 
 ## Catégories de projet
 
@@ -40,8 +43,8 @@ Liste actuelle (éditable dans l'admin, sous "Textes du site → Types de projet
 Le code canonique est ce qui est stocké dans `data/projects.json` ; l'acronyme et le
 libellé affichés changent selon la langue active, via `data/strings.json` (section
 "types"). Un type peut être ajouté/retiré à tout moment dans l'admin — la liste des
-catégories sur la page d'accueil et le menu du formulaire Contact se régénèrent
-automatiquement à partir de cette même source, jamais besoin de les toucher séparément.
+catégories sur la page d'accueil (filtre) se régénère automatiquement à partir de
+cette même source, jamais besoin de la toucher séparément.
 Avant de retirer un type déjà utilisé par un projet existant, le réassigner d'abord
 (sinon son acronyme s'affiche tel quel, sans traduction, sur ce projet).
 
@@ -75,7 +78,7 @@ dans `projects.json`) permet de les retirer.
 
 Anglais par défaut, français activé via le bouton FR/EN (mémorisé en `localStorage`,
 partagé entre les pages). Tout le texte du site — navigation, titres, étiquettes de
-formulaire, types de projet — vient de `data/strings.json` et est éditable dans l'admin
+types de projet — vient de `data/strings.json` et est éditable dans l'admin
 sous "Textes du site", sans toucher au code.
 
 Mécanique : chaque élément bilingue dans le HTML a une paire `<span data-fr data-key="...">`
@@ -110,7 +113,7 @@ Permet de :
 - Glisser-déposer pour réordonner les projets sur la page d'accueil (sauvegarde automatique)
 - Uploader des images, compressées automatiquement (canvas, 1920px max, JPEG qualité 0.85)
 - Glisser-déposer pour réordonner la galerie d'un projet
-- Modifier tous les textes du site — coordonnées, navigation, titres, formulaire, et les
+- Modifier tous les textes du site — coordonnées, navigation, titres, et les
   acronymes/libellés de chaque type de projet, en français et en anglais
 - Annuler le dernier changement sur les projets (relit l'historique Git de `projects.json`
   et republie la version précédente comme nouveau commit — ne touche pas aux images)
