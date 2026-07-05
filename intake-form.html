@@ -11,7 +11,7 @@
 <title>Nouveau projet — Ismael OB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=19">
+<link rel="stylesheet" href="style.css?v=20">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -134,6 +134,16 @@
     applyStrings();
     updatePlaceholder();
     updateTypeOptions();
+  });
+
+  // Native date inputs only open the calendar when clicking the small icon on the
+  // right (in Chrome, clicking the text area just focuses it without opening anything).
+  // showPicker() lets any click in the field open it instead, so the whole box behaves
+  // like one button. Guarded since showPicker() isn't supported in every browser yet —
+  // where it's missing, the field just falls back to its normal native click behavior.
+  const dateInput = document.getElementById('delivery-date');
+  dateInput.addEventListener('click', () => {
+    if (dateInput.showPicker) dateInput.showPicker();
   });
 
   // Destination address comes from data/settings.json (editable in the admin) rather
