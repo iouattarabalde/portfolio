@@ -166,7 +166,8 @@ h1, h2, h3 {
   object-fit: cover;
 }
 
-/* Mute/unmute button, floated over the bottom-right corner of the reel */
+/* Mute/unmute + fullscreen buttons, floated over the bottom-right corner of the reel */
+#fullscreen-toggle,
 #sound-toggle {
   position: absolute;
   bottom: 14px;
@@ -183,6 +184,8 @@ h1, h2, h3 {
   cursor: pointer;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
+#fullscreen-toggle { right: 58px; } /* sits just left of the sound button (36px + 8px gap) */
+#fullscreen-toggle:hover,
 #sound-toggle:hover {
   border-color: var(--accent);
   color: var(--accent);
@@ -364,6 +367,7 @@ h1, h2, h3 {
   .contact-photo {
     width: 100%;
     max-width: 320px;
+    margin: 0 auto; /* centers the photo once the columns stack (auto cross-axis margins win over align-items) */
   }
 }
 
@@ -547,16 +551,3 @@ h1, h2, h3 {
 .lightbox-nav:hover { color: var(--accent); border-color: var(--accent); }
 .lightbox-prev { left: clamp(10px, 3vw, 28px); }
 .lightbox-next { right: clamp(10px, 3vw, 28px); }
-
-
-/* ---------- Reel page ---------- */
-/* Dedicated player (reel.html). Width capped both by the design max and by what fits
-   vertically (viewport minus nav and padding, converted to width via the 16:9 ratio),
-   so the whole player is visible without scrolling on any screen. */
-.reel-page {
-  padding: clamp(24px, 5vw, 56px) clamp(20px, 4vw, 48px);
-}
-.reel-page .reel-frame {
-  margin: 0 auto;
-  max-width: min(1400px, calc((100dvh - 200px) * 16 / 9));
-}
