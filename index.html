@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="style.css?v=23">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -39,7 +39,6 @@
   </div>
   <div class="nav-links">
     <a href="#work"><span data-fr data-key="nav.work"></span><span data-en data-key="nav.work"></span></a>
-    <a href="reel.html"><span data-fr data-key="nav.reel"></span><span data-en data-key="nav.reel"></span></a>
     <a href="#contact"><span data-fr data-key="nav.contact"></span><span data-en data-key="nav.contact"></span></a>
     <button id="lang-toggle" type="button" aria-label="Toggle language">FR</button>
   </div>
@@ -52,6 +51,11 @@
       <video id="reel-video" autoplay muted loop playsinline preload="auto" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
         <source src="video/reel.mp4" type="video/mp4">
       </video>
+      <button id="fullscreen-toggle" type="button" aria-label="Fullscreen">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 9V4H9M15 4H20V9M20 15V20H15M9 20H4V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button id="sound-toggle" type="button" aria-label="Toggle sound">
         <svg id="icon-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M3 9V15H7L12 20V4L7 9H3Z" fill="currentColor"/>
@@ -168,6 +172,17 @@
       reelVideo.muted = !reelVideo.muted;
       iconMuted.style.display = reelVideo.muted ? 'block' : 'none';
       iconUnmuted.style.display = reelVideo.muted ? 'none' : 'block';
+    });
+  }
+
+  // Fullscreen button next to the mute button. Standard requestFullscreen everywhere
+  // except iPhone Safari, which only exposes webkitEnterFullscreen (opens the native
+  // player, with its own controls and sound). The video keeps looping either way.
+  const fsBtn = document.getElementById('fullscreen-toggle');
+  if (reelVideo && fsBtn) {
+    fsBtn.addEventListener('click', () => {
+      if (reelVideo.requestFullscreen) reelVideo.requestFullscreen();
+      else if (reelVideo.webkitEnterFullscreen) reelVideo.webkitEnterFullscreen();
     });
   }
 
