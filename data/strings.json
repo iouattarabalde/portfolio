@@ -40,6 +40,10 @@
       "fr": "Type",
       "en": "Type"
     },
+    "project.client_label": {
+      "fr": "Client",
+      "en": "Client"
+    },
     "project.director_label": {
       "fr": "Réalisation",
       "en": "Director"

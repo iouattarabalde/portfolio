@@ -48,8 +48,9 @@
     },
     {
       "id": "aldo-wildflowers",
-      "title": "ALDO - Wildflowers",
+      "title": "Wildflowers",
       "type": "AD",
+      "client": "ALDO",
       "director": "Carla Guler",
       "dp": "Alex Themistocleous",
       "thumbnail": "aldo-wildflowers-cover.jpg",
