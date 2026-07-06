@@ -166,11 +166,10 @@ h1, h2, h3 {
   object-fit: cover;
 }
 
-/* Mute/unmute + fullscreen buttons, floated over the bottom-right corner of the reel */
+/* Buttons floated over the right edge of the reel: sound top-right, fullscreen bottom-right */
 #fullscreen-toggle,
 #sound-toggle {
   position: absolute;
-  bottom: 14px;
   right: 14px;
   z-index: 2;
   width: 36px;
@@ -184,7 +183,8 @@ h1, h2, h3 {
   cursor: pointer;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-#fullscreen-toggle { right: 58px; } /* sits just left of the sound button (36px + 8px gap) */
+#sound-toggle { top: 14px; }
+#fullscreen-toggle { bottom: 14px; }
 #fullscreen-toggle:hover,
 #sound-toggle:hover {
   border-color: var(--accent);
