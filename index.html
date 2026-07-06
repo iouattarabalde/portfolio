@@ -11,6 +11,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ismael OB — Coloriste</title>
 <meta name="description" content="Ismael OB, coloriste basé à Montréal. Étalonnage pour publicités, vidéoclips, films et télévision.">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<!-- Social sharing card (Open Graph + Twitter). og-image.jpg is a 1200x630 crop of a
+     project still; swap the file in assets/ to change what shows up when the URL is
+     shared on iMessage, LinkedIn, Slack, etc. URLs must be absolute for crawlers. -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ismaelob.com/">
+<meta property="og:title" content="Ismael OB — Coloriste">
+<meta property="og:description" content="Étalonnage pour publicités, vidéoclips, films et télévision. Basé à Montréal, disponible à distance.">
+<meta property="og:image" content="https://ismaelob.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="fr_CA">
+<meta property="og:locale:alternate" content="en_CA">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=21">
@@ -173,7 +187,7 @@
         <div class="thumb" style="background-image:url('assets/${p.thumbnail}')"></div>
         <div class="work-card-meta">
           <p class="type">${projectTypeAcronym(p.type, isFr)}</p>
-          ${p.artist ? `<p class="artist">${p.artist}</p>` : ''}
+          ${p.artist || p.client ? `<p class="artist">${p.artist || p.client}</p>` : ''}
           <p class="title">${p.title}</p>
         </div>
       </a>

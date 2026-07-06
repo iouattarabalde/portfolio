@@ -57,8 +57,11 @@ dans `index.html`) à partir des mêmes types de projet, pas de configuration s�
 ## Pages projet
 
 Galerie de stills en haut (cliquables pour agrandir en lightbox), infos condensées en bas
-(Type, Réalisation, DP seulement — pas de Client/Année/Étalonnage, puisque l'étalonnage
-est toujours Ismael OB).
+(Type, Client pour les publicités, Artiste pour les vidéoclips, Réalisation, DP — pas
+d'Année ni d'Étalonnage, puisque l'étalonnage est toujours Ismael OB). Les champs Client
+et Artiste sont conditionnels : l'admin ne les montre que pour le type concerné (AD ou MV),
+et le site ne les affiche que s'ils sont remplis, sur la vignette (au-dessus du titre) comme
+dans les crédits.
 
 **Lightbox** : flèches à l'écran + flèches du clavier (←/→) pour naviguer entre les stills,
 boucle entre la première et la dernière image. Le curseur reste normal partout dans le
@@ -141,6 +144,15 @@ exemple) crée autant de commits rapprochés, un par fichier. GitHub Pages a par
 Si un changement récent n'apparaît pas après une minute ou deux, ce n'est généralement pas
 un problème de données, un nouveau commit (n'importe lequel) suffit à relancer un
 déploiement propre.
+
+## Carte de partage et favicon
+
+`assets/og-image.jpg` (1200x630, recadré depuis un still de projet) est l'aperçu affiché
+quand ismaelob.com est partagé (iMessage, LinkedIn, Slack). Pour le changer, remplacer le
+fichier, mêmes dimensions. Les balises Open Graph sont dans le `<head>` de `index.html` et
+`project.html` (carte générique sur les pages projet : les crawlers n'exécutent pas de JS,
+donc pas de carte par projet possible sur un hébergement statique). `assets/favicon.svg`
+reprend les tokens du site (fond `--bg`, monogramme `--accent`).
 
 ## Historique
 

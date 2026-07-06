@@ -22,6 +22,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin — Ismael OB</title>
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=21">
@@ -327,6 +328,10 @@
         <option value="TV">TV — Série</option>
       </select>
     </div>
+    <div class="field" id="f-client-wrap" style="display:none;">
+      <label>Client</label>
+      <input type="text" id="f-client" placeholder="ALDO">
+    </div>
     <div class="field" id="f-artist-wrap" style="display:none;">
       <label>Artiste (Artist)</label>
       <input type="text" id="f-artist" placeholder="Charlie Juste">
@@ -524,6 +529,7 @@ const STRING_GROUPS = [
   { title: 'Page projet', keys: [
     { key: 'project.back', label: 'Lien retour aux travaux' },
     { key: 'project.type_label', label: 'Étiquette "Type"' },
+    { key: 'project.client_label', label: 'Étiquette "Client" (affichée quand un projet a un client)' },
     { key: 'project.director_label', label: 'Étiquette "Réalisation"' },
     { key: 'project.dp_label', label: 'Étiquette "Image (DP)"' },
     { key: 'project.artist_label', label: 'Étiquette "Artiste" (affichée quand un projet a un artiste)' },
@@ -937,11 +943,13 @@ const editorEl = document.getElementById('editor');
 // dropdown changes, not just on open, so switching types while editing updates it too.
 // The field's value is always saved regardless of visibility (see the Save handler),
 // so toggling Type back and forth doesn't lose whatever was typed.
-function updateArtistFieldVisibility() {
-  const isMV = document.getElementById('f-type').value === 'MV';
-  document.getElementById('f-artist-wrap').style.display = isMV ? '' : 'none';
+// Conditional fields: Artiste only for music videos (MV), Client only for ads (AD).
+function updateConditionalFields() {
+  const type = document.getElementById('f-type').value;
+  document.getElementById('f-artist-wrap').style.display = type === 'MV' ? '' : 'none';
+  document.getElementById('f-client-wrap').style.display = type === 'AD' ? '' : 'none';
 }
-document.getElementById('f-type').addEventListener('change', updateArtistFieldVisibility);
+document.getElementById('f-type').addEventListener('change', updateConditionalFields);
 
 // Opens the editor pre-filled for an existing project (pass its index), or empty for
 // a new one (pass null). Existing images are referenced by their live ../assets/ URL;
@@ -954,10 +962,11 @@ function openEditor(index) {
   document.getElementById('editor-heading').textContent = isNew ? 'Nouveau projet' : 'Modifier le projet';
   document.getElementById('f-title').value = project ? project.title : '';
   document.getElementById('f-type').value = project ? project.type : 'AD';
+  document.getElementById('f-client').value = project ? (project.client || '') : '';
   document.getElementById('f-artist').value = project ? (project.artist || '') : '';
   document.getElementById('f-director').value = project ? project.director : '';
   document.getElementById('f-dp').value = project ? project.dp : '';
-  updateArtistFieldVisibility();
+  updateConditionalFields();
   document.getElementById('delete-project-btn').style.display = isNew ? 'none' : '';
   document.getElementById('save-status').textContent = '';
   document.getElementById('save-status').className = 'save-status';
@@ -1134,6 +1143,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       id: slug,
       title,
       type: document.getElementById('f-type').value,
+      client: document.getElementById('f-client').value.trim(),
       artist: document.getElementById('f-artist').value.trim(),
       director: document.getElementById('f-director').value.trim(),
       dp: document.getElementById('f-dp').value.trim(),

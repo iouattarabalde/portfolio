@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Favicon — dark tile with the olive accent monogram, matching the site tokens
+       (--bg #0C0C0C, --accent #8A9A5B in style.css). -->
+  <rect width="64" height="64" rx="10" fill="#0C0C0C"/>
+  <text x="32" y="43" text-anchor="middle" font-family="'Space Grotesk','Arial Black',sans-serif" font-size="30" font-weight="700" fill="#8A9A5B" letter-spacing="1">OB</text>
+</svg>

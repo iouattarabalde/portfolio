@@ -23,6 +23,7 @@ const DEFAULT_STRINGS = {
 
   'project.back': { fr: 'Retour aux travaux', en: 'Back to work' },
   'project.type_label': { fr: 'Type', en: 'Type' },
+  'project.client_label': { fr: 'Client', en: 'Client' },
   'project.director_label': { fr: 'Réalisation', en: 'Director' },
   'project.dp_label': { fr: 'Image', en: 'DP' },
   'project.artist_label': { fr: 'Artiste', en: 'Artist' },

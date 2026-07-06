@@ -10,6 +10,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">Projet — Ismael OB</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<!-- Generic sharing card: crawlers don't run JS, so per-project OG tags aren't possible
+     on a static host — every project link shares the same site-wide card as index.html. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ismael OB — Coloriste">
+<meta property="og:description" content="Étalonnage pour publicités, vidéoclips, films et télévision. Basé à Montréal, disponible à distance.">
+<meta property="og:image" content="https://ismaelob.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=21">
@@ -40,6 +50,10 @@
     <div>
       <dt><span data-fr data-key="project.type_label"></span><span data-en data-key="project.type_label"></span></dt>
       <dd id="project-type">—</dd>
+    </div>
+    <div id="project-client-wrap" style="display:none;">
+      <dt><span data-fr data-key="project.client_label"></span><span data-en data-key="project.client_label"></span></dt>
+      <dd id="project-client">—</dd>
     </div>
     <div id="project-artist-wrap" style="display:none;">
       <dt><span data-fr data-key="project.artist_label"></span><span data-en data-key="project.artist_label"></span></dt>
@@ -175,6 +189,10 @@
       document.getElementById('page-title').textContent = project.title + ' — Ismael OB';
       document.getElementById('project-title').textContent = project.title;
       renderProjectType();
+      if (project.client) {
+        document.getElementById('project-client').textContent = project.client;
+        document.getElementById('project-client-wrap').style.display = '';
+      }
       if (project.artist) {
         document.getElementById('project-artist').textContent = project.artist;
         document.getElementById('project-artist-wrap').style.display = '';
