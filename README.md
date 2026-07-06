@@ -10,19 +10,20 @@ est chargé depuis un CDN au moment de l'exécution.
 |---|---|
 | `index.html` | Page principale : hero reel, filtre de catégories + grille de travaux (construits dynamiquement depuis `data/projects.json`), section contact |
 | `project.html` | Gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json` |
+| `reel.html` | Page reel dédiée : lecteur avec contrôles et son (pas d'autoplay), même fichier `video/reel.mp4` que le hero. Lien direct pour l'outreach : `ismaelob.com/reel.html`. Le poster (`assets/reel-poster.jpg`) est extrait du reel — à régénérer quand le reel change |
 | `data/projects.json` | Source de vérité pour tous les projets : titre, type, réalisation, DP, vignette, galerie ordonnée |
 | `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram |
 | `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
 | `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
-| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N` — bumper ce numéro sur les 3 pages qui la chargent à chaque édition, sinon certains navigateurs gardent l'ancienne feuille en cache) |
+| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N` — bumper ce numéro sur les 4 pages qui la chargent à chaque édition, sinon certains navigateurs gardent l'ancienne feuille en cache) |
 | `video/reel.mp4` | Reel auto-hébergé |
 | `assets/` | Stills et vignettes des projets |
 | `.nojekyll`, `robots.txt`, `CNAME` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom) |
 
 ## Navigation
 
-**Projects** → `#work` · **Contact** → `#contact`
+**Projects** → `#work` · **Reel** → `reel.html` · **Contact** → `#contact`
 
 Pas de page de formulaire distincte : le lien "Contact" pointe directement vers la
 section coordonnées de la page d'accueil (email, localisation, Instagram, photo, bio).

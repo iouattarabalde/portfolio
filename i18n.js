@@ -12,6 +12,7 @@
 const DEFAULT_STRINGS = {
   'nav.eyebrow': { fr: 'Coloriste', en: 'Colorist' },
   'nav.work': { fr: 'Projets', en: 'Projects' },
+  'nav.reel': { fr: 'Reel', en: 'Reel' },
   'nav.contact': { fr: 'Contact', en: 'Contact' },
 
   'work.heading': { fr: 'Projets', en: 'Projects' },
