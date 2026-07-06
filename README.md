@@ -15,7 +15,7 @@ est chargé depuis un CDN au moment de l'exécution.
 | `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
 | `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
-| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=12` actuellement — bumper ce numéro sur les 4 pages à chaque édition, sinon certains navigateurs gardent l'ancienne feuille en cache) |
+| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N` — bumper ce numéro sur les 3 pages qui la chargent à chaque édition, sinon certains navigateurs gardent l'ancienne feuille en cache) |
 | `video/reel.mp4` | Reel auto-hébergé |
 | `assets/` | Stills et vignettes des projets |
 | `.nojekyll`, `robots.txt`, `CNAME` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom) |
