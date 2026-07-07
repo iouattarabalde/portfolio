@@ -27,9 +27,9 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="style.css?v=26">
 <script src="i18n.js"></script>
-<script src="design.js?v=1"></script>
+<script src="design.js?v=2"></script>
 </head>
 <body>
 
@@ -155,7 +155,10 @@
     const heroStyles = getComputedStyle(hero);
     const heroPadV = parseFloat(heroStyles.paddingTop) + parseFloat(heroStyles.paddingBottom);
     const available = window.innerHeight - navH - heroPadV - 4; // 4px = small safety margin
-    const maxWidthFromHeight = available * (16 / 9);
+    // Design panel: Hero > Hauteur du reel — a 0.5–1.0 factor on the available height
+    // (design.js sets --reel-scale; absent or invalid = full height, the original behavior)
+    const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--reel-scale')) || 1;
+    const maxWidthFromHeight = available * scale * (16 / 9);
     frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px'; // 280px floor so it never gets absurdly small
   }
   window.addEventListener('load', sizeReel);
