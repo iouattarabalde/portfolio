@@ -24,7 +24,7 @@
 <title>Admin — Ismael OB</title>
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <script>window.IOB_ADMIN = true;</script>
-<script src="../design.js?v=2"></script>
+<script src="../design.js?v=3"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=26">
@@ -234,7 +234,6 @@
   /* Design panel */
   .design-group-title { font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:20px 0 10px; }
   .design-group-title:first-child { margin-top:0; }
-  .design-dm-legend { font-size:11px; color:var(--fg-faint); margin:0 0 8px; }
   .design-row { display:grid; grid-template-columns: 1fr 96px; gap:8px; align-items:center; margin-bottom:8px; }
   .design-row.three { grid-template-columns: 1fr 68px 68px; }
   .design-row label { font-size:12px; color:var(--fg-dim); }
@@ -260,7 +259,7 @@
   .design-topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
   .design-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .design-controls { margin-top:20px; columns: 300px 4; column-gap: 32px; }
-  .design-controls .design-row, .design-controls .design-dm-legend { break-inside: avoid; }
+  .design-controls .design-row { break-inside: avoid; }
   .design-controls .design-group-title { break-after: avoid; break-inside: avoid; }
 </style>
 </head>
@@ -363,7 +362,7 @@
     <div class="design-topbar">
       <div>
         <h2 style="font-size:16px; margin-bottom:4px;">Design du site</h2>
-        <p class="field-hint" style="margin:0;">L'aperçu se met à jour en direct. Rien n'est publié avant d'enregistrer.</p>
+        <p class="field-hint" style="margin:0;">L'aperçu se met à jour en direct. Champs doubles : desktop à gauche, mobile à droite. Rien n'est publié avant d'enregistrer.</p>
       </div>
       <div class="design-actions">
         <button class="btn design-device active" id="design-device-desktop">Desktop</button>
@@ -393,7 +392,6 @@
         <div class="design-row"><label>Fond des panneaux</label><input type="color" id="d-bgraised"></div>
 
         <h3 class="design-group-title">Typographie</h3>
-        <p class="design-dm-legend">Colonne de gauche : desktop · droite : mobile</p>
         <div class="design-row three">
           <label>Taille du texte (px)</label>
           <input type="number" id="d-body-d" min="11" max="22" step="1" title="Desktop">
@@ -413,7 +411,6 @@
         <div class="design-row"><label>Coins du cadre (0 = masqués)</label><input type="number" id="d-brackets" min="0" max="1" step="0.1"></div>
 
         <h3 class="design-group-title">Grille projets</h3>
-        <p class="design-dm-legend">Colonne de gauche : desktop · droite : mobile</p>
         <div class="design-row three">
           <label>Colonnes</label>
           <input type="number" id="d-cols-d" min="1" max="6" step="1" title="Desktop">

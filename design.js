@@ -106,7 +106,10 @@ function iobDesignVars(d) {
     '--gal-gap':     iobNum(ggap.desktop, 0, 48, D.gallery.gap.desktop) + 'px',
     '--gal-gap-m':   iobNum(ggap.mobile, 0, 48, D.gallery.gap.mobile) + 'px',
     // Nav
-    '--nav-pad':     iobNum(nav.padY, 8, 40, D.nav.padY) + 'px'
+    '--nav-pad':     iobNum(nav.padY, 8, 40, D.nav.padY) + 'px',
+    // Contact
+    '--photo-w':     iobNum(pw.desktop, 200, 700, D.contact.photoWidth.desktop) + 'px',
+    '--photo-w-m':   iobNum(pw.mobile, 160, 500, D.contact.photoWidth.mobile) + 'px'
   };
 }
 
