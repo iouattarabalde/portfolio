@@ -152,7 +152,8 @@ déploiement propre.
 
 ## Design du site (panneau admin)
 
-Le panneau "Design du site" de l'admin édite `data/design.json`, que `design.js` (chargé
+L'admin est organisé en trois onglets (Projets, Textes du site, Design), onglet actif
+mémorisé entre les visites. L'onglet "Design" édite `data/design.json`, que `design.js` (chargé
 par `index.html` et `project.html`) applique en variables CSS par-dessus `style.css`.
 Contrôles : couleurs (accent, fond, texte, texte secondaire, bordures, fond des panneaux),
 typographie (taille du texte, taille des titres, titres de vignettes, interligne,
@@ -160,8 +161,9 @@ espacement des lettres), hero (hauteur du reel, coins du cadre), grille projets 
 espacement, ratio, padding, zoom au survol et sa durée, intensité du dégradé), galerie de
 la page projet (colonnes, espacement), mise en page (espacement vertical des sections,
 marges latérales, largeur de la bio), nav (hauteur, masquage au défilement) et largeur de
-la photo de contact. Les contrôles responsifs ont une valeur desktop et une valeur mobile. L'aperçu dans l'admin est le vrai site en iframe, mis à jour en direct via
-postMessage; rien n'est publié avant "Enregistrer le design".
+la photo de contact. Les contrôles responsifs ont une valeur desktop et une valeur mobile. L'aperçu est le vrai site en iframe, pleine largeur en haut de l'onglet (72vh),
+mis à jour en direct via postMessage; les contrôles suivent en colonnes CSS dessous;
+rien n'est publié avant "Enregistrer le design".
 
 Points d'architecture : les breakpoints restent dans `style.css` (le JSON ne fournit que
 des valeurs); chaque `var()` a un fallback égal au design d'origine, donc site intact si

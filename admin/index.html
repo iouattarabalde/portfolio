@@ -244,6 +244,24 @@
   }
   .design-row input[type="color"] { width:100%; height:30px; padding:2px; background:var(--bg); border:1px solid var(--line); cursor:pointer; }
   .design-device.active { border-color:var(--accent); color:var(--accent); }
+
+  /* Onglets */
+  .tab-bar { display:flex; gap:4px; margin-bottom:28px; border-bottom:1px solid var(--line); }
+  .tab-btn {
+    background:none; border:none; border-bottom:2px solid transparent;
+    color:var(--fg-dim); font-family:var(--mono); font-size:13px;
+    letter-spacing:0.06em; text-transform:uppercase; padding:10px 14px; cursor:pointer;
+  }
+  .tab-btn:hover { color:var(--fg); }
+  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+  /* Onglet Design : barre d'actions en haut, aperçu pleine largeur, contrôles en colonnes */
+  .design-topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+  .design-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .design-controls { margin-top:20px; columns: 300px 4; column-gap: 32px; }
+  .design-controls .design-row, .design-controls .design-dm-legend { break-inside: avoid; }
+  .design-controls .design-group-title { break-after: avoid; break-inside: avoid; }
 </style>
 </head>
 <body>
@@ -263,6 +281,15 @@
     <button class="btn" id="logout-btn">Déconnexion</button>
   </div>
 
+  <!-- Onglets : chaque section vit dans son .tab-panel, un seul visible à la fois.
+       L'onglet actif est mémorisé (localStorage) pour reprendre où on était. -->
+  <div class="tab-bar">
+    <button class="tab-btn" data-tab="projets">Projets</button>
+    <button class="tab-btn" data-tab="textes">Textes du site</button>
+    <button class="tab-btn" data-tab="design">Design</button>
+  </div>
+
+  <div class="tab-panel" id="tab-projets">
   <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
     <h2 style="font-size:16px;">Projets</h2>
     <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
@@ -274,9 +301,11 @@
   <input type="text" id="project-search" placeholder="Rechercher un projet…" style="width:100%; background:var(--bg-raised); border:1px solid var(--line); color:var(--fg); font-family:var(--mono); font-size:13px; padding:10px 12px; margin-bottom:16px;">
   <div id="project-list"></div>
   <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
+  </div><!-- /tab-projets -->
 
   <!-- Textes du site : coordonnées + tous les libellés bilingues + acronymes de type.
        Édite data/settings.json et data/strings.json, lus par toutes les pages publiques. -->
+  <div class="tab-panel" id="tab-textes">
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
     <h2 style="font-size:16px; margin-bottom:14px;">Textes du site</h2>
 
@@ -323,17 +352,37 @@
       <span class="save-status" id="settings-status"></span>
     </div>
   </div>
+  </div><!-- /tab-textes -->
 
   <!-- Design du site : édite data/design.json, appliqué par design.js en variables CSS.
        Chaque contrôle a une valeur Desktop et une valeur Mobile. L'aperçu est le vrai
        site dans une iframe, mis à jour en direct par postMessage à chaque changement
        (voir design.js) — rien n'est publié avant "Enregistrer le design". -->
+  <div class="tab-panel" id="tab-design">
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
-    <h2 style="font-size:16px; margin-bottom:6px;">Design du site</h2>
-    <p class="field-hint" style="margin-bottom:18px;">Ajuste les couleurs et la mise en page, avec des valeurs séparées pour desktop et mobile. L'aperçu se met à jour en direct. Rien n'est publié avant d'enregistrer.</p>
+    <div class="design-topbar">
+      <div>
+        <h2 style="font-size:16px; margin-bottom:4px;">Design du site</h2>
+        <p class="field-hint" style="margin:0;">L'aperçu se met à jour en direct. Rien n'est publié avant d'enregistrer.</p>
+      </div>
+      <div class="design-actions">
+        <button class="btn design-device active" id="design-device-desktop">Desktop</button>
+        <button class="btn design-device" id="design-device-mobile">Mobile</button>
+        <span style="width:1px; height:22px; background:var(--line);"></span>
+        <button class="btn btn-primary" id="design-save-btn">Enregistrer le design</button>
+        <button class="btn" id="design-revert-btn" title="Revenir à la dernière version enregistrée">Annuler les changements</button>
+        <button class="btn" id="design-defaults-btn" title="Revenir au design d'origine du site">Design d'origine</button>
+      </div>
+    </div>
+    <p id="design-status" class="save-status" style="margin:0 0 12px;"></p>
 
-    <div style="display:flex; gap:24px; flex-wrap:wrap;">
-      <div style="flex:0 0 300px; min-width:260px;">
+    <!-- Aperçu pleine largeur : le vrai site en iframe. Les contrôles suivent en dessous,
+         répartis en colonnes CSS pour rester compacts. -->
+    <div id="design-preview-shell" style="border:1px solid var(--line); background:#000;">
+      <iframe id="design-preview" src="../index.html" style="display:block; width:100%; height:min(72vh, 900px); border:0; background:#000;" title="Aperçu du site"></iframe>
+    </div>
+
+    <div class="design-controls">
 
         <h3 class="design-group-title">Couleurs</h3>
         <div class="design-row"><label>Accent</label><input type="color" id="d-accent"></div>
@@ -425,26 +474,9 @@
           <input type="number" id="d-photo-m" min="160" max="500" step="10" title="Mobile">
         </div>
 
-        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:22px;">
-          <button class="btn btn-primary" id="design-save-btn">Enregistrer le design</button>
-          <button class="btn" id="design-revert-btn" title="Revenir à la dernière version enregistrée">Annuler les changements</button>
-          <button class="btn" id="design-defaults-btn" title="Revenir au design d'origine du site">Design d'origine</button>
-        </div>
-        <p id="design-status" class="save-status" style="margin-top:10px;"></p>
-      </div>
-
-      <div style="flex:1; min-width:320px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-          <span class="field-hint" style="margin:0;">Aperçu :</span>
-          <button class="btn design-device active" id="design-device-desktop">Desktop</button>
-          <button class="btn design-device" id="design-device-mobile">Mobile</button>
-        </div>
-        <div id="design-preview-shell" style="border:1px solid var(--line); background:#000;">
-          <iframe id="design-preview" src="../index.html" style="display:block; width:100%; height:640px; border:0; background:#000;" title="Aperçu du site"></iframe>
-        </div>
-      </div>
-    </div>
+    </div><!-- /design-controls -->
   </div>
+  </div><!-- /tab-design -->
 </div>
 
 <!-- Add/edit project overlay. Filled in by openEditor(index) — index is null for a new
@@ -1481,6 +1513,22 @@ function setPreviewDevice(mode) {
   document.getElementById('design-device-desktop').classList.toggle('active', !mobile);
   document.getElementById('design-device-mobile').classList.toggle('active', mobile);
 }
+
+
+/* ---------- Onglets ----------
+   Un seul panneau visible à la fois; l'onglet actif survit au rechargement (localStorage).
+   En arrivant sur Design, on repousse le design courant dans l'iframe : elle a été mise en
+   page pendant que le panneau était masqué, et le site y refait ses calculs (sizeReel)
+   sur le resize que déclenche l'application du design. */
+const TAB_KEY = 'iob_admin_tab';
+function showTab(name) {
+  for (const b of document.querySelectorAll('.tab-btn')) b.classList.toggle('active', b.dataset.tab === name);
+  for (const p of document.querySelectorAll('.tab-panel')) p.classList.toggle('active', p.id === 'tab-' + name);
+  localStorage.setItem(TAB_KEY, name);
+  if (name === 'design' && typeof pushPreview === 'function') pushPreview();
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+showTab(localStorage.getItem(TAB_KEY) || 'projets');
 
 </script>
 </body>
