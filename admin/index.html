@@ -23,9 +23,11 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Admin — Ismael OB</title>
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<script>window.IOB_ADMIN = true;</script>
+<script src="../design.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css?v=24">
+<link rel="stylesheet" href="../style.css?v=25">
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -228,6 +230,20 @@
     .string-row { grid-template-columns: 1fr; }
     .type-row { grid-template-columns: 1fr; }
   }
+
+  /* Design panel */
+  .design-group-title { font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:20px 0 10px; }
+  .design-group-title:first-child { margin-top:0; }
+  .design-dm-legend { font-size:11px; color:var(--fg-faint); margin:0 0 8px; }
+  .design-row { display:grid; grid-template-columns: 1fr 96px; gap:8px; align-items:center; margin-bottom:8px; }
+  .design-row.three { grid-template-columns: 1fr 68px 68px; }
+  .design-row label { font-size:12px; color:var(--fg-dim); }
+  .design-row input[type="number"], .design-row select {
+    background:var(--bg); border:1px solid var(--line); color:var(--fg);
+    font-family:var(--mono); font-size:12px; padding:6px 6px; width:100%;
+  }
+  .design-row input[type="color"] { width:100%; height:30px; padding:2px; background:var(--bg); border:1px solid var(--line); cursor:pointer; }
+  .design-device.active { border-color:var(--accent); color:var(--accent); }
 </style>
 </head>
 <body>
@@ -305,6 +321,75 @@
     <div style="display:flex; align-items:center; gap:12px; margin-top:20px;">
       <button class="btn btn-primary" id="save-settings-btn">Enregistrer les textes du site</button>
       <span class="save-status" id="settings-status"></span>
+    </div>
+  </div>
+
+  <!-- Design du site : édite data/design.json, appliqué par design.js en variables CSS.
+       Chaque contrôle a une valeur Desktop et une valeur Mobile. L'aperçu est le vrai
+       site dans une iframe, mis à jour en direct par postMessage à chaque changement
+       (voir design.js) — rien n'est publié avant "Enregistrer le design". -->
+  <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:32px;">
+    <h2 style="font-size:16px; margin-bottom:6px;">Design du site</h2>
+    <p class="field-hint" style="margin-bottom:18px;">Ajuste les couleurs et la mise en page, avec des valeurs séparées pour desktop et mobile. L'aperçu se met à jour en direct. Rien n'est publié avant d'enregistrer.</p>
+
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+      <div style="flex:0 0 300px; min-width:260px;">
+
+        <h3 class="design-group-title">Couleurs</h3>
+        <div class="design-row"><label>Accent</label><input type="color" id="d-accent"></div>
+        <div class="design-row"><label>Fond</label><input type="color" id="d-bg"></div>
+        <div class="design-row"><label>Texte</label><input type="color" id="d-fg"></div>
+
+        <h3 class="design-group-title">Typographie</h3>
+        <div class="design-row three">
+          <label>Taille du texte (px)</label>
+          <input type="number" id="d-body-d" min="11" max="22" step="1" title="Desktop">
+          <input type="number" id="d-body-m" min="11" max="22" step="1" title="Mobile">
+        </div>
+
+        <h3 class="design-group-title">Grille projets</h3>
+        <p class="design-dm-legend">Colonne de gauche : desktop · droite : mobile</p>
+        <div class="design-row three">
+          <label>Colonnes</label>
+          <input type="number" id="d-cols-d" min="1" max="6" step="1" title="Desktop">
+          <input type="number" id="d-cols-m" min="1" max="3" step="1" title="Mobile">
+        </div>
+        <div class="design-row three">
+          <label>Espacement (px)</label>
+          <input type="number" id="d-gap-d" min="0" max="48" step="1" title="Desktop">
+          <input type="number" id="d-gap-m" min="0" max="48" step="1" title="Mobile">
+        </div>
+        <div class="design-row three">
+          <label>Ratio vignettes</label>
+          <select id="d-ratio-d" title="Desktop"></select>
+          <select id="d-ratio-m" title="Mobile"></select>
+        </div>
+
+        <h3 class="design-group-title">Contact</h3>
+        <div class="design-row three">
+          <label>Largeur photo (px)</label>
+          <input type="number" id="d-photo-d" min="200" max="700" step="10" title="Desktop">
+          <input type="number" id="d-photo-m" min="160" max="500" step="10" title="Mobile">
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:22px;">
+          <button class="btn btn-primary" id="design-save-btn">Enregistrer le design</button>
+          <button class="btn" id="design-revert-btn" title="Revenir à la dernière version enregistrée">Annuler les changements</button>
+          <button class="btn" id="design-defaults-btn" title="Revenir au design d'origine du site">Design d'origine</button>
+        </div>
+        <p id="design-status" class="save-status" style="margin-top:10px;"></p>
+      </div>
+
+      <div style="flex:1; min-width:320px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <span class="field-hint" style="margin:0;">Aperçu :</span>
+          <button class="btn design-device active" id="design-device-desktop">Desktop</button>
+          <button class="btn design-device" id="design-device-mobile">Mobile</button>
+        </div>
+        <div id="design-preview-shell" style="border:1px solid var(--line); background:#000;">
+          <iframe id="design-preview" src="../index.html" style="display:block; width:100%; height:640px; border:0; background:#000;" title="Aperçu du site"></iframe>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -751,6 +836,7 @@ async function tryConnect(t) {
     renderDashboard();
     loadSettingsIntoForm().catch((e) => console.error('Impossible de charger les coordonnées:', e));
     loadStringsIntoForm().catch((e) => console.error('Impossible de charger les textes du site:', e));
+    loadDesignIntoForm().catch((e) => console.error('Impossible de charger le design:', e));
   } catch (e) {
     errorEl.textContent = 'Connexion refusée. Vérifie le token (accès repo requis).';
     token = '';
@@ -1187,6 +1273,119 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
     statusEl.className = 'save-status error';
   }
 });
+
+
+/* ---------- Design du site ----------
+   Edits data/design.json (applied on the public pages by design.js — included above with
+   window.IOB_ADMIN set, which gives us IOB_DESIGN_DEFAULTS, IOB_CARD_RATIOS and
+   iobDesignVars() without triggering any site-side behavior). The iframe preview runs
+   the real site, which listens for iob-design-preview messages and re-applies the CSS
+   variables instantly. Nothing is committed until "Enregistrer le design". */
+
+let savedDesign = null; // last version read from (or written to) the repo
+
+const RATIO_LABELS = { '21 / 9': '21:9 (très large)', '16 / 9': '16:9 (large)', '3 / 2': '3:2', '4 / 3': '4:3', '1 / 1': '1:1 (carré)', '4 / 5': '4:5 (portrait)' };
+for (const sel of ['d-ratio-d', 'd-ratio-m']) {
+  const el = document.getElementById(sel);
+  el.innerHTML = IOB_CARD_RATIOS.map(r => `<option value="${r}">${RATIO_LABELS[r] || r}</option>`).join('');
+}
+
+function designFromForm() {
+  return {
+    colors: {
+      accent: document.getElementById('d-accent').value,
+      bg: document.getElementById('d-bg').value,
+      fg: document.getElementById('d-fg').value
+    },
+    typography: { bodySize: {
+      desktop: parseFloat(document.getElementById('d-body-d').value),
+      mobile: parseFloat(document.getElementById('d-body-m').value)
+    } },
+    grid: {
+      columns: { desktop: parseInt(document.getElementById('d-cols-d').value, 10), mobile: parseInt(document.getElementById('d-cols-m').value, 10) },
+      gap: { desktop: parseFloat(document.getElementById('d-gap-d').value), mobile: parseFloat(document.getElementById('d-gap-m').value) },
+      cardRatio: { desktop: document.getElementById('d-ratio-d').value, mobile: document.getElementById('d-ratio-m').value }
+    },
+    contact: { photoWidth: {
+      desktop: parseFloat(document.getElementById('d-photo-d').value),
+      mobile: parseFloat(document.getElementById('d-photo-m').value)
+    } }
+  };
+}
+
+function fillDesignForm(d) {
+  const D = IOB_DESIGN_DEFAULTS;
+  const g = (path, fb) => path.reduce((o, k) => (o && o[k] !== undefined ? o[k] : undefined), d) ?? fb;
+  document.getElementById('d-accent').value = g(['colors','accent'], D.colors.accent);
+  document.getElementById('d-bg').value = g(['colors','bg'], D.colors.bg);
+  document.getElementById('d-fg').value = g(['colors','fg'], D.colors.fg);
+  document.getElementById('d-body-d').value = g(['typography','bodySize','desktop'], D.typography.bodySize.desktop);
+  document.getElementById('d-body-m').value = g(['typography','bodySize','mobile'], D.typography.bodySize.mobile);
+  document.getElementById('d-cols-d').value = g(['grid','columns','desktop'], D.grid.columns.desktop);
+  document.getElementById('d-cols-m').value = g(['grid','columns','mobile'], D.grid.columns.mobile);
+  document.getElementById('d-gap-d').value = g(['grid','gap','desktop'], D.grid.gap.desktop);
+  document.getElementById('d-gap-m').value = g(['grid','gap','mobile'], D.grid.gap.mobile);
+  document.getElementById('d-ratio-d').value = g(['grid','cardRatio','desktop'], D.grid.cardRatio.desktop);
+  document.getElementById('d-ratio-m').value = g(['grid','cardRatio','mobile'], D.grid.cardRatio.mobile);
+  document.getElementById('d-photo-d').value = g(['contact','photoWidth','desktop'], D.contact.photoWidth.desktop);
+  document.getElementById('d-photo-m').value = g(['contact','photoWidth','mobile'], D.contact.photoWidth.mobile);
+}
+
+const previewFrame = document.getElementById('design-preview');
+function pushPreview() {
+  if (!previewFrame.contentWindow) return;
+  previewFrame.contentWindow.postMessage({ type: 'iob-design-preview', design: designFromForm() }, location.origin);
+}
+// Re-push once the iframe (re)loads, so the preview survives navigation inside it.
+previewFrame.addEventListener('load', pushPreview);
+
+for (const id of ['d-accent','d-bg','d-fg','d-body-d','d-body-m','d-cols-d','d-cols-m','d-gap-d','d-gap-m','d-ratio-d','d-ratio-m','d-photo-d','d-photo-m']) {
+  document.getElementById(id).addEventListener('input', pushPreview);
+}
+
+async function loadDesignIntoForm() {
+  const file = await ghGetFile('data/design.json');
+  savedDesign = file ? JSON.parse(decodeURIComponent(escape(atob(file.content)))) : null;
+  fillDesignForm(savedDesign || IOB_DESIGN_DEFAULTS);
+  pushPreview();
+}
+
+document.getElementById('design-save-btn').addEventListener('click', async () => {
+  const status = document.getElementById('design-status');
+  status.textContent = 'Enregistrement…';
+  try {
+    const design = designFromForm();
+    await ghPutFile('data/design.json', b64EncodeUnicode(JSON.stringify(design, null, 2) + '\n'), 'Design du site mis à jour via l\'admin');
+    savedDesign = design;
+    status.textContent = 'Design enregistré. Le site se met à jour d\'ici une minute.';
+  } catch (e) {
+    status.textContent = 'Erreur : ' + e.message;
+  }
+});
+
+document.getElementById('design-revert-btn').addEventListener('click', () => {
+  fillDesignForm(savedDesign || IOB_DESIGN_DEFAULTS);
+  pushPreview();
+  document.getElementById('design-status').textContent = 'Changements non enregistrés annulés.';
+});
+
+document.getElementById('design-defaults-btn').addEventListener('click', () => {
+  fillDesignForm(IOB_DESIGN_DEFAULTS);
+  pushPreview();
+  document.getElementById('design-status').textContent = 'Design d\'origine rechargé dans le formulaire (pas encore enregistré).';
+});
+
+// Desktop / mobile preview: shrinking the iframe to a phone width makes the site's own
+// media queries fire inside it, so what you see is what mobile actually gets.
+document.getElementById('design-device-desktop').addEventListener('click', () => setPreviewDevice('desktop'));
+document.getElementById('design-device-mobile').addEventListener('click', () => setPreviewDevice('mobile'));
+function setPreviewDevice(mode) {
+  const mobile = mode === 'mobile';
+  previewFrame.style.width = mobile ? '390px' : '100%';
+  previewFrame.style.margin = mobile ? '0 auto' : '0';
+  document.getElementById('design-device-desktop').classList.toggle('active', !mobile);
+  document.getElementById('design-device-mobile').classList.toggle('active', mobile);
+}
 
 </script>
 </body>

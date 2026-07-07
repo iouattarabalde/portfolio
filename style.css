@@ -23,7 +23,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: var(--body-size, 15px); /* Design panel: Typographie > Taille du texte */
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -249,8 +249,8 @@ h1, h2, h3 {
 
 .work-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--grid-gap);
+  grid-template-columns: repeat(var(--wg-cols, 4), 1fr); /* Design panel: Grille > Colonnes */
+  gap: var(--wg-gap, var(--grid-gap));                   /* Design panel: Grille > Espacement */
   background: var(--line); /* shows through the gap as thin dividers between cards */
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -259,7 +259,7 @@ h1, h2, h3 {
 .work-card {
   position: relative;
   background: var(--bg);
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--card-ratio, 16 / 9); /* Design panel: Grille > Ratio des vignettes */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -346,8 +346,8 @@ h1, h2, h3 {
 }
 
 .contact-photo {
-  flex: 0 0 clamp(280px, 34vw, 440px);
-  width: clamp(280px, 34vw, 440px);
+  flex: 0 0 clamp(200px, 34vw, var(--photo-w, 440px)); /* Design panel: Contact > Largeur de la photo */
+  width: clamp(200px, 34vw, var(--photo-w, 440px));
   aspect-ratio: 4 / 5;
   object-fit: cover;
   border: 1px solid var(--line);
@@ -366,7 +366,7 @@ h1, h2, h3 {
   }
   .contact-photo {
     width: 100%;
-    max-width: 320px;
+    max-width: var(--photo-w-m, 320px);
     margin: 0 auto; /* centers the photo once the columns stack (auto cross-axis margins win over align-items) */
   }
 }
@@ -419,8 +419,11 @@ h1, h2, h3 {
 
 /* ---------- Responsive: work grid column counts ---------- */
 @media (max-width: 1000px) {
-  .work-grid { grid-template-columns: repeat(2, 1fr); }
-  .work-card { aspect-ratio: 1 / 1; padding: 10px; } /* near-square cards read better at this density */
+  .work-grid {
+    grid-template-columns: repeat(var(--wg-cols-m, 2), 1fr);
+    gap: var(--wg-gap-m, var(--wg-gap, var(--grid-gap)));
+  }
+  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: 10px; } /* near-square by default at this density */
 }
 
 /* ---------- Project template ---------- */
@@ -551,3 +554,13 @@ h1, h2, h3 {
 .lightbox-nav:hover { color: var(--accent); border-color: var(--accent); }
 .lightbox-prev { left: clamp(10px, 3vw, 28px); }
 .lightbox-next { right: clamp(10px, 3vw, 28px); }
+
+/* ---------- Design panel (admin) ----------
+   The variables consumed above (--wg-cols, --card-ratio, --photo-w, --body-size, ...)
+   are supplied at runtime by design.js from data/design.json, edited visually in the
+   admin's "Design du site" panel. Fallbacks in each var() equal the shipped design, so
+   the site looks identical if design.json is absent or design.js fails. Desktop/mobile
+   variants use the -m suffix; the breakpoints live here, the values live in design.json. */
+@media (max-width: 700px) {
+  body { font-size: var(--body-size-m, var(--body-size, 15px)); }
+}
