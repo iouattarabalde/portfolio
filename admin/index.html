@@ -24,10 +24,10 @@
 <title>Admin — Ismael OB</title>
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <script>window.IOB_ADMIN = true;</script>
-<script src="../design.js?v=1"></script>
+<script src="../design.js?v=2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css?v=25">
+<link rel="stylesheet" href="../style.css?v=26">
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -339,13 +339,29 @@
         <div class="design-row"><label>Accent</label><input type="color" id="d-accent"></div>
         <div class="design-row"><label>Fond</label><input type="color" id="d-bg"></div>
         <div class="design-row"><label>Texte</label><input type="color" id="d-fg"></div>
+        <div class="design-row"><label>Texte secondaire</label><input type="color" id="d-fgdim"></div>
+        <div class="design-row"><label>Bordures et filets</label><input type="color" id="d-line"></div>
+        <div class="design-row"><label>Fond des panneaux</label><input type="color" id="d-bgraised"></div>
 
         <h3 class="design-group-title">Typographie</h3>
+        <p class="design-dm-legend">Colonne de gauche : desktop · droite : mobile</p>
         <div class="design-row three">
           <label>Taille du texte (px)</label>
           <input type="number" id="d-body-d" min="11" max="22" step="1" title="Desktop">
           <input type="number" id="d-body-m" min="11" max="22" step="1" title="Mobile">
         </div>
+        <div class="design-row three">
+          <label>Taille des titres (x)</label>
+          <input type="number" id="d-title-d" min="0.6" max="1.6" step="0.05" title="Desktop">
+          <input type="number" id="d-title-m" min="0.6" max="1.6" step="0.05" title="Mobile">
+        </div>
+        <div class="design-row"><label>Titres des vignettes (px)</label><input type="number" id="d-cardtitle" min="10" max="22" step="1"></div>
+        <div class="design-row"><label>Interligne</label><input type="number" id="d-leading" min="1.2" max="2.2" step="0.05"></div>
+        <div class="design-row"><label>Espacement des lettres (x)</label><input type="number" id="d-tracking" min="0.3" max="2" step="0.1"></div>
+
+        <h3 class="design-group-title">Hero / Reel</h3>
+        <div class="design-row"><label>Hauteur du reel (%)</label><input type="number" id="d-reelscale" min="50" max="100" step="5"></div>
+        <div class="design-row"><label>Coins du cadre (0 = masqués)</label><input type="number" id="d-brackets" min="0" max="1" step="0.1"></div>
 
         <h3 class="design-group-title">Grille projets</h3>
         <p class="design-dm-legend">Colonne de gauche : desktop · droite : mobile</p>
@@ -364,6 +380,43 @@
           <select id="d-ratio-d" title="Desktop"></select>
           <select id="d-ratio-m" title="Mobile"></select>
         </div>
+        <div class="design-row three">
+          <label>Padding vignettes (px)</label>
+          <input type="number" id="d-cardpad-d" min="4" max="32" step="1" title="Desktop">
+          <input type="number" id="d-cardpad-m" min="4" max="32" step="1" title="Mobile">
+        </div>
+        <div class="design-row"><label>Amplitude du zoom au survol</label><input type="number" id="d-zoom" min="1" max="1.2" step="0.01"></div>
+        <div class="design-row"><label>Durée du zoom (ms)</label><input type="number" id="d-zoomms" min="100" max="1500" step="50"></div>
+        <div class="design-row"><label>Intensité du dégradé au survol</label><input type="number" id="d-scrim" min="0" max="1" step="0.1"></div>
+
+        <h3 class="design-group-title">Galerie (page projet)</h3>
+        <div class="design-row three">
+          <label>Colonnes</label>
+          <input type="number" id="d-galcols-d" min="1" max="4" step="1" title="Desktop">
+          <input type="number" id="d-galcols-m" min="1" max="3" step="1" title="Mobile">
+        </div>
+        <div class="design-row three">
+          <label>Espacement (px)</label>
+          <input type="number" id="d-galgap-d" min="0" max="48" step="1" title="Desktop">
+          <input type="number" id="d-galgap-m" min="0" max="48" step="1" title="Mobile">
+        </div>
+
+        <h3 class="design-group-title">Mise en page</h3>
+        <div class="design-row three">
+          <label>Espacement vertical des sections (px)</label>
+          <input type="number" id="d-secty-d" min="24" max="140" step="4" title="Desktop">
+          <input type="number" id="d-secty-m" min="12" max="80" step="4" title="Mobile">
+        </div>
+        <div class="design-row three">
+          <label>Marges latérales (px)</label>
+          <input type="number" id="d-padx-d" min="16" max="120" step="4" title="Desktop">
+          <input type="number" id="d-padx-m" min="8" max="48" step="4" title="Mobile">
+        </div>
+        <div class="design-row"><label>Largeur de la bio (caractères)</label><input type="number" id="d-biow" min="30" max="90" step="2"></div>
+
+        <h3 class="design-group-title">Nav</h3>
+        <div class="design-row"><label>Hauteur (padding, px)</label><input type="number" id="d-navpad" min="8" max="40" step="2"></div>
+        <div class="design-row"><label>Masquer au défilement</label><input type="checkbox" id="d-navhide" style="justify-self:start; width:18px; height:18px;"></div>
 
         <h3 class="design-group-title">Contact</h3>
         <div class="design-row three">
@@ -1290,26 +1343,39 @@ for (const sel of ['d-ratio-d', 'd-ratio-m']) {
   el.innerHTML = IOB_CARD_RATIOS.map(r => `<option value="${r}">${RATIO_LABELS[r] || r}</option>`).join('');
 }
 
+const N = id => parseFloat(document.getElementById(id).value);
+const V = id => document.getElementById(id).value;
 function designFromForm() {
   return {
-    colors: {
-      accent: document.getElementById('d-accent').value,
-      bg: document.getElementById('d-bg').value,
-      fg: document.getElementById('d-fg').value
+    colors: { accent: V('d-accent'), bg: V('d-bg'), fg: V('d-fg'), line: V('d-line'), bgRaised: V('d-bgraised'), fgDim: V('d-fgdim') },
+    typography: {
+      bodySize: { desktop: N('d-body-d'), mobile: N('d-body-m') },
+      leading: N('d-leading'),
+      titleScale: { desktop: N('d-title-d'), mobile: N('d-title-m') },
+      cardTitleSize: N('d-cardtitle'),
+      trackingScale: N('d-tracking')
     },
-    typography: { bodySize: {
-      desktop: parseFloat(document.getElementById('d-body-d').value),
-      mobile: parseFloat(document.getElementById('d-body-m').value)
-    } },
     grid: {
-      columns: { desktop: parseInt(document.getElementById('d-cols-d').value, 10), mobile: parseInt(document.getElementById('d-cols-m').value, 10) },
-      gap: { desktop: parseFloat(document.getElementById('d-gap-d').value), mobile: parseFloat(document.getElementById('d-gap-m').value) },
-      cardRatio: { desktop: document.getElementById('d-ratio-d').value, mobile: document.getElementById('d-ratio-m').value }
+      columns: { desktop: parseInt(V('d-cols-d'), 10), mobile: parseInt(V('d-cols-m'), 10) },
+      gap: { desktop: N('d-gap-d'), mobile: N('d-gap-m') },
+      cardRatio: { desktop: V('d-ratio-d'), mobile: V('d-ratio-m') },
+      cardPadding: { desktop: N('d-cardpad-d'), mobile: N('d-cardpad-m') },
+      hoverZoom: N('d-zoom'),
+      hoverZoomMs: N('d-zoomms'),
+      scrimOpacity: N('d-scrim')
     },
-    contact: { photoWidth: {
-      desktop: parseFloat(document.getElementById('d-photo-d').value),
-      mobile: parseFloat(document.getElementById('d-photo-m').value)
-    } }
+    hero: { reelScale: N('d-reelscale'), bracketsOpacity: N('d-brackets') },
+    layout: {
+      sectionPadY: { desktop: N('d-secty-d'), mobile: N('d-secty-m') },
+      sidePad: { desktop: N('d-padx-d'), mobile: N('d-padx-m') },
+      bioMaxWidth: N('d-biow')
+    },
+    gallery: {
+      columns: { desktop: parseInt(V('d-galcols-d'), 10), mobile: parseInt(V('d-galcols-m'), 10) },
+      gap: { desktop: N('d-galgap-d'), mobile: N('d-galgap-m') }
+    },
+    nav: { padY: N('d-navpad'), autoHide: document.getElementById('d-navhide').checked },
+    contact: { photoWidth: { desktop: N('d-photo-d'), mobile: N('d-photo-m') } }
   };
 }
 
@@ -1329,6 +1395,32 @@ function fillDesignForm(d) {
   document.getElementById('d-ratio-m').value = g(['grid','cardRatio','mobile'], D.grid.cardRatio.mobile);
   document.getElementById('d-photo-d').value = g(['contact','photoWidth','desktop'], D.contact.photoWidth.desktop);
   document.getElementById('d-photo-m').value = g(['contact','photoWidth','mobile'], D.contact.photoWidth.mobile);
+  document.getElementById('d-line').value = g(['colors','line'], D.colors.line);
+  document.getElementById('d-bgraised').value = g(['colors','bgRaised'], D.colors.bgRaised);
+  document.getElementById('d-fgdim').value = g(['colors','fgDim'], D.colors.fgDim);
+  document.getElementById('d-leading').value = g(['typography','leading'], D.typography.leading);
+  document.getElementById('d-title-d').value = g(['typography','titleScale','desktop'], D.typography.titleScale.desktop);
+  document.getElementById('d-title-m').value = g(['typography','titleScale','mobile'], D.typography.titleScale.mobile);
+  document.getElementById('d-cardtitle').value = g(['typography','cardTitleSize'], D.typography.cardTitleSize);
+  document.getElementById('d-tracking').value = g(['typography','trackingScale'], D.typography.trackingScale);
+  document.getElementById('d-cardpad-d').value = g(['grid','cardPadding','desktop'], D.grid.cardPadding.desktop);
+  document.getElementById('d-cardpad-m').value = g(['grid','cardPadding','mobile'], D.grid.cardPadding.mobile);
+  document.getElementById('d-zoom').value = g(['grid','hoverZoom'], D.grid.hoverZoom);
+  document.getElementById('d-zoomms').value = g(['grid','hoverZoomMs'], D.grid.hoverZoomMs);
+  document.getElementById('d-scrim').value = g(['grid','scrimOpacity'], D.grid.scrimOpacity);
+  document.getElementById('d-reelscale').value = g(['hero','reelScale'], D.hero.reelScale);
+  document.getElementById('d-brackets').value = g(['hero','bracketsOpacity'], D.hero.bracketsOpacity);
+  document.getElementById('d-secty-d').value = g(['layout','sectionPadY','desktop'], D.layout.sectionPadY.desktop);
+  document.getElementById('d-secty-m').value = g(['layout','sectionPadY','mobile'], D.layout.sectionPadY.mobile);
+  document.getElementById('d-padx-d').value = g(['layout','sidePad','desktop'], D.layout.sidePad.desktop);
+  document.getElementById('d-padx-m').value = g(['layout','sidePad','mobile'], D.layout.sidePad.mobile);
+  document.getElementById('d-biow').value = g(['layout','bioMaxWidth'], D.layout.bioMaxWidth);
+  document.getElementById('d-galcols-d').value = g(['gallery','columns','desktop'], D.gallery.columns.desktop);
+  document.getElementById('d-galcols-m').value = g(['gallery','columns','mobile'], D.gallery.columns.mobile);
+  document.getElementById('d-galgap-d').value = g(['gallery','gap','desktop'], D.gallery.gap.desktop);
+  document.getElementById('d-galgap-m').value = g(['gallery','gap','mobile'], D.gallery.gap.mobile);
+  document.getElementById('d-navpad').value = g(['nav','padY'], D.nav.padY);
+  document.getElementById('d-navhide').checked = !!g(['nav','autoHide'], D.nav.autoHide);
 }
 
 const previewFrame = document.getElementById('design-preview');
@@ -1339,8 +1431,11 @@ function pushPreview() {
 // Re-push once the iframe (re)loads, so the preview survives navigation inside it.
 previewFrame.addEventListener('load', pushPreview);
 
-for (const id of ['d-accent','d-bg','d-fg','d-body-d','d-body-m','d-cols-d','d-cols-m','d-gap-d','d-gap-m','d-ratio-d','d-ratio-m','d-photo-d','d-photo-m']) {
-  document.getElementById(id).addEventListener('input', pushPreview);
+// Every control in the panel live-previews; querying by prefix keeps this list from
+// drifting when controls are added.
+for (const el of document.querySelectorAll('[id^="d-"]')) {
+  el.addEventListener('input', pushPreview);
+  el.addEventListener('change', pushPreview); // checkboxes and selects
 }
 
 async function loadDesignIntoForm() {
