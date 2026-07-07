@@ -150,6 +150,23 @@ Si un changement récent n'apparaît pas après une minute ou deux, ce n'est gé
 un problème de données, un nouveau commit (n'importe lequel) suffit à relancer un
 déploiement propre.
 
+## Design du site (panneau admin)
+
+Le panneau "Design du site" de l'admin édite `data/design.json`, que `design.js` (chargé
+par `index.html` et `project.html`) applique en variables CSS par-dessus `style.css`.
+Contrôles : couleurs (accent, fond, texte), taille du texte, colonnes/espacement/ratio de
+la grille projets, largeur de la photo de contact — chacun avec une valeur desktop et une
+valeur mobile. L'aperçu dans l'admin est le vrai site en iframe, mis à jour en direct via
+postMessage; rien n'est publié avant "Enregistrer le design".
+
+Points d'architecture : les breakpoints restent dans `style.css` (le JSON ne fournit que
+des valeurs); chaque `var()` a un fallback égal au design d'origine, donc site intact si
+`design.json` est absent ou si `design.js` échoue; toutes les valeurs sont validées dans
+`design.js` (couleurs par regex, nombres bornés, ratios sur liste blanche) — impossible
+d'injecter du CSS par le JSON ou par postMessage. `design.js` a son propre cache-buster
+(`?v=1`) : le bumper à chaque édition du fichier. Le dernier design appliqué est mis en
+cache localStorage pour éviter un flash au chargement.
+
 ## Carte de partage et favicon
 
 `assets/og-image.jpg` (1200x630, recadré depuis un still de projet) est l'aperçu affiché
