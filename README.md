@@ -182,6 +182,22 @@ fichier, mêmes dimensions. Les balises Open Graph sont dans le `<head>` de `ind
 donc pas de carte par projet possible sur un hébergement statique). `assets/favicon.svg`
 reprend les tokens du site (fond `--bg`, monogramme `--accent`).
 
+## Vidéo du reel
+
+`video/reel.mp4` (desktop, 1080p, ~3.5 Mbps, ~84 MB) et `video/reel-mobile.mp4` (mobile,
+même résolution 1080p, ~1.6 Mbps, ~40 MB) : deux fichiers servis via `<source media="...">`
+dans le tag `<video>` du hero (`index.html`). Le navigateur choisit une fois au chargement
+selon la largeur de viewport à ce moment (seuil 700px, cohérent avec le reste du site) —
+pas de changement à la volée si on redimensionne ou tourne l'écran. Les deux gardent la
+piste audio (le reel démarre muet par défaut sur les deux, comme l'exige l'autoplay
+navigateur; le bouton son active un vrai son sur mobile comme sur desktop).
+
+Pour retranscoder : découper la source en segments de ~50s (`ffmpeg -f segment
+-segment_time 50`), encoder chaque segment séparément pour rester sous la limite de temps
+d'un appel d'outil, puis concaténer (`ffmpeg -f concat`). Toujours repartir du master
+d'origine si disponible plutôt que d'une version déjà compressée : réencoder à partir d'un
+fichier déjà compressé ne restitue pas le détail perdu, ça réduit seulement les artefacts.
+
 ## Historique
 
 Le site utilisait auparavant une page HTML statique dupliquée par projet
