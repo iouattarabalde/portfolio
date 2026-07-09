@@ -50,6 +50,13 @@
   <div class="reel-frame">
     <div class="reel-embed">
       <video id="reel-video" autoplay muted loop playsinline preload="auto" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
+        <!-- Same 1080p resolution both files, lower bitrate on mobile to keep the
+             autoplay download reasonable on cellular (~40MB vs ~84MB). The browser
+             picks a source once at load based on viewport width at that moment — it
+             won't swap mid-session on resize/rotate, which matches how every other
+             responsive choice on this site behaves. Breakpoint matches the site's most
+             common mobile breakpoint (700px, see style.css). -->
+        <source src="video/reel-mobile.mp4" type="video/mp4" media="(max-width: 700px)">
         <source src="video/reel.mp4" type="video/mp4">
       </video>
       <button id="fullscreen-toggle" type="button" aria-label="Fullscreen">
