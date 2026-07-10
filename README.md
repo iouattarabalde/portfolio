@@ -184,13 +184,17 @@ reprend les tokens du site (fond `--bg`, monogramme `--accent`).
 
 ## Vidéo du reel
 
-`video/reel.mp4` (desktop, 1080p, ~3.5 Mbps, ~84 MB) et `video/reel-mobile.mp4` (mobile,
-même résolution 1080p, ~1.6 Mbps, ~40 MB) : deux fichiers servis via `<source media="...">`
+`video/reel.mp4` (desktop, 1080p, ~3.5 Mbps, ~82 MB) et `video/reel-mobile.mp4` (mobile,
+même résolution 1080p, ~1.6 Mbps, ~39 MB) : deux fichiers servis via `<source media="...">`
 dans le tag `<video>` du hero (`index.html`). Le navigateur choisit une fois au chargement
 selon la largeur de viewport à ce moment (seuil 700px, cohérent avec le reste du site) —
 pas de changement à la volée si on redimensionne ou tourne l'écran. Les deux gardent la
 piste audio (le reel démarre muet par défaut sur les deux, comme l'exige l'autoplay
 navigateur; le bouton son active un vrai son sur mobile comme sur desktop).
+
+Retranscodés le 9 juillet 2026 à partir du vrai master (`Portfolio.mov`, H.264 1080p 16
+Mbps, fourni par Ismael) — remplace une première passe qui repartait par erreur d'une
+version déjà compressée du reel.
 
 Pour retranscoder : découper la source en segments de ~50s (`ffmpeg -f segment
 -segment_time 50`), encoder chaque segment séparément pour rester sous la limite de temps
