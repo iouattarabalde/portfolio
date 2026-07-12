@@ -350,6 +350,14 @@ h1, h2, h3 {
   color: var(--fg-dim);
   margin-bottom: 2px;
 }
+/* No artist/client line means .title is the first thing after .type in the DOM (the
+   .artist paragraph simply isn't rendered) — use that to give the title back its full
+   prominence when it's the only name on the card, instead of always reading as secondary. */
+.work-card .type + .title {
+  font-size: var(--card-title, 14px);
+  font-weight: 700;
+  color: var(--fg);
+}
 
 /* ---------- Contact ---------- */
 .contact {
