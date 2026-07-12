@@ -150,28 +150,22 @@ Si un changement récent n'apparaît pas après une minute ou deux, ce n'est gé
 un problème de données, un nouveau commit (n'importe lequel) suffit à relancer un
 déploiement propre.
 
-## Design du site (panneau admin)
+## Aperçu du site (onglet Design de l'admin)
 
 L'admin est organisé en trois onglets (Projets, Textes du site, Design), onglet actif
-mémorisé entre les visites. L'onglet "Design" édite `data/design.json`, que `design.js` (chargé
-par `index.html` et `project.html`) applique en variables CSS par-dessus `style.css`.
-Contrôles : couleurs (accent, fond, texte, texte secondaire, bordures, fond des panneaux),
-typographie (taille du texte, taille des titres, titres de vignettes, interligne,
-espacement des lettres), hero (hauteur du reel, coins du cadre), grille projets (colonnes,
-espacement, ratio, padding, zoom au survol et sa durée, intensité du dégradé), galerie de
-la page projet (colonnes, espacement), mise en page (espacement vertical des sections,
-marges latérales, largeur de la bio), nav (hauteur, masquage au défilement) et largeur de
-la photo de contact. Les contrôles responsifs ont une valeur desktop et une valeur mobile. L'aperçu est le vrai site en iframe, pleine largeur en haut de l'onglet (72vh),
-mis à jour en direct via postMessage; les contrôles suivent en colonnes CSS dessous;
-rien n'est publié avant "Enregistrer le design".
+mémorisé entre les visites. L'onglet "Design" a eu un panneau d'édition visuelle complet
+(couleurs, typographie, grille, mise en page, etc., persistées dans `data/design.json` via
+un fichier `design.js`), retiré le 9 juillet 2026 : trop chargé pour l'usage réel, jugé plus
+overwhelming qu'utile. Il ne reste que l'aperçu du site en iframe avec une bascule
+Desktop/Mobile (réduit l'iframe à 390px de large pour déclencher les mêmes media queries
+qu'un vrai téléphone) — un outil de vérification, pas d'édition.
 
-Points d'architecture : les breakpoints restent dans `style.css` (le JSON ne fournit que
-des valeurs); chaque `var()` a un fallback égal au design d'origine, donc site intact si
-`design.json` est absent ou si `design.js` échoue; toutes les valeurs sont validées dans
-`design.js` (couleurs par regex, nombres bornés, ratios sur liste blanche) — impossible
-d'injecter du CSS par le JSON ou par postMessage. `design.js` a son propre cache-buster
-(`?v=1`) : le bumper à chaque édition du fichier. Le dernier design appliqué est mis en
-cache localStorage pour éviter un flash au chargement.
+`style.css` garde une partie de l'infrastructure de ce panneau : les propriétés qui
+pouvaient être ajustées (colonnes de grille, ratio des vignettes, espacements, etc.)
+utilisent encore `var(--nom, valeur-d-origine)` plutôt qu'une valeur en dur, avec un repli
+identique au design d'origine. Comme plus rien ne définit ces variables, le repli fait
+toujours foi et le rendu est strictement identique à avant — c'est noté dans le CSS même,
+en cas de besoin futur d'un éditeur plus ciblé.
 
 ## Carte de partage et favicon
 

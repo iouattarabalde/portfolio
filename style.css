@@ -23,8 +23,8 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--mono);
-  font-size: var(--body-size, 15px); /* Design panel: Typographie > Taille du texte */
-  line-height: var(--leading, 1.6);   /* Design panel: Typographie > Interligne */
+  font-size: var(--body-size, 15px);
+  line-height: var(--leading, 1.6);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -43,7 +43,7 @@ body.lang-fr [data-fr].block { display: block; }
 .eyebrow {
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: calc(0.18em * var(--tracking, 1)); /* Design panel: Typographie > Espacement des lettres */
+  letter-spacing: calc(0.18em * var(--tracking, 1));
   text-transform: uppercase;
   color: var(--accent);
 }
@@ -63,15 +63,11 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--nav-pad, 20px) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)); /* Design panel: Nav > Hauteur */
+  padding: var(--nav-pad, 20px) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
   background: rgba(12, 12, 12, 0.86);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid var(--line);
-  transition: transform 0.3s ease;
 }
-/* Nav auto-hide on scroll down (Design panel: Nav > Masquer au défilement) — the class is
-   toggled by design.js when the option is on; the nav slides back at any upward scroll. */
-html.nav-hidden .site-nav { transform: translateY(-100%); }
 
 .wordmark {
   font-family: var(--display);
@@ -155,7 +151,7 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
   width: 18px;
   height: 18px;
   border: 1px solid var(--accent);
-  opacity: var(--brackets-o, 0.7); /* Design panel: Hero > Coins du cadre (0 = masqués) */
+  opacity: var(--brackets-o, 0.7);
 }
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
@@ -208,11 +204,11 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  /* Design panel: Mise en page > Espacement vertical (min = mobile, max = desktop) + Marges latérales */
+
   padding: clamp(var(--sect-y-m, 28px), 6vw, var(--sect-y, 56px)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)) 18px;
 }
 .section-head h2 {
-  font-size: calc(24px * clamp(0.5, var(--title-scale, 1), 1.6)); /* Design panel: Typographie > Taille des titres */
+  font-size: calc(24px * clamp(0.5, var(--title-scale, 1), 1.6));
 }
 
 /* On narrow screens the row above has no room to keep heading and category list side
@@ -257,8 +253,8 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
 
 .work-grid {
   display: grid;
-  grid-template-columns: repeat(var(--wg-cols, 4), 1fr); /* Design panel: Grille > Colonnes */
-  gap: var(--wg-gap, var(--grid-gap));                   /* Design panel: Grille > Espacement */
+  grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
+  gap: var(--wg-gap, var(--grid-gap));
   background: var(--line); /* shows through the gap as thin dividers between cards */
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -267,12 +263,12 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
 .work-card {
   position: relative;
   background: var(--bg);
-  aspect-ratio: var(--card-ratio, 16 / 9); /* Design panel: Grille > Ratio des vignettes */
+  aspect-ratio: var(--card-ratio, 16 / 9);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-end; /* pins the caption to the bottom of the card */
-  padding: var(--card-pad, 14px); /* Design panel: Grille > Padding des vignettes */
+  padding: var(--card-pad, 14px);
 }
 
 .work-card .thumb {
@@ -281,9 +277,9 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
   background: var(--bg-raised);
   background-size: cover;
   background-position: center;
-  transition: transform var(--zoom-dur, 0.5s) ease; /* Design panel: Grille > Durée du zoom */
+  transition: transform var(--zoom-dur, 0.5s) ease;
 }
-.work-card:hover .thumb { transform: scale(var(--zoom, 1.04)); } /* Design panel: Grille > Amplitude du zoom */
+.work-card:hover .thumb { transform: scale(var(--zoom, 1.04)); }
 
 /* Dark gradient scrim, hidden by default so the image reads clean (Shotdeck-style),
    fades in on hover to make room for the caption text underneath it. */
@@ -294,7 +290,7 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
   opacity: 0;
   transition: opacity 0.25s ease;
 }
-.work-card:hover::after { opacity: var(--scrim, 1); } /* Design panel: Grille > Intensité du dégradé */
+.work-card:hover::after { opacity: var(--scrim, 1); }
 
 .work-card-meta {
   position: relative;
@@ -333,7 +329,7 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
 
 .work-card .title {
   font-family: var(--display);
-  font-size: var(--card-title, 14px); /* Design panel: Typographie > Taille des titres de vignette */
+  font-size: var(--card-title, 14px);
   font-weight: 600;
   color: var(--fg);
   margin-bottom: 2px;
@@ -354,7 +350,7 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
 }
 
 .contact-photo {
-  flex: 0 0 clamp(200px, 34vw, var(--photo-w, 440px)); /* Design panel: Contact > Largeur de la photo */
+  flex: 0 0 clamp(200px, 34vw, var(--photo-w, 440px));
   width: clamp(200px, 34vw, var(--photo-w, 440px));
   aspect-ratio: 4 / 5;
   object-fit: cover;
@@ -388,7 +384,7 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
 .contact-bio {
   font-size: 14px;
   color: var(--fg-dim);
-  max-width: var(--bio-w, 52ch); /* Design panel: Mise en page > Largeur de la bio */
+  max-width: var(--bio-w, 52ch);
   line-height: var(--leading, 1.6);
   margin-bottom: 40px;
 }
@@ -439,8 +435,8 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
    data/projects.json, so this same CSS applies no matter which project is loaded). */
 .project-gallery {
   display: grid;
-  grid-template-columns: repeat(var(--gal-cols, 3), 1fr); /* Design panel: Galerie > Colonnes */
-  gap: var(--gal-gap, var(--grid-gap));                   /* Design panel: Galerie > Espacement */
+  grid-template-columns: repeat(var(--gal-cols, 3), 1fr);
+  gap: var(--gal-gap, var(--grid-gap));
   background: var(--line);
   border-bottom: 1px solid var(--line);
 }
@@ -563,12 +559,13 @@ html.nav-hidden .site-nav { transform: translateY(-100%); }
 .lightbox-prev { left: clamp(10px, 3vw, 28px); }
 .lightbox-next { right: clamp(10px, 3vw, 28px); }
 
-/* ---------- Design panel (admin) ----------
-   The variables consumed above (--wg-cols, --card-ratio, --photo-w, --body-size, ...)
-   are supplied at runtime by design.js from data/design.json, edited visually in the
-   admin's "Design du site" panel. Fallbacks in each var() equal the shipped design, so
-   the site looks identical if design.json is absent or design.js fails. Desktop/mobile
-   variants use the -m suffix; the breakpoints live here, the values live in design.json. */
+/* ---------- Jetons de mise en page paramétrables ----------
+   Le CSS ci-dessus consomme des variables (--wg-cols, --card-ratio, --photo-w, --body-size,
+   etc.) plutôt que des valeurs en dur, chacune avec un repli identique au design d'origine
+   (ex. var(--wg-cols, 4)). Rien ne définit ces variables actuellement : l'admin avait un
+   panneau pour les éditer visuellement en direct, retiré parce que trop chargé pour l'usage
+   réel — ne restait que l'aperçu Desktop/Mobile. Le repli fait donc toujours foi. Si un
+   éditeur visuel léger redevient utile, l'indirection est déjà en place pour l'accueillir. */
 @media (max-width: 700px) {
   body { font-size: var(--body-size-m, var(--body-size, 15px)); }
 }
