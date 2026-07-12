@@ -250,6 +250,27 @@
         "the-bones-1783205853325-34.jpg",
         "the-bones-1783205854316-35.jpg"
       ]
+    },
+    {
+      "id": "zero-sucre",
+      "title": "Zéro Sucre",
+      "type": "AD",
+      "client": "Pepsi",
+      "artist": "",
+      "director": "Emanuel Hoss-Desmarais",
+      "dp": "Gabriel Brault Tardif",
+      "thumbnail": "zero-sucre-cover.jpg",
+      "gallery": [
+        "zero-sucre-1783892344311-0.jpg",
+        "zero-sucre-1783892347820-1.jpg",
+        "zero-sucre-1783892350902-2.jpg",
+        "zero-sucre-1783892354475-3.jpg",
+        "zero-sucre-1783892362498-4.jpg",
+        "zero-sucre-1783892366942-5.jpg",
+        "zero-sucre-1783892374681-6.jpg",
+        "zero-sucre-1783892377182-7.jpg",
+        "zero-sucre-1783892384921-8.jpg"
+      ]
     }
   ]
 }
