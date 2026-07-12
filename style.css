@@ -250,6 +250,22 @@ h1, h2, h3 {
   color: var(--accent);
   background: rgba(138, 154, 91, 0.12);
 }
+/* On phones, 5 chips don't fit one line even shrunk, so scroll horizontally instead of
+   wrapping to a second row (scrollbar hidden, swipe still works). Must come after the
+   base .category-filter rule above to win the cascade — a media query alone doesn't
+   out-rank a later same-specificity rule. flex-shrink:0 keeps buttons from squishing. */
+@media (max-width: 700px) {
+  .category-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)));
+    padding: 0 clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)) 4px;
+  }
+  .category-filter::-webkit-scrollbar { display: none; }
+  .category-filter button { flex-shrink: 0; }
+}
 
 .work-grid {
   display: grid;
