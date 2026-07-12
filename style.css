@@ -337,17 +337,17 @@ h1, h2, h3 {
 
 .work-card .artist {
   font-family: var(--display);
-  font-size: calc(var(--card-title, 14px) - 1px);
-  font-weight: 600;
+  font-size: var(--card-title, 14px);
+  font-weight: 700;
   color: var(--fg);
-  margin-bottom: 1px;
+  margin-bottom: 2px;
 }
 
 .work-card .title {
   font-family: var(--display);
-  font-size: var(--card-title, 14px);
-  font-weight: 600;
-  color: var(--fg);
+  font-size: calc(var(--card-title, 14px) - 2px);
+  font-weight: 500;
+  color: var(--fg-dim);
   margin-bottom: 2px;
 }
 
