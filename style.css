@@ -380,6 +380,8 @@ h1, h2, h3 {
   object-fit: cover;
   border: 1px solid var(--line);
   background: var(--bg-raised); /* shows while the image loads */
+  border-radius: 18px; /* deliberate exception to the zero-radius rule — Apple-shift preview feedback, Aug 2026 */
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.55); /* single product-style shadow, reserved for this photo only */
 }
 
 .contact-right {
