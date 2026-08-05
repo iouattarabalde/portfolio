@@ -9,7 +9,7 @@
   --fg-faint: #55554F;        /* footer-level, lowest-emphasis text */
   --accent: #8A9A5B;          /* olive accent, used for links/highlights/active states */
   --line: #232320;            /* hairline borders and grid gaps */
-  --grid-gap: 1px;            /* shared gap for the work grid and project gallery */
+  --grid-gap: 4px;            /* shared gap for the work grid and project gallery — small visible gap, ShotDeck-inspired, Aug 2026 */
   --display: "Space Grotesk", sans-serif;  /* headings, titles, card captions */
   --mono: "IBM Plex Mono", monospace;      /* body copy, labels, nav — technical/utility feel */
 }
@@ -117,6 +117,7 @@ h1, h2, h3 {
   letter-spacing: 0.08em;
   background: transparent;
   border: 1px solid var(--line);
+  border-radius: 8px; /* small radius, ShotDeck-inspired, Aug 2026 */
   color: var(--fg-dim);
   padding: 6px 10px;
   cursor: pointer;
@@ -239,6 +240,7 @@ h1, h2, h3 {
 .category-filter button {
   background: transparent;
   border: 1px solid var(--line);
+  border-radius: 8px; /* small radius, ShotDeck-inspired, Aug 2026 */
   padding: 7px 14px;
   color: var(--fg-dim);
   cursor: pointer;
