@@ -202,6 +202,10 @@
     function onFullscreenExit() {
       reelVideo.play();
       syncSoundIcon();
+      // iOS Safari auto-pauses the video internally a moment after webkitendfullscreen
+      // fires, which overrides the play() call above. Check back shortly after and
+      // resume once if that happened.
+      setTimeout(() => { if (reelVideo.paused) reelVideo.play(); }, 100);
     }
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) onFullscreenExit();
