@@ -16,7 +16,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; background: var(--bg); } /* prevents white/gray flash on iOS Safari overscroll bounce */
 
 body {
   margin: 0;
