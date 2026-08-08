@@ -9,7 +9,7 @@
   --fg-faint: #55554F;        /* footer-level, lowest-emphasis text */
   --accent: #8A9A5B;          /* olive accent, used for links/highlights/active states */
   --line: #232320;            /* hairline borders and grid gaps */
-  --grid-gap: 4px;            /* shared gap for the work grid and project gallery — small visible gap, ShotDeck-inspired, Aug 2026 */
+  --grid-gap: 6px;            /* shared gap for the work grid and project gallery — small visible gap, ShotDeck-inspired, Aug 2026 */
   --display: "Space Grotesk", sans-serif;  /* headings, titles, card captions */
   --mono: "IBM Plex Mono", monospace;      /* body copy, labels, nav — technical/utility feel */
 }
@@ -273,9 +273,9 @@ h1, h2, h3 {
   display: grid;
   grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
   gap: var(--wg-gap, var(--grid-gap));
-  background: var(--line); /* shows through the gap as thin dividers between cards */
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  background: var(--bg); /* seamless black gap between cards, ShotDeck-inspired, Aug 2026 */
+  border-top: 1px solid var(--bg);
+  border-bottom: 1px solid var(--bg);
 }
 
 .work-card {
@@ -465,8 +465,8 @@ h1, h2, h3 {
   display: grid;
   grid-template-columns: repeat(var(--gal-cols, 3), 1fr);
   gap: var(--gal-gap, var(--grid-gap));
-  background: var(--line);
-  border-bottom: 1px solid var(--line);
+  background: var(--bg); /* seamless black gap, ShotDeck-inspired, Aug 2026 */
+  border-bottom: 1px solid var(--bg);
 }
 
 .gallery-item {
