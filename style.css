@@ -175,23 +175,6 @@ h1, h2, h3 {
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
-/* Remaining two corners (top-right, bottom-left) — .reel-frame's own ::before/::after are
-   already used above, so these reuse .reel-embed's pseudo-elements, which sit in the exact
-   same box. z-index keeps them above the video, which paints after ::before by default. */
-.reel-embed::before,
-.reel-embed::after {
-  content: "";
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--accent);
-  opacity: var(--brackets-o, 0.35);
-  z-index: 2;
-  pointer-events: none;
-}
-.reel-embed::before { top: -1px; right: -1px; border-left: none; border-bottom: none; }
-.reel-embed::after { bottom: -1px; left: -1px; border-right: none; border-top: none; }
-
 /* padding-top:56.25% is the classic 16:9 aspect-ratio box hack: it reserves the right height
    based on the element's own width, so the absolutely-positioned video/iframe inside it
    (next rule) always fills a proper 16:9 frame regardless of viewport size. */
@@ -202,11 +185,11 @@ h1, h2, h3 {
   object-fit: cover;
 }
 
-/* Buttons floated over the right edge of the reel: sound top-right, fullscreen bottom-right */
+/* Buttons floated over the reel: sound top-left (paired with the top-left bracket),
+   fullscreen bottom-right (paired with the bottom-right bracket) */
 #fullscreen-toggle,
 #sound-toggle {
   position: absolute;
-  right: 14px;
   z-index: 2;
   width: 36px;
   height: 36px;
@@ -219,8 +202,8 @@ h1, h2, h3 {
   cursor: pointer;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-#sound-toggle { top: 14px; }
-#fullscreen-toggle { bottom: 14px; }
+#sound-toggle { top: 14px; left: 14px; }
+#fullscreen-toggle { bottom: 14px; right: 14px; }
 #fullscreen-toggle:hover,
 #sound-toggle:hover {
   border-color: var(--accent);
