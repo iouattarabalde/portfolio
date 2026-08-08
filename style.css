@@ -16,7 +16,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; background: var(--bg); } /* prevents white/gray flash on iOS Safari overscroll bounce */
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
@@ -274,8 +274,6 @@ h1, h2, h3 {
   grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
   gap: var(--wg-gap, var(--grid-gap));
   background: var(--bg); /* seamless black gap between cards, ShotDeck-inspired, Aug 2026 */
-  border-top: 1px solid var(--bg);
-  border-bottom: 1px solid var(--bg);
 }
 
 .work-card {
