@@ -175,6 +175,23 @@ h1, h2, h3 {
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
+/* Remaining two corners (top-right, bottom-left) — .reel-frame's own ::before/::after are
+   already used above, so these reuse .reel-embed's pseudo-elements, which sit in the exact
+   same box. z-index keeps them above the video, which paints after ::before by default. */
+.reel-embed::before,
+.reel-embed::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--accent);
+  opacity: var(--brackets-o, 0.35);
+  z-index: 2;
+  pointer-events: none;
+}
+.reel-embed::before { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.reel-embed::after { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+
 /* padding-top:56.25% is the classic 16:9 aspect-ratio box hack: it reserves the right height
    based on the element's own width, so the absolutely-positioned video/iframe inside it
    (next rule) always fills a proper 16:9 frame regardless of viewport size. */
