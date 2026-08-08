@@ -437,7 +437,7 @@ h1, h2, h3 {
    original three-item layout but now paired with the heading/bio above it. */
 .contact-info {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 24px;
   font-size: 13px;
 }
