@@ -200,21 +200,32 @@
     // paused it in there. Two exit events for the two fullscreen mechanisms:
     // fullscreenchange (standard) and webkitendfullscreen (iPhone native player).
     function onFullscreenExit() {
-      reelVideo.play();
       syncSoundIcon();
-      // iOS Safari can auto-pause the video internally more than once during the exit
-      // transition, overriding the play() call above (and any single delayed retry).
-      // Actively resume on every 'pause' event for a short window until it settles.
-      const guardUntil = Date.now() + 1500;
-      function resumeGuard() {
-        if (Date.now() < guardUntil) {
-          reelVideo.play();
-        } else {
-          reelVideo.removeEventListener('pause', resumeGuard);
-        }
+      // Some browsers pause the video internally, once or more, during the fullscreen-exit
+      // transition (this varies by browser and isn't limited to iOS Safari). Keep resuming
+      // for a short window using both a 'pause' listener and a poll — relying on the event
+      // alone isn't reliable across engines. tryPlay() swallows the benign "play() request
+      // was interrupted by pause()" rejection some browsers throw when play/pause race.
+      function tryPlay() {
+        const p = reelVideo.play();
+        if (p && p.catch) p.catch(() => {});
       }
+      const guardUntil = Date.now() + 1500;
+      function cleanup() {
+        reelVideo.removeEventListener('pause', resumeGuard);
+        clearInterval(pollId);
+      }
+      function resumeGuard() {
+        if (Date.now() < guardUntil) tryPlay();
+        else cleanup();
+      }
+      const pollId = setInterval(() => {
+        if (Date.now() >= guardUntil) { cleanup(); return; }
+        if (reelVideo.paused) tryPlay();
+      }, 150);
       reelVideo.addEventListener('pause', resumeGuard);
-      setTimeout(() => reelVideo.removeEventListener('pause', resumeGuard), 1500);
+      tryPlay();
+      setTimeout(cleanup, 1500);
     }
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) onFullscreenExit();
