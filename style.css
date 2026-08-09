@@ -146,12 +146,12 @@ h1, h2, h3 {
   opacity: 0.18;
   mix-blend-mode: overlay;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2; /* must sit ABOVE .reel-frame's halo to blend with it — was 0 (underneath), which made the grain invisible against black and then fully covered by the halo painted on top */
 }
 
 .reel-frame {
   position: relative;
-  z-index: 1; /* keeps the frame above the grain layer */
+  z-index: 1; /* below the grain layer (z-index:2) so grain blends with the halo, above everything else */
   width: 100%;
   max-width: 1400px;
   border: 1px solid var(--line);
