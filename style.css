@@ -474,6 +474,15 @@ h1, h2, h3 {
   .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, 10px); } /* near-square by default at this density */
 }
 
+/* Phones in landscape still match max-width:1000px above, but there's enough horizontal
+   room to keep the desktop 4-column layout rather than dropping to the 2-column portrait
+   density. orientation:landscape wins here since it's the more specific/later rule. */
+@media (max-width: 1000px) and (orientation: landscape) {
+  .work-grid {
+    grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
+  }
+}
+
 /* ---------- Project template ---------- */
 /* Shared by every project page (project.html renders one project's gallery + info from
    data/projects.json, so this same CSS applies no matter which project is loaded). */
