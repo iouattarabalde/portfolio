@@ -325,6 +325,7 @@
     <h3 style="font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:28px 0 14px;">Types de projet</h3>
     <p class="field-hint" style="margin-bottom:14px;">Acronyme + libellé, dans chaque langue. L'acronyme est ce qui s'affiche sur les vignettes.</p>
     <div id="types-editor"></div>
+    <button type="button" class="btn" id="add-type-btn" style="margin-top:4px;">+ Ajouter un type</button>
 
     <h3 style="font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:0.08em; margin:28px 0 14px;">Textes généraux</h3>
     <p class="field-hint" style="margin-bottom:14px;">Tous les libellés du site (navigation, titres, textes de la page projet), en français et en anglais.</p>
@@ -371,12 +372,10 @@
     </div>
     <div class="field">
       <label>Type</label>
-      <select id="f-type">
-        <option value="AD">AD — Publicité</option>
-        <option value="MV">MV — Vidéoclip</option>
-        <option value="FILM">FILM</option>
-        <option value="TV">TV — Série</option>
-      </select>
+      <!-- Options filled in by renderTypeSelectOptions(), from the same type list edited
+           under "Textes du site → Types de projet" — never hardcoded here, so a newly
+           added type shows up automatically and a renamed label never goes stale. -->
+      <select id="f-type"></select>
     </div>
     <div class="field" id="f-client-wrap" style="display:none;">
       <label>Client</label>
@@ -639,12 +638,42 @@ function typeInputId(code, field) {
   return 'type-' + code + '-' + field;
 }
 
-// One block per project type code (AD, MV, FILM, TV): acronym + label, each in
-// both languages. The code itself (left column) isn't editable — it's the id used in
-// data/projects.json, changing it would break existing projects.
+/* Types de projet: was a fixed list of 4 codes (AD/MV/FILM/TV) baked into DEFAULT_TYPES
+   and re-derived from it on every save — meant a 5th type (e.g. YT for YouTube) could
+   never actually be added. Now backed by two variables that are the real source of
+   truth once the page has loaded:
+     - typesDraft: { code: {frAcronym, enAcronym, frLabel, enLabel} } for every type,
+       kept in sync with whatever's currently typed in the form (see syncTypesDraftFromForm)
+     - currentTypeCodes: the ordered list of codes currently in play, grows/shrinks via
+       the Add/Retirer buttons
+   DEFAULT_TYPES (i18n.js) still seeds the initial 4 on first load / as a fallback if
+   data/strings.json has no types yet, but no longer caps what can exist afterward. */
+let typesDraft = {};
+let currentTypeCodes = [];
+
+// Reads whatever's currently in the type input fields back into typesDraft, so an
+// in-progress edit isn't lost when adding/removing a type triggers a re-render.
+function syncTypesDraftFromForm() {
+  currentTypeCodes.forEach((code) => {
+    const frAcronymEl = document.getElementById(typeInputId(code, 'frAcronym'));
+    if (!frAcronymEl) return; // guards the brand-new-code case, nothing rendered yet
+    typesDraft[code] = {
+      frAcronym: frAcronymEl.value,
+      enAcronym: document.getElementById(typeInputId(code, 'enAcronym')).value,
+      frLabel: document.getElementById(typeInputId(code, 'frLabel')).value,
+      enLabel: document.getElementById(typeInputId(code, 'enLabel')).value
+    };
+  });
+}
+
+// One block per type in currentTypeCodes: acronym + label, each in both languages,
+// plus a "Retirer" button (not shown as a 3rd type-row grid cell, its own row instead,
+// simpler than fighting the 3-column grid for a single full-width control). The code
+// itself (left column on the first row) isn't editable — it's the id used in
+// data/projects.json, changing it would silently orphan any project still using it.
 function renderTypesEditor(types) {
-  document.getElementById('types-editor').innerHTML = Object.keys(types).map((code) => {
-    const t = types[code];
+  document.getElementById('types-editor').innerHTML = currentTypeCodes.map((code) => {
+    const t = types[code] || { frAcronym: '', enAcronym: '', frLabel: '', enLabel: '' };
     return `
       <div class="type-row">
         <span class="type-code">${code}</span>
@@ -656,21 +685,65 @@ function renderTypesEditor(types) {
         <input type="text" id="${typeInputId(code, 'frLabel')}" value="${escapeAttr(t.frLabel)}" placeholder="Libellé FR">
         <input type="text" id="${typeInputId(code, 'enLabel')}" value="${escapeAttr(t.enLabel)}" placeholder="Label EN">
       </div>
+      <div style="display:flex; justify-content:flex-end; margin:-2px 0 20px;">
+        <button type="button" class="btn btn-danger" data-remove-type="${code}" style="font-size:10px; padding:6px 10px;">Retirer « ${code} »</button>
+      </div>
     `;
   }).join('');
+
+  document.getElementById('types-editor').querySelectorAll('[data-remove-type]').forEach((btn) => {
+    btn.addEventListener('click', () => removeType(btn.dataset.removeType));
+  });
+
+  renderTypeSelectOptions(types);
+}
+
+// "+ Ajouter un type" — asks for a short code (e.g. "YT"), seeds it with placeholder
+// text in all 4 fields (defaults to the code itself, edited right below), and adds it
+// to both the types editor and the project editor's Type dropdown immediately.
+document.getElementById('add-type-btn').addEventListener('click', () => {
+  syncTypesDraftFromForm();
+  const raw = prompt('Code du nouveau type (court, ex. YT pour YouTube) :');
+  if (!raw) return;
+  const code = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!code) { alert('Code invalide : utilise seulement des lettres et des chiffres.'); return; }
+  if (currentTypeCodes.includes(code)) { alert(`Le type "${code}" existe déjà.`); return; }
+  currentTypeCodes.push(code);
+  typesDraft[code] = { frAcronym: code, enAcronym: code, frLabel: code, enLabel: code };
+  renderTypesEditor(typesDraft);
+});
+
+// Retirer un type : bloqué si un projet l'utilise encore (même règle que documentée
+// dans le README — réassigner les projets existants avant de retirer un type), pour
+// ne jamais laisser un projet avec un type qui n'existe plus.
+function removeType(code) {
+  const inUse = projectsData.projects.some((p) => p.type === code);
+  if (inUse) {
+    alert(`Impossible de retirer "${code}" : au moins un projet l'utilise encore. Réassigne-le d'abord à un autre type (dans Projets → Modifier).`);
+    return;
+  }
+  if (!confirm(`Retirer le type "${code}" ? Cette action ne prend effet qu'après avoir cliqué "Enregistrer les textes du site".`)) return;
+  syncTypesDraftFromForm();
+  currentTypeCodes = currentTypeCodes.filter((c) => c !== code);
+  delete typesDraft[code];
+  renderTypesEditor(typesDraft);
+}
+
+// Rebuilds the project editor's Type <select> from the same live type list — never a
+// separate hardcoded list, so it can't drift out of sync the way it used to.
+function renderTypeSelectOptions(types) {
+  const select = document.getElementById('f-type');
+  const current = select.value; // preserve selection if the editor happens to be open
+  select.innerHTML = currentTypeCodes.map((code) => {
+    const t = types[code] || {};
+    return `<option value="${code}">${code} — ${escapeAttr(t.frLabel || code)}</option>`;
+  }).join('');
+  if (currentTypeCodes.includes(current)) select.value = current;
 }
 
 function collectTypesFromForm() {
-  const result = {};
-  Object.keys(DEFAULT_TYPES).forEach((code) => {
-    result[code] = {
-      frAcronym: document.getElementById(typeInputId(code, 'frAcronym')).value,
-      enAcronym: document.getElementById(typeInputId(code, 'enAcronym')).value,
-      frLabel: document.getElementById(typeInputId(code, 'frLabel')).value,
-      enLabel: document.getElementById(typeInputId(code, 'enLabel')).value
-    };
-  });
-  return result;
+  syncTypesDraftFromForm();
+  return typesDraft;
 }
 
 // Loads data/strings.json (falling back to i18n.js's defaults for anything missing)
@@ -679,7 +752,9 @@ async function loadStringsIntoForm() {
   const file = await ghGetFile('data/strings.json');
   const data = file ? JSON.parse(decodeURIComponent(escape(atob(file.content)))) : {};
   renderStringsEditor(Object.assign({}, DEFAULT_STRINGS, data.strings || {}));
-  renderTypesEditor(Object.assign({}, DEFAULT_TYPES, data.types || {}));
+  typesDraft = Object.assign({}, DEFAULT_TYPES, data.types || {});
+  currentTypeCodes = Object.keys(typesDraft);
+  renderTypesEditor(typesDraft);
 }
 
 document.getElementById('save-settings-btn').addEventListener('click', async () => {
