@@ -224,6 +224,32 @@
     .toast { max-width: none; }
   }
 
+  /* ---------- Spinners ---------- */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  /* Buttons in a loading state: original label hidden (kept in the DOM via data-label
+     so it can be restored), replaced by a spinner + optional short status word. Applies
+     to any .btn — see setBtnLoading() in the script. */
+  .btn.loading { display: inline-flex; align-items: center; gap: 8px; cursor: default; opacity: 0.75; }
+
+  /* Full-page loader shown only when a remembered token is auto-reconnecting on page
+     load, so the token-entry gate never flashes on screen for a returning visit. */
+  #boot-loader {
+    display: none;
+    position: fixed; inset: 0; z-index: 300;
+    background: var(--bg);
+    align-items: center; justify-content: center;
+  }
+  #boot-loader.show { display: flex; }
+  #boot-loader .spinner { width: 22px; height: 22px; border-width: 2.5px; color: var(--accent); }
+
   input[type="file"] {
     font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
   }
@@ -293,6 +319,8 @@
 <body>
 
 <div id="toast-container" aria-live="polite"></div>
+
+<div id="boot-loader"><span class="spinner"></span></div>
 
 <!-- Shown first; swapped for #dashboard once tryConnect() confirms the token works -->
 <div id="gate">
@@ -502,6 +530,24 @@ function dismissToast(el) {
   if (!el.isConnected) return;
   el.classList.remove('show');
   setTimeout(() => el.remove(), 250); // matches the CSS transition duration
+}
+
+// Toggles a button between its normal label and a spinner, so clicking something that
+// hits the network gives instant feedback instead of appearing to do nothing until the
+// request finishes. Original label is stashed on the element (data-label) the first
+// time it's used, so restoring it later never needs the caller to remember the text.
+function setBtnLoading(btn, loading, loadingText) {
+  if (!btn) return;
+  if (loading) {
+    if (btn.dataset.label === undefined) btn.dataset.label = btn.textContent;
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.innerHTML = '<span class="spinner"></span>' + (loadingText ? `<span>${loadingText}</span>` : '');
+  } else {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.label !== undefined ? btn.dataset.label : btn.textContent;
+  }
 }
 
 const OWNER = 'iouattarabalde';
@@ -821,6 +867,8 @@ async function loadStringsIntoForm() {
 
 document.getElementById('save-settings-btn').addEventListener('click', async () => {
   const statusEl = document.getElementById('settings-status');
+  const btn = document.getElementById('save-settings-btn');
+  setBtnLoading(btn, true);
   statusEl.textContent = 'Enregistrement…';
   statusEl.className = 'save-status';
   try {
@@ -859,6 +907,8 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
     showToast('Erreur : ' + e.message, 'error');
+  } finally {
+    setBtnLoading(btn, false);
   }
 });
 
@@ -927,22 +977,34 @@ function uniqueSlug(base) {
 
 const gate = document.getElementById('gate');
 const dashboard = document.getElementById('dashboard');
+const bootLoader = document.getElementById('boot-loader');
 
-async function tryConnect(t) {
+// isBoot = true for the silent auto-reconnect on page load (spinner takes over the
+// whole screen, gate never shows at all) vs. false for a manual paste-and-click
+// (spinner lives on the Connexion button itself instead).
+async function tryConnect(t, { isBoot = false } = {}) {
   const errorEl = document.getElementById('gate-error');
+  const connectBtn = document.getElementById('connect-btn');
   errorEl.textContent = '';
   token = t;
+  if (isBoot) bootLoader.classList.add('show');
+  else setBtnLoading(connectBtn, true, 'Connexion…');
   try {
     await fetchProjects();
     localStorage.setItem(TOKEN_KEY, token); // remembered so this only has to be pasted once per browser
     gate.style.display = 'none';
+    bootLoader.classList.remove('show');
     dashboard.style.display = '';
     renderDashboard();
     loadSettingsIntoForm().catch((e) => console.error('Impossible de charger les coordonnées:', e));
     loadStringsIntoForm().catch((e) => console.error('Impossible de charger les textes du site:', e));
   } catch (e) {
+    bootLoader.classList.remove('show');
+    gate.style.display = '';
     errorEl.textContent = 'Connexion refusée. Vérifie le token (accès repo requis).';
     token = '';
+  } finally {
+    if (!isBoot) setBtnLoading(connectBtn, false);
   }
 }
 
@@ -957,9 +1019,13 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   location.reload();
 });
 
-// Auto-connect on page load if a token is already remembered from a previous visit
+// Auto-connect on page load if a token is already remembered from a previous visit.
+// Gate is hidden immediately (synchronously, before any network call starts) so a
+// returning visitor sees the boot spinner only — never a flash of the token field
+// they don't need to touch.
 if (token) {
-  tryConnect(token);
+  gate.style.display = 'none';
+  tryConnect(token, { isBoot: true });
 }
 
 /* ---------- Dashboard ---------- */
@@ -1080,6 +1146,8 @@ function getDragAfterElement(container, y) {
    not images or the hero video — those aren't tracked by this button. */
 document.getElementById('undo-btn').addEventListener('click', async () => {
   const statusEl = document.getElementById('dashboard-status');
+  const btn = document.getElementById('undo-btn');
+  setBtnLoading(btn, true);
   statusEl.textContent = 'Recherche du dernier changement…';
   statusEl.className = 'save-status';
   try {
@@ -1120,6 +1188,8 @@ document.getElementById('undo-btn').addEventListener('click', async () => {
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
     showToast('Erreur : ' + e.message, 'error');
+  } finally {
+    setBtnLoading(btn, false);
   }
 });
 
@@ -1293,7 +1363,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
   if (!editorGallery.length) { statusEl.textContent = 'Ajoute au moins une image à la galerie.'; statusEl.className = 'save-status error'; return; }
 
   const saveBtn = document.getElementById('save-project-btn');
-  saveBtn.disabled = true;
+  setBtnLoading(saveBtn, true);
   // Editing keeps the project's existing id/slug (so its URL and existing filenames stay
   // valid); a brand new project gets a fresh, collision-checked slug from its title.
   const slug = editingIndex !== null ? projectsData.projects[editingIndex].id : uniqueSlug(slugify(title));
@@ -1358,7 +1428,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
     statusEl.className = 'save-status error';
     showToast('Erreur : ' + e.message, 'error');
   } finally {
-    saveBtn.disabled = false;
+    setBtnLoading(saveBtn, false);
   }
 });
 
@@ -1368,6 +1438,8 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   if (editingIndex === null) return;
   if (!confirm('Supprimer ce projet ? Les images restent dans le repo mais le projet disparaît du site.')) return;
   const statusEl = document.getElementById('save-status');
+  const delBtn = document.getElementById('delete-project-btn');
+  setBtnLoading(delBtn, true);
   try {
     projectsData.projects.splice(editingIndex, 1);
     statusEl.textContent = 'Suppression…';
@@ -1378,6 +1450,8 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
     showToast('Erreur : ' + e.message, 'error');
+  } finally {
+    setBtnLoading(delBtn, false);
   }
 });
 
