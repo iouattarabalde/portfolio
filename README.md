@@ -4,6 +4,57 @@ Portfolio d'Ismael OB, coloriste basé à Montréal. Site statique, hébergé su
 sans build step ni dépendances npm — tout ce qui n'est pas HTML/CSS/JS maison (les polices)
 est chargé depuis un CDN au moment de l'exécution.
 
+## Tâches courantes — par où commencer
+
+99 % du travail quotidien se fait dans `ismaelob.com/admin/`, pas dans le code. Ce tableau
+dit où aller pour chaque tâche ; le reste du README explique le "pourquoi" en détail pour
+les cas qui sortent de l'admin.
+
+| Je veux… | Où | Note |
+|---|---|---|
+| Ajouter un nouveau projet | Admin → Projets → **+ Nouveau projet** | Nombre de stills = multiple de 3 |
+| Modifier titre / type / réalisation / DP d'un projet | Admin → Projets → cliquer le projet | |
+| Réordonner les projets sur la page d'accueil | Admin → Projets, glisser-déposer | Sauvegarde automatique |
+| Réordonner ou retirer des images dans un projet | Admin → ouvrir le projet, glisser-déposer | Retirer une image ne supprime pas le fichier, voir "fichiers orphelins" plus bas |
+| Annuler ma dernière modif de projet | Admin → Projets → bouton **Annuler** | Ne touche pas aux images uploadées |
+| Changer courriel / localisation / dispo / Instagram / bio / photo de contact | Admin → Coordonnées | |
+| Changer un texte du site (nav, titres, étiquettes) | Admin → Textes du site | |
+| Ajouter ou retirer un type de projet (AD, MV, etc.) | Admin → Textes du site → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
+| Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | Aperçu seulement, pas d'édition |
+| Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
+| Remplacer le reel principal (vidéo hero) | **Pas dans l'admin** | Envoyer le fichier vidéo à Claude par le chat — nécessite un vrai réencodage |
+| Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
+| Changer couleurs / polices / mise en page | Verrouillé, pas d'éditeur admin actuellement | Demander à Claude |
+| Ajouter un tout nouveau texte bilingue à un endroit du site qui n'en a pas encore | Touche 3 fichiers différents | Demander à Claude |
+
+### Modifier un fichier directement sur GitHub, sans coder
+
+Pour les rares cas ci-dessus marqués "pas dans l'admin" mais qui sont un simple remplacement
+de fichier (comme `og-image.jpg` ou le favicon) :
+
+1. Aller sur `github.com/iouattarabalde/portfolio`, ouvrir le dossier concerné (ex. `assets/`)
+2. Cliquer le fichier à remplacer, puis l'icône crayon (éditer) ou "Upload files" en haut du dossier pour en glisser un nouveau avec **exactement le même nom**
+3. En bas de page, laisser le message de commit par défaut (ou une courte description) et cliquer **Commit changes**
+4. Le site se met à jour tout seul en 1-2 minutes, comme après une sauvegarde admin
+
+Ça fonctionne pour n'importe quel fichier remplacé à l'identique (même nom, même dossier).
+Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à Claude.
+
+### Petit lexique
+
+- **Commit** : un point de sauvegarde dans l'historique du repo. Chaque sauvegarde admin,
+  ou chaque modif via l'éditeur GitHub, en crée un.
+- **Repo** (dépôt) : le dossier de projet complet sur GitHub, avec tout son historique.
+- **Déploiement** : le moment où GitHub Pages republie le site à partir du dernier commit.
+  Automatique, prend en général moins d'une minute, parfois deux.
+- **Cache-buster** (`?v=48`) : le `?v=N` à la fin des liens vers `style.css`. Force les
+  navigateurs à retélécharger la feuille de style plutôt que de garder une vieille version
+  en mémoire. Concerne seulement le code, jamais l'admin.
+- **JSON** : le format des fichiers `data/*.json`. C'est le contenu du site (projets, textes,
+  coordonnées) séparé du code qui l'affiche — l'admin lit et écrit ces fichiers pour vous.
+
+---
+
 ## Structure
 
 | Fichier / dossier | Rôle |
