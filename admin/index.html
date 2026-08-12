@@ -181,6 +181,49 @@
   .save-status.error { color: #d97757; }
   .save-status.success { color: var(--accent); }
 
+  /* ---------- Toasts ----------
+     Terminal success/error feedback (a save finished, an undo completed) now surfaces
+     here instead of as inline text — feels like confirmation from the app, not a status
+     line you have to notice. In-progress text ("Envoi de l'image 2/5…") stays inline
+     next to the button it belongs to, since that's positional feedback, not a one-off
+     event. See showToast() in the script. */
+  #toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 340px;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.4;
+    padding: 12px 14px;
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { border-left-color: #d97757; }
+  @media (max-width: 640px) {
+    #toast-container { left: 16px; right: 16px; bottom: 16px; }
+    .toast { max-width: none; }
+  }
+
   input[type="file"] {
     font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
   }
@@ -248,6 +291,8 @@
 </style>
 </head>
 <body>
+
+<div id="toast-container" aria-live="polite"></div>
 
 <!-- Shown first; swapped for #dashboard once tryConnect() confirms the token works -->
 <div id="gate">
@@ -440,6 +485,25 @@
 // goes through Claude in chat instead, which compresses it with real ffmpeg.
 // ---------------------------------------------------------------
 
+/* ---------- Toasts ----------
+   One function, used everywhere a save/delete/undo finishes. Auto-dismisses after
+   ~3.5s (5s for errors, since those are worth reading), or immediately on click. */
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'error' ? ' error' : '');
+  el.textContent = message;
+  el.addEventListener('click', () => dismissToast(el));
+  container.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show')); // next frame, so the transition actually plays
+  setTimeout(() => dismissToast(el), type === 'error' ? 5000 : 3500);
+}
+function dismissToast(el) {
+  if (!el.isConnected) return;
+  el.classList.remove('show');
+  setTimeout(() => el.remove(), 250); // matches the CSS transition duration
+}
+
 const OWNER = 'iouattarabalde';
 const REPO = 'portfolio';
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
@@ -509,14 +573,12 @@ async function fetchProjects() {
 
 // Writes the current in-memory projectsData back to data/projects.json. Called after
 // every change: adding/editing/deleting a project, and reordering the project list.
-async function saveProjectsJson(statusEl) {
+async function saveProjectsJson(statusEl, toastMessage = 'Enregistré. En ligne dans ~1 min.') {
   const content = b64EncodeUnicode(JSON.stringify(projectsData, null, 2));
   const result = await ghPutFile('data/projects.json', content, 'Admin : mise à jour projects.json');
   projectsSha = result.content.sha;
-  if (statusEl) {
-    statusEl.textContent = 'Enregistré. En ligne dans ~1 min.';
-    statusEl.className = 'save-status success';
-  }
+  if (statusEl) statusEl.textContent = '';
+  showToast(toastMessage);
 }
 
 /* ---------- Textes du site (data/settings.json + data/strings.json) ----------
@@ -792,9 +854,11 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
 
     statusEl.textContent = 'Enregistré. En ligne dans ~1 min.';
     statusEl.className = 'save-status success';
+    showToast('Coordonnées et textes du site enregistrés.');
   } catch (e) {
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
   }
 });
 
@@ -982,6 +1046,7 @@ function wireDragReorder(list) {
       } catch (e) {
         statusEl.textContent = 'Erreur : ' + e.message;
         statusEl.className = 'save-status error';
+        showToast('Erreur : ' + e.message, 'error');
       }
     });
     row.addEventListener('dragover', (e) => {
@@ -1026,8 +1091,8 @@ document.getElementById('undo-btn').addEventListener('click', async () => {
     if (!res.ok) throw new Error(`GET commits → ${res.status}`);
     const commits = await res.json();
     if (commits.length < 2) {
-      statusEl.textContent = 'Rien à annuler : un seul changement dans l\'historique.';
-      statusEl.className = 'save-status error';
+      statusEl.textContent = '';
+      showToast('Rien à annuler : un seul changement dans l\'historique.', 'error');
       return;
     }
 
@@ -1049,11 +1114,12 @@ document.getElementById('undo-btn').addEventListener('click', async () => {
 
     await fetchProjects(); // reload the now-reverted data into memory
     renderDashboard();
-    statusEl.textContent = 'Dernier changement annulé.';
-    statusEl.className = 'save-status success';
+    statusEl.textContent = '';
+    showToast('Dernier changement annulé.');
   } catch (e) {
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
   }
 });
 
@@ -1283,13 +1349,14 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
     }
 
     statusEl.textContent = 'Enregistrement de projects.json…';
-    await saveProjectsJson(statusEl);
+    await saveProjectsJson(statusEl, editingIndex !== null ? 'Projet mis à jour. En ligne dans ~1 min.' : 'Nouveau projet ajouté. En ligne dans ~1 min.');
 
     editorEl.classList.remove('open');
     renderDashboard();
   } catch (e) {
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
   } finally {
     saveBtn.disabled = false;
   }
@@ -1304,12 +1371,13 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   try {
     projectsData.projects.splice(editingIndex, 1);
     statusEl.textContent = 'Suppression…';
-    await saveProjectsJson(statusEl);
+    await saveProjectsJson(statusEl, 'Projet supprimé.');
     editorEl.classList.remove('open');
     renderDashboard();
   } catch (e) {
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
   }
 });
 
