@@ -64,6 +64,7 @@
     border-color: var(--accent);
   }
   .btn-primary:hover { opacity: 0.85; color: #0C0C0C; }
+  .btn-danger { border-color: rgba(181, 83, 63, 0.4); color: #c56a54; }
   .btn-danger:hover { border-color: #b5533f; color: #b5533f; }
   .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
 
@@ -250,6 +251,30 @@
   #boot-loader.show { display: flex; }
   #boot-loader .spinner { width: 22px; height: 22px; border-width: 2.5px; color: var(--accent); }
 
+  /* ---------- Confirm modal ----------
+     Replaces window.confirm() everywhere (delete project, undo, remove a type) with
+     something that matches the rest of the UI instead of the browser's grey system
+     dialog. See confirmDialog() in the script — it returns a Promise<boolean>, so
+     call sites just do `if (!(await confirmDialog(...))) return;`, same shape as the
+     old `if (!confirm(...)) return;`. */
+  #confirm-modal {
+    display: none;
+    position: fixed; inset: 0; z-index: 400;
+    background: rgba(12,12,12,0.75);
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #confirm-modal.open { display: flex; }
+  .confirm-panel {
+    max-width: 380px;
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    padding: 24px;
+  }
+  .confirm-panel p { font-size: 13.5px; line-height: 1.6; color: var(--fg); margin: 0 0 22px; }
+  .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
   input[type="file"] {
     font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
   }
@@ -321,6 +346,16 @@
 <div id="toast-container" aria-live="polite"></div>
 
 <div id="boot-loader"><span class="spinner"></span></div>
+
+<div id="confirm-modal">
+  <div class="confirm-panel">
+    <p id="confirm-message"></p>
+    <div class="confirm-actions">
+      <button class="btn" id="confirm-cancel-btn">Annuler</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">Confirmer</button>
+    </div>
+  </div>
+</div>
 
 <!-- Shown first; swapped for #dashboard once tryConnect() confirms the token works -->
 <div id="gate">
@@ -548,6 +583,37 @@ function setBtnLoading(btn, loading, loadingText) {
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.label !== undefined ? btn.dataset.label : btn.textContent;
   }
+}
+
+// Styled replacement for window.confirm(). Returns a Promise<boolean> so call sites
+// read exactly like the old `if (!confirm(...)) return;` pattern:
+//   if (!(await confirmDialog('Sure?'))) return;
+// Only one instance needed app-wide since a confirmation always blocks everything else
+// until answered — the modal markup and its two buttons are reused for every call.
+function confirmDialog(message) {
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-message').textContent = message;
+  modal.classList.add('open');
+  return new Promise((resolve) => {
+    const okBtn = document.getElementById('confirm-ok-btn');
+    const cancelBtn = document.getElementById('confirm-cancel-btn');
+    function cleanup(result) {
+      modal.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    function onBackdrop(e) { if (e.target === modal) cleanup(false); }
+    function onKey(e) { if (e.key === 'Escape') cleanup(false); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+  });
 }
 
 const OWNER = 'iouattarabalde';
@@ -824,13 +890,13 @@ document.getElementById('add-type-btn').addEventListener('click', () => {
 // Retirer un type : bloqué si un projet l'utilise encore (même règle que documentée
 // dans le README — réassigner les projets existants avant de retirer un type), pour
 // ne jamais laisser un projet avec un type qui n'existe plus.
-function removeType(code) {
+async function removeType(code) {
   const inUse = projectsData.projects.some((p) => p.type === code);
   if (inUse) {
     alert(`Impossible de retirer "${code}" : au moins un projet l'utilise encore. Réassigne-le d'abord à un autre type (dans Projets → Modifier).`);
     return;
   }
-  if (!confirm(`Retirer le type "${code}" ? Cette action ne prend effet qu'après avoir cliqué "Enregistrer les textes du site".`)) return;
+  if (!(await confirmDialog(`Retirer le type "${code}" ? Cette action ne prend effet qu'après avoir cliqué "Enregistrer les textes du site".`))) return;
   syncTypesDraftFromForm();
   currentTypeCodes = currentTypeCodes.filter((c) => c !== code);
   delete typesDraft[code];
@@ -1164,10 +1230,12 @@ document.getElementById('undo-btn').addEventListener('click', async () => {
       return;
     }
 
-    if (!confirm('Annuler le dernier changement sur les projets (ordre, ajout, modification ou suppression) ? Les images ne sont pas touchées.')) {
+    setBtnLoading(btn, false); // don't show "working" while just waiting on the user to answer
+    if (!(await confirmDialog('Annuler le dernier changement sur les projets (ordre, ajout, modification ou suppression) ? Les images ne sont pas touchées.'))) {
       statusEl.textContent = '';
       return;
     }
+    setBtnLoading(btn, true);
 
     statusEl.textContent = 'Annulation en cours…';
     const previousSha = commits[1].sha;
@@ -1436,7 +1504,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
 // assets/ (orphaned but harmless) rather than deleted, to keep this simple and safe.
 document.getElementById('delete-project-btn').addEventListener('click', async () => {
   if (editingIndex === null) return;
-  if (!confirm('Supprimer ce projet ? Les images restent dans le repo mais le projet disparaît du site.')) return;
+  if (!(await confirmDialog('Supprimer ce projet ? Les images restent dans le repo mais le projet disparaît du site.'))) return;
   const statusEl = document.getElementById('save-status');
   const delBtn = document.getElementById('delete-project-btn');
   setBtnLoading(delBtn, true);
