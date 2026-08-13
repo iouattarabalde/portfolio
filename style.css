@@ -135,8 +135,12 @@ h1, h2, h3 {
   justify-content: center;
   min-height: calc(100dvh - 73px);
   padding: 20px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
-  overflow-x: hidden; /* the halo-dither layer below deliberately bleeds past the reel frame;
-                          this stops that bleed from ever creating a horizontal scrollbar */
+  overflow: hidden; /* both axes explicitly, not just overflow-x — leaving overflow-y
+                        unset here triggers a CSS quirk where browsers auto-compute it
+                        to "auto" instead of "visible", turning .hero into its own
+                        scroll container. That's what caused the halo-dither's -300px
+                        bleed (below) to show up as a large gap + a hard clipped edge
+                        instead of just fading out inside .hero, as reported Aug 2026. */
 }
 
 .reel-frame {
@@ -179,10 +183,14 @@ h1, h2, h3 {
    backdrop's own brightness, which is what actually breaks up the 8-bit banding.
    Sits above .reel-frame (later in the DOM = later in paint order) so it dithers the
    halo itself, not just the frame's own background. pointer-events:none so it never
-   blocks the fullscreen/sound buttons sitting underneath it. */
+   blocks the fullscreen/sound buttons sitting underneath it. Bleed radius kept modest
+   (150px, not the halo's full ~440px theoretical extent) — past that distance the glow
+   has already faded close enough to zero that banding isn't perceptible anyway, and it
+   keeps this layer's own edge safely inside .hero on short/mobile viewports instead of
+   relying on clipping to hide it. */
 .halo-dither {
   position: absolute;
-  inset: -300px;
+  inset: -150px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-repeat: repeat;
   background-size: 180px 180px;
