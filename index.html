@@ -27,22 +27,16 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=54">
-<!-- Randomizes the site's accent color once per browser session (red/green/blue — see
-     sessionStorage key below), requested Aug 2026. Runs synchronously here, before
-     first paint, so there's no flash of the default green before it swaps. Only on the
-     public pages (index.html, project.html) — deliberately not touched in style.css's
-     own :root default or in admin/index.html, so the admin panel's own accent stays
-     fixed regardless of what a visitor's session happens to roll. -->
+<link rel="stylesheet" href="style.css?v=55">
+<!-- Randomizes the site's accent color on every page load (red/green/blue), requested
+     Aug 2026. Runs synchronously here, before first paint, so there's no flash of the
+     default green before it swaps. Only on the public pages (index.html, project.html)
+     — deliberately not touched in style.css's own :root default or in
+     admin/index.html, so the admin panel's own accent stays fixed. -->
 <script>
   (function () {
     var colors = ['#8A9A5B', '#A8624A', '#5C84A0']; // green (site default), red, blue
-    var key = 'iob-accent';
-    var chosen = sessionStorage.getItem(key);
-    if (!chosen || colors.indexOf(chosen) === -1) {
-      chosen = colors[Math.floor(Math.random() * colors.length)];
-      sessionStorage.setItem(key, chosen);
-    }
+    var chosen = colors[Math.floor(Math.random() * colors.length)];
     document.documentElement.style.setProperty('--accent', chosen);
   })();
 </script>
