@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=52">
+<link rel="stylesheet" href="style.css?v=53">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -260,7 +260,23 @@
         </div>
       </a>
     `).join('');
+    sizeAmbientGlow(); // grid height just changed (new filter, language, or first load) — keep the glow's reach matching it
   }
+
+  // Sizes .ambient-glow (the halo's extended falloff, reaching into the work section —
+  // requested Aug 2026) so its fade reaches the actual bottom of #work, whatever height
+  // that currently is for however many projects are showing. Recalculated any time the
+  // grid's content changes (see the call in renderWorkGrid above) or the viewport resizes.
+  function sizeAmbientGlow() {
+    const glow = document.querySelector('.ambient-glow');
+    const work = document.getElementById('work');
+    if (!glow || !work) return;
+    const glowTop = glow.getBoundingClientRect().top + window.scrollY;
+    const workBottom = work.getBoundingClientRect().bottom + window.scrollY;
+    glow.style.height = Math.max(300, workBottom - glowTop) + 'px';
+  }
+  window.addEventListener('load', sizeAmbientGlow);
+  window.addEventListener('resize', sizeAmbientGlow);
 
   // Category filter bar: one button per entry in PROJECT_TYPES (from i18n.js), plus an
   // "All"/"Tous" button to clear the filter. Rebuilt on language toggle since the labels
