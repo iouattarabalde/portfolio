@@ -247,7 +247,7 @@
     const visible = activeFilter ? cachedProjects.filter((p) => p.type === activeFilter) : cachedProjects;
     grid.innerHTML = visible.map((p) => `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}">
-        <div class="thumb" style="background-image:url('assets/${p.thumbnail}')"></div>
+        <div class="thumb" style="background-image:url('assets/${p.thumbnail}'); background-position:${p.thumbnailFocus || '50% 50%'};"></div>
         <div class="work-card-meta">
           <p class="type">${projectTypeAcronym(p.type, isFr)}</p>
           ${p.artist || p.client ? `<p class="artist">${p.artist || p.client}</p>` : ''}
