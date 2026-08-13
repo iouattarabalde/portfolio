@@ -280,32 +280,6 @@
       ]
     },
     {
-      "id": "aldo-wildflowers",
-      "title": "Wildflowers",
-      "type": "AD",
-      "client": "ALDO",
-      "director": "Carla Guler",
-      "dp": "Alex Themistocleous",
-      "thumbnail": "aldo-wildflowers-cover.jpg",
-      "gallery": [
-        "aldo-wildflowers-1783183690147-0.jpg",
-        "aldo-wildflowers-1783183692242-1.jpg",
-        "aldo-wildflowers-1783183694230-2.jpg",
-        "aldo-wildflowers-1783183696259-3.jpg",
-        "aldo-wildflowers-1783183698440-4.jpg",
-        "aldo-wildflowers-1783183700441-5.jpg",
-        "aldo-wildflowers-1783183702474-6.jpg",
-        "aldo-wildflowers-1783183704428-7.jpg",
-        "aldo-wildflowers-1783183706453-8.jpg",
-        "aldo-wildflowers-1783183708362-9.jpg",
-        "aldo-wildflowers-1783183710438-10.jpg",
-        "aldo-wildflowers-1783183712541-11.jpg",
-        "aldo-wildflowers-1783183714555-12.jpg",
-        "aldo-wildflowers-1783183716551-13.jpg",
-        "aldo-wildflowers-1783183718579-14.jpg"
-      ]
-    },
-    {
       "id": "chase-freedom-x-nba",
       "title": "Chase Freedom x NBA",
       "type": "AD",
@@ -540,6 +514,32 @@
         "saturnides-1783896161027-87.jpg",
         "saturnides-1783896162960-88.jpg",
         "saturnides-1783896170494-89.jpg"
+      ]
+    },
+    {
+      "id": "aldo-wildflowers",
+      "title": "Wildflowers",
+      "type": "AD",
+      "client": "ALDO",
+      "director": "Carla Guler",
+      "dp": "Alex Themistocleous",
+      "thumbnail": "aldo-wildflowers-cover.jpg",
+      "gallery": [
+        "aldo-wildflowers-1783183690147-0.jpg",
+        "aldo-wildflowers-1783183692242-1.jpg",
+        "aldo-wildflowers-1783183694230-2.jpg",
+        "aldo-wildflowers-1783183696259-3.jpg",
+        "aldo-wildflowers-1783183698440-4.jpg",
+        "aldo-wildflowers-1783183700441-5.jpg",
+        "aldo-wildflowers-1783183702474-6.jpg",
+        "aldo-wildflowers-1783183704428-7.jpg",
+        "aldo-wildflowers-1783183706453-8.jpg",
+        "aldo-wildflowers-1783183708362-9.jpg",
+        "aldo-wildflowers-1783183710438-10.jpg",
+        "aldo-wildflowers-1783183712541-11.jpg",
+        "aldo-wildflowers-1783183714555-12.jpg",
+        "aldo-wildflowers-1783183716551-13.jpg",
+        "aldo-wildflowers-1783183718579-14.jpg"
       ]
     },
     {
