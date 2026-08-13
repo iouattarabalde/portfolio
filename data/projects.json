@@ -47,6 +47,29 @@
       ]
     },
     {
+      "id": "ethanol",
+      "title": "Éthanol",
+      "type": "MV",
+      "artist": "Charlie Juste",
+      "director": "Marie Luciani",
+      "dp": "Clémentine Martin",
+      "thumbnail": "ethanol-cover.jpg",
+      "gallery": [
+        "ethanol-1783174893023-0.jpg",
+        "ethanol-1783174895064-1.jpg",
+        "ethanol-1783174896154-2.jpg",
+        "ethanol-1783174897176-3.jpg",
+        "ethanol-1783174898251-4.jpg",
+        "ethanol-1783174899336-5.jpg",
+        "ethanol-1783174900358-6.jpg",
+        "ethanol-1783174901653-7.jpg",
+        "ethanol-1783174902678-8.jpg",
+        "ethanol-1783174903724-9.jpg",
+        "ethanol-1783174904779-10.jpg",
+        "ethanol-1783174905720-11.jpg"
+      ]
+    },
+    {
       "id": "bonjour-quebec",
       "title": "Bonjour Québec",
       "type": "AD",
@@ -77,29 +100,6 @@
         "bonjour-quebec-1786664407537-18.jpg",
         "bonjour-quebec-1786664408494-19.jpg",
         "bonjour-quebec-1786664409626-20.jpg"
-      ]
-    },
-    {
-      "id": "ethanol",
-      "title": "Éthanol",
-      "type": "MV",
-      "artist": "Charlie Juste",
-      "director": "Marie Luciani",
-      "dp": "Clémentine Martin",
-      "thumbnail": "ethanol-cover.jpg",
-      "gallery": [
-        "ethanol-1783174893023-0.jpg",
-        "ethanol-1783174895064-1.jpg",
-        "ethanol-1783174896154-2.jpg",
-        "ethanol-1783174897176-3.jpg",
-        "ethanol-1783174898251-4.jpg",
-        "ethanol-1783174899336-5.jpg",
-        "ethanol-1783174900358-6.jpg",
-        "ethanol-1783174901653-7.jpg",
-        "ethanol-1783174902678-8.jpg",
-        "ethanol-1783174903724-9.jpg",
-        "ethanol-1783174904779-10.jpg",
-        "ethanol-1783174905720-11.jpg"
       ]
     },
     {
