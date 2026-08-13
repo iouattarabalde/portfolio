@@ -16,7 +16,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 
 body {
   margin: 0;
@@ -184,14 +184,15 @@ h1, h2, h3 {
    backdrop's own brightness, which is what actually breaks up the 8-bit banding.
    Sits above .reel-frame (later in the DOM = later in paint order) so it dithers the
    halo itself, not just the frame's own background. pointer-events:none so it never
-   blocks the fullscreen/sound buttons sitting underneath it. Bleed radius kept modest
-   (150px, not the halo's full ~440px theoretical extent) — past that distance the glow
-   has already faded close enough to zero that banding isn't perceptible anyway, and it
-   keeps this layer's own edge safely inside .hero on short/mobile viewports instead of
-   relying on clipping to hide it. */
+   blocks the fullscreen/sound buttons sitting underneath it. Bleed kept modest and
+   vertical-only (top/bottom -150px, no horizontal bleed) — .reel-frame is already full
+   width within .hero's own padding, so there's no room to bleed sideways without risking
+   horizontal overflow on narrow viewports (reported as visible edges/scroll, Aug 2026);
+   past 150px vertically the glow has faded close enough to zero that banding isn't
+   perceptible anyway. */
 .halo-dither {
   position: absolute;
-  inset: -150px;
+  inset: -150px 0;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-repeat: repeat;
   background-size: 180px 180px;
@@ -202,38 +203,43 @@ h1, h2, h3 {
    nearly full-screen tall (min-height:100dvh) — leaving a long stretch of flat, glow-
    free black inside .hero before #work even starts. That flat stretch plus the halo
    stopping abruptly was reported as a "hard cut" behind the Projets heading, Aug 2026.
-   This is a second, much larger and gentler glow that bridges the two: a wide,
-   multi-stop radial gradient (soft enough on its own not to band, no separate dither
-   needed) that keeps a faint presence of light present all the way to where Projets
-   begins, instead of the light just stopping.
+   This is a second, much larger and gentler glow that bridges the two.
    Deliberately lives OUTSIDE .hero — as .hero's own sibling, not its descendant — so
-   nothing clips it; the earlier version of this fix put a similar layer inside .hero
-   and it kept getting cut off exactly at .hero's box edge no matter how overflow was
+   nothing clips it; an earlier version of this fix put a similar layer inside .hero and
+   it kept getting cut off exactly at .hero's box edge no matter how overflow was
    configured there. Positioned absolute off the page's initial containing block (body
    has no positioning of its own), so it scrolls normally with the page, anchored near
    where the reel visually sits. z-index:-1 keeps it behind the hero/nav/work content
    that paints on top of it — those sections have no background color of their own, so
    this shows through in the space around them exactly like the tight halo does.
+   Height is set by sizeAmbientGlow() in index.html to match #work's actual current
+   bottom edge (recalculated on every grid render and on resize) — requested Aug 2026
+   as "continue all the way down to the end of the work grid", which a fixed CSS height
+   can't do since the grid's length depends on how many projects exist and which filter
+   is active. The 100vh fallback below only matters before JS has run (or with JS off).
+   The gradient's ellipse is sized in percentages rather than fixed pixels specifically
+   so it always stretches to finish (fully transparent) exactly at the box's own bottom
+   edge, whatever height JS has set that to, instead of capping out at a fixed distance.
    Carries its own copy of the alpha-noise dither (same technique as .halo-dither, same
-   reasoning) since it's an even larger, more gradual low-opacity gradient than the
+   reasoning) since this is an even larger, more gradual low-opacity gradient than the
    tight halo — exactly the condition that caused the original banding report. */
 .ambient-glow {
   position: absolute;
   top: 73px; /* just below the sticky nav — the top of .hero's own content area */
   left: 0;
   right: 0;
-  height: 1100px;
+  height: 100vh; /* pre-JS fallback only — sizeAmbientGlow() overrides this inline */
   z-index: -1;
   pointer-events: none;
   background-image:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
     radial-gradient(
-      ellipse 70% 55% at 50% 30%,
+      ellipse 70% 100% at 50% 0%,
       rgba(255, 255, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.035) 20%,
-      rgba(255, 255, 255, 0.02) 40%,
-      rgba(255, 255, 255, 0.008) 65%,
-      transparent 85%
+      rgba(255, 255, 255, 0.03) 15%,
+      rgba(255, 255, 255, 0.015) 35%,
+      rgba(255, 255, 255, 0.006) 60%,
+      transparent 100%
     );
   background-repeat: repeat, no-repeat;
   background-size: 180px 180px, 100% 100%;
