@@ -22,7 +22,22 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=53">
+<link rel="stylesheet" href="style.css?v=54">
+<!-- Same accent-color randomization as index.html — reads the same sessionStorage key,
+     so the color stays consistent when navigating between the homepage and a project
+     page within one browsing session. See index.html for the full comment. -->
+<script>
+  (function () {
+    var colors = ['#8A9A5B', '#A8624A', '#5C84A0'];
+    var key = 'iob-accent';
+    var chosen = sessionStorage.getItem(key);
+    if (!chosen || colors.indexOf(chosen) === -1) {
+      chosen = colors[Math.floor(Math.random() * colors.length)];
+      sessionStorage.setItem(key, chosen);
+    }
+    document.documentElement.style.setProperty('--accent', chosen);
+  })();
+</script>
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -112,6 +127,34 @@
     updateLangButton();
     renderProjectType(); // re-run so the Type field switches acronym language too
   });
+
+  // Nav bar: fades out while scrolling down, fades back in while scrolling up, always
+  // fully visible near the very top. rAF-throttled so it doesn't run more than once per
+  // paint frame during a fast scroll. Same behavior as index.html. Requested Aug 2026.
+  (function () {
+    const navEl = document.querySelector('.site-nav');
+    if (!navEl) return;
+    let lastY = window.scrollY;
+    let ticking = false;
+    function update() {
+      const y = window.scrollY;
+      if (y < 24) {
+        navEl.classList.remove('nav-faded');
+      } else if (y > lastY) {
+        navEl.classList.add('nav-faded');
+      } else if (y < lastY) {
+        navEl.classList.remove('nav-faded');
+      }
+      lastY = y;
+      ticking = false;
+    }
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
 
   // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails, opening each
   // at its own index. It's called again after the gallery is (re)rendered from JSON,
