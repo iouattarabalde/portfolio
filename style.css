@@ -207,12 +207,14 @@ h1, h2, h3 {
   background-size: 180px 180px;
   pointer-events: none;
 }
-/* Rings were still visible on desktop even after the 0.06 dither above (reported on a
-   MacBook, Aug 2026) — desktop monitors need a stronger dither than phones evidently
-   do. Pushed to 0.11 here; mobile stays untouched at 0.06 above. */
+/* 0.11 wasn't enough either — rings still visible, Aug 2026. Pushed hard to 0.35 here
+   as a ceiling test: if rings are STILL visible at this strength (should look like
+   obvious, ugly visible grain at this point), the noise-dither technique itself isn't
+   the right fix for this and something else is going on — worth knowing before tuning
+   further. Mobile stays untouched at 0.06 above. */
 @media (min-width: 768px) {
   .halo-dither {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.11 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
 }
 
@@ -264,13 +266,11 @@ h1, h2, h3 {
   background-repeat: repeat, no-repeat;
   background-size: 180px 180px, 100% 100%;
 }
-/* Same desktop-only dither push as .halo-dither above, same reason (rings still visible
-   on a MacBook at the original 0.05). Has to restate the gradient layer too since
-   background-image can't be overridden one layer at a time. */
+/* Same ceiling-test push as .halo-dither above (0.1 -> 0.32), same reasoning. */
 @media (min-width: 768px) {
   .ambient-glow {
     background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.32 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
       radial-gradient(
         ellipse 70% 100% at 50% 0%,
         rgba(255, 255, 255, 0.05) 0%,
@@ -344,11 +344,11 @@ h1, h2, h3 {
   background-image:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
     radial-gradient(
-      ellipse 90% 70% at 50% 100%,
-      color-mix(in srgb, var(--accent) 16%, transparent) 0%,
-      color-mix(in srgb, var(--accent) 9%, transparent) 20%,
-      color-mix(in srgb, var(--accent) 4%, transparent) 45%,
-      transparent 80%
+      ellipse 100% 90% at 50% 100%,
+      color-mix(in srgb, var(--accent) 32%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 18%, transparent) 20%,
+      color-mix(in srgb, var(--accent) 8%, transparent) 45%,
+      transparent 95%
     );
   background-repeat: repeat, no-repeat;
   background-size: 180px 180px, 100% 100%;
@@ -356,13 +356,13 @@ h1, h2, h3 {
 @media (min-width: 768px) {
   .bottom-glow {
     background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.11 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
       radial-gradient(
-        ellipse 90% 70% at 50% 100%,
-        color-mix(in srgb, var(--accent) 16%, transparent) 0%,
-        color-mix(in srgb, var(--accent) 9%, transparent) 20%,
-        color-mix(in srgb, var(--accent) 4%, transparent) 45%,
-        transparent 80%
+        ellipse 100% 90% at 50% 100%,
+        color-mix(in srgb, var(--accent) 32%, transparent) 0%,
+        color-mix(in srgb, var(--accent) 18%, transparent) 20%,
+        color-mix(in srgb, var(--accent) 8%, transparent) 45%,
+        transparent 95%
       );
   }
 }

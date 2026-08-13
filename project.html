@@ -22,19 +22,14 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=54">
-<!-- Same accent-color randomization as index.html — reads the same sessionStorage key,
-     so the color stays consistent when navigating between the homepage and a project
-     page within one browsing session. See index.html for the full comment. -->
+<link rel="stylesheet" href="style.css?v=55">
+<!-- Same accent-color randomization as index.html, on every page load — no persistence,
+     so navigating between pages can land on a different color each time. See
+     index.html for the full comment. -->
 <script>
   (function () {
     var colors = ['#8A9A5B', '#A8624A', '#5C84A0'];
-    var key = 'iob-accent';
-    var chosen = sessionStorage.getItem(key);
-    if (!chosen || colors.indexOf(chosen) === -1) {
-      chosen = colors[Math.floor(Math.random() * colors.length)];
-      sessionStorage.setItem(key, chosen);
-    }
+    var chosen = colors[Math.floor(Math.random() * colors.length)];
     document.documentElement.style.setProperty('--accent', chosen);
   })();
 </script>
