@@ -27,7 +27,25 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=53">
+<link rel="stylesheet" href="style.css?v=54">
+<!-- Randomizes the site's accent color once per browser session (red/green/blue — see
+     sessionStorage key below), requested Aug 2026. Runs synchronously here, before
+     first paint, so there's no flash of the default green before it swaps. Only on the
+     public pages (index.html, project.html) — deliberately not touched in style.css's
+     own :root default or in admin/index.html, so the admin panel's own accent stays
+     fixed regardless of what a visitor's session happens to roll. -->
+<script>
+  (function () {
+    var colors = ['#8A9A5B', '#A8624A', '#5C84A0']; // green (site default), red, blue
+    var key = 'iob-accent';
+    var chosen = sessionStorage.getItem(key);
+    if (!chosen || colors.indexOf(chosen) === -1) {
+      chosen = colors[Math.floor(Math.random() * colors.length)];
+      sessionStorage.setItem(key, chosen);
+    }
+    document.documentElement.style.setProperty('--accent', chosen);
+  })();
+</script>
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -94,6 +112,7 @@
 </section>
 
 <section class="contact" id="contact">
+  <div class="bottom-glow" aria-hidden="true"></div>
   <div class="contact-columns">
     <img id="contact-photo" class="contact-photo" src="" alt="Ismael OB">
     <div class="contact-right">
@@ -265,8 +284,14 @@
 
   // Sizes .ambient-glow (the halo's extended falloff, reaching into the work section —
   // requested Aug 2026) so its fade reaches the actual bottom of #work, whatever height
-  // that currently is for however many projects are showing. Recalculated any time the
-  // grid's content changes (see the call in renderWorkGrid above) or the viewport resizes.
+  // that currently is for however many projects are showing.
+  // Uses ResizeObserver rather than the window 'load' event: 'load' fires based on the
+  // page's own declared resources and does NOT wait for the async data/projects.json
+  // fetch this grid is built from, so it was measuring an still-empty #work and locking
+  // in a too-small height (reported Aug 2026 — the glow visibly stopped after the first
+  // row). ResizeObserver instead recalculates automatically any time #work's real
+  // rendered size changes for any reason: first data load, a filter click, a language
+  // toggle, a font finishing its own reflow, or the viewport resizing.
   function sizeAmbientGlow() {
     const glow = document.querySelector('.ambient-glow');
     const work = document.getElementById('work');
@@ -275,8 +300,41 @@
     const workBottom = work.getBoundingClientRect().bottom + window.scrollY;
     glow.style.height = Math.max(300, workBottom - glowTop) + 'px';
   }
-  window.addEventListener('load', sizeAmbientGlow);
+  const workEl = document.getElementById('work');
+  if (workEl && 'ResizeObserver' in window) {
+    new ResizeObserver(sizeAmbientGlow).observe(workEl);
+  } else {
+    window.addEventListener('load', sizeAmbientGlow); // fallback for the rare browser without ResizeObserver
+  }
   window.addEventListener('resize', sizeAmbientGlow);
+
+  // Nav bar: fades out while scrolling down, fades back in while scrolling up, always
+  // fully visible near the very top. rAF-throttled so it doesn't run more than once per
+  // paint frame during a fast scroll. Requested Aug 2026.
+  (function () {
+    const nav = document.querySelector('.site-nav');
+    if (!nav) return;
+    let lastY = window.scrollY;
+    let ticking = false;
+    function update() {
+      const y = window.scrollY;
+      if (y < 24) {
+        nav.classList.remove('nav-faded');
+      } else if (y > lastY) {
+        nav.classList.add('nav-faded'); // scrolling down
+      } else if (y < lastY) {
+        nav.classList.remove('nav-faded'); // scrolling up
+      }
+      lastY = y;
+      ticking = false;
+    }
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
 
   // Category filter bar: one button per entry in PROJECT_TYPES (from i18n.js), plus an
   // "All"/"Tous" button to clear the filter. Rebuilt on language toggle since the labels
