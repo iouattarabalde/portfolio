@@ -169,20 +169,23 @@ h1, h2, h3 {
 
 /* Fixes visible banding in the halo's box-shadow gradient — a large, very-low-opacity
    glow like that quantizes into discrete rings on standard 8-bit desktop displays (not
-   visible on phones/high-DPI screens, which is why this only showed up on desktop —
-   reported Aug 2026). A tiled SVG noise texture, blended with mix-blend-mode:overlay at
-   low enough opacity to be imperceptible as "grain" on its own, breaks up those bands.
+   visible on phones/high-DPI screens — reported Aug 2026, confirmed on a MacBook too).
+   First attempt used mix-blend-mode:overlay, which turned out to be the wrong tool here:
+   overlay scales its own strength by how light the backdrop already is (it behaves like
+   multiply below 50% lightness), so against a near-black background it was nearly a
+   no-op — the rings barely moved. This version instead uses feColorMatrix to turn the
+   turbulence noise into pure alpha variance on solid white, then composites it with
+   ordinary alpha blending (no blend mode at all) — its effect no longer depends on the
+   backdrop's own brightness, which is what actually breaks up the 8-bit banding.
    Sits above .reel-frame (later in the DOM = later in paint order) so it dithers the
    halo itself, not just the frame's own background. pointer-events:none so it never
    blocks the fullscreen/sound buttons sitting underneath it. */
 .halo-dither {
   position: absolute;
   inset: -300px;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-repeat: repeat;
   background-size: 180px 180px;
-  mix-blend-mode: overlay;
-  opacity: 0.035;
   pointer-events: none;
 }
 
