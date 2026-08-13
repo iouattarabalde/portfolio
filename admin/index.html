@@ -275,6 +275,29 @@
   .confirm-panel p { font-size: 13.5px; line-height: 1.6; color: var(--fg); margin: 0 0 22px; }
   .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
+  /* ---------- Inline field validation ----------
+     Was: 3 checks only run on Save click, one at a time, reporting into the same
+     generic status line as everything else. Now: each of the 3 required fields
+     (title, thumbnail, gallery) gets its own red outline + message the moment it's
+     found invalid, and the highlight clears itself the instant the field becomes
+     valid again — no need to hit Save again just to see if a fix "took". Save still
+     runs the same 3 checks, but now to decide which fields to flag, not just to bail
+     on the first failure. See setFieldError() in the script. */
+  .field.field-invalid input,
+  .field.field-invalid .thumb-picker,
+  .field.field-invalid .gallery-editor-grid {
+    outline: 1px solid #d97757;
+    outline-offset: 2px;
+  }
+  .field-error-msg {
+    display: none;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #d97757;
+    margin: 6px 0 0;
+  }
+  .field.field-invalid .field-error-msg { display: block; }
+
   input[type="file"] {
     font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
   }
@@ -474,9 +497,10 @@
   <div class="editor-panel">
     <h2 id="editor-heading">Nouveau projet</h2>
 
-    <div class="field">
+    <div class="field" id="f-title-wrap">
       <label>Titre</label>
       <input type="text" id="f-title" placeholder="Fleur de Peau">
+      <p class="field-error-msg" id="f-title-error">Le titre est requis.</p>
     </div>
     <div class="field">
       <label>Type</label>
@@ -502,20 +526,22 @@
       <input type="text" id="f-dp" placeholder="Louka Boutin">
     </div>
 
-    <div class="field">
+    <div class="field" id="f-thumbnail-wrap">
       <label>Vignette (page d'accueil, distincte de la galerie)</label>
       <div class="thumb-picker">
         <div class="thumb-preview" id="thumb-preview"></div>
         <input type="file" id="f-thumbnail" accept="image/*">
       </div>
+      <p class="field-error-msg" id="f-thumbnail-error">Choisis une vignette.</p>
     </div>
 
-    <div class="field">
+    <div class="field" id="f-gallery-wrap">
       <label>Galerie</label>
       <p class="gallery-count" id="gallery-count">0 stills</p>
       <div class="gallery-editor-grid" id="gallery-editor-grid"></div>
       <input type="file" id="f-gallery-add" accept="image/*" multiple>
       <p class="field-hint">Glisse les vignettes pour réordonner. Les nouvelles images sont compressées automatiquement avant l'envoi.</p>
+      <p class="field-error-msg" id="f-gallery-error">Ajoute au moins une image à la galerie.</p>
     </div>
 
     <div class="editor-footer">
@@ -614,6 +640,13 @@ function confirmDialog(message) {
     modal.addEventListener('click', onBackdrop);
     document.addEventListener('keydown', onKey);
   });
+}
+
+// Toggles the red outline + message on one of the 3 required project-editor fields.
+// `invalid` true shows it, false clears it — called both reactively (as the user fixes
+// a field) and from the Save handler (to flag everything wrong at once, not one at a time).
+function setFieldError(wrapId, invalid) {
+  document.getElementById(wrapId).classList.toggle('field-invalid', invalid);
 }
 
 const OWNER = 'iouattarabalde';
@@ -1299,6 +1332,9 @@ function openEditor(index) {
   document.getElementById('delete-project-btn').style.display = isNew ? 'none' : '';
   document.getElementById('save-status').textContent = '';
   document.getElementById('save-status').className = 'save-status';
+  setFieldError('f-title-wrap', false);
+  setFieldError('f-thumbnail-wrap', false);
+  setFieldError('f-gallery-wrap', false);
 
   editorThumb = project
     ? { filename: project.thumbnail, url: `../assets/${project.thumbnail}`, file: null }
@@ -1319,9 +1355,19 @@ function openEditor(index) {
 document.getElementById('new-project-btn').addEventListener('click', () => openEditor(null));
 document.getElementById('cancel-btn').addEventListener('click', () => editorEl.classList.remove('open'));
 
+// Title: only shows the error on blur (not while actively typing — nothing to flag
+// yet on the first keystroke), clears it the instant it becomes non-empty again.
+document.getElementById('f-title').addEventListener('blur', (e) => {
+  setFieldError('f-title-wrap', !e.target.value.trim());
+});
+document.getElementById('f-title').addEventListener('input', (e) => {
+  if (e.target.value.trim()) setFieldError('f-title-wrap', false);
+});
+
 function updateThumbPreview() {
   const el = document.getElementById('thumb-preview');
   el.style.backgroundImage = editorThumb.url ? `url('${editorThumb.url}')` : 'none';
+  if (editorThumb.url) setFieldError('f-thumbnail-wrap', false);
 }
 
 // Picking a new thumbnail file swaps in a local blob URL for an instant preview —
@@ -1358,6 +1404,7 @@ function renderGalleryEditor() {
 
   wireGalleryDrag(grid);
   updateGalleryCount();
+  if (editorGallery.length) setFieldError('f-gallery-wrap', false);
 }
 
 // Same drag-and-drop reordering pattern as the project list (wireDragReorder above),
@@ -1426,9 +1473,19 @@ document.getElementById('f-gallery-add').addEventListener('change', (e) => {
 document.getElementById('save-project-btn').addEventListener('click', async () => {
   const statusEl = document.getElementById('save-status');
   const title = document.getElementById('f-title').value.trim();
-  if (!title) { statusEl.textContent = 'Le titre est requis.'; statusEl.className = 'save-status error'; return; }
-  if (!editorThumb.filename && !editorThumb.file) { statusEl.textContent = 'Choisis une vignette.'; statusEl.className = 'save-status error'; return; }
-  if (!editorGallery.length) { statusEl.textContent = 'Ajoute au moins une image à la galerie.'; statusEl.className = 'save-status error'; return; }
+  const hasThumb = !!(editorThumb.filename || editorThumb.file);
+  const hasGallery = !!editorGallery.length;
+
+  setFieldError('f-title-wrap', !title);
+  setFieldError('f-thumbnail-wrap', !hasThumb);
+  setFieldError('f-gallery-wrap', !hasGallery);
+
+  if (!title || !hasThumb || !hasGallery) {
+    const firstInvalid = document.querySelector('.field.field-invalid');
+    if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Corrige les champs en rouge avant d\'enregistrer.', 'error');
+    return;
+  }
 
   const saveBtn = document.getElementById('save-project-btn');
   setBtnLoading(saveBtn, true);
