@@ -16,6 +16,7 @@ les cas qui sortent de l'admin.
 | Modifier titre / type / réalisation / DP d'un projet | Admin → Projets → cliquer le projet | |
 | Réordonner les projets sur la page d'accueil | Admin → Projets, glisser-déposer | Sauvegarde automatique |
 | Réordonner ou retirer des images dans un projet | Admin → ouvrir le projet, glisser-déposer | Retirer une image ne supprime pas le fichier, voir "fichiers orphelins" plus bas |
+| Recadrer/repositionner une vignette (le sujet est mal centré sur la grille) | Admin → ouvrir le projet → clique/glisse sur la vignette | Ne coupe pas l'image, ça déplace juste le point de focus utilisé pour les deux formats du site (16:9 desktop, 1:1 mobile) |
 | Annuler ma dernière modif de projet | Admin → Projets → bouton **Annuler** | Ne touche pas aux images uploadées |
 | Changer courriel / localisation / dispo / Instagram / bio / photo de contact | Admin → Coordonnées | |
 | Changer un texte du site (nav, titres, étiquettes) | Admin → Textes du site | |

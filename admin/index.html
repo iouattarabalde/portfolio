@@ -177,11 +177,47 @@
   .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
   .field-hint { font-size: 11px; color: var(--fg-faint); margin-top: 6px; }
 
-  .thumb-picker { display: flex; align-items: center; gap: 14px; }
-  .thumb-preview {
-    width: 100px; height: 62px; background-size: cover; background-position: center;
-    background-color: var(--bg-raised); border: 1px solid var(--line); flex-shrink: 0;
+  /* ---------- Thumbnail focal-point picker ----------
+     Was: a small static preview box, cropped center-only with no way to change that.
+     Now: the full uploaded image (never cropped here — background-size:contain) with
+     a draggable reticle marking the focal point, plus two live preview swatches (16:9
+     and 1:1, background-size:cover) showing exactly what each of the site's two grid
+     breakpoints will render. See wireFocalPicker() / updateFocalPreviews() in the script. */
+  .thumb-picker { display: flex; flex-direction: column; gap: 10px; }
+  .focal-stage {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 3 / 2;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: var(--bg-raised);
+    border: 1px solid var(--line);
+    cursor: crosshair;
+    touch-action: none;
   }
+  .focal-reticle {
+    position: absolute;
+    width: 22px; height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.6);
+    pointer-events: none;
+  }
+  .focal-reticle::before, .focal-reticle::after {
+    content: "";
+    position: absolute;
+    background: var(--accent);
+  }
+  .focal-reticle::before { top: 50%; left: -4px; right: -4px; height: 1px; transform: translateY(-50%); }
+  .focal-reticle::after { left: 50%; top: -4px; bottom: -4px; width: 1px; transform: translateX(-50%); }
+  .focal-previews { display: flex; gap: 10px; }
+  .focal-preview-box { background-size: cover; background-color: var(--bg-raised); border: 1px solid var(--line); }
+  .focal-preview-box.ratio-169 { width: 96px; aspect-ratio: 16 / 9; }
+  .focal-preview-box.ratio-11 { width: 60px; aspect-ratio: 1 / 1; }
+  .focal-preview-label { font-family: var(--mono); font-size: 10px; color: var(--fg-faint); margin-top: 4px; text-align: center; }
 
   .gallery-editor-grid {
     display: grid;
@@ -574,7 +610,20 @@
     <div class="field" id="f-thumbnail-wrap">
       <label>Vignette (page d'accueil, distincte de la galerie)</label>
       <div class="thumb-picker">
-        <div class="thumb-preview" id="thumb-preview"></div>
+        <div class="focal-stage" id="focal-stage">
+          <div class="focal-reticle" id="focal-reticle" style="display:none;"></div>
+        </div>
+        <p class="field-hint">Clique ou glisse sur l'image pour marquer le point important (visage, sujet...). Les deux aperçus à droite montrent le cadrage réel sur le site.</p>
+        <div class="focal-previews">
+          <div>
+            <div class="focal-preview-box ratio-169" id="focal-preview-169"></div>
+            <p class="focal-preview-label">Desktop 16:9</p>
+          </div>
+          <div>
+            <div class="focal-preview-box ratio-11" id="focal-preview-11"></div>
+            <p class="focal-preview-label">Mobile 1:1</p>
+          </div>
+        </div>
         <input type="file" id="f-thumbnail" accept="image/*">
       </div>
       <p class="field-error-msg" id="f-thumbnail-error">Choisis une vignette.</p>
@@ -705,7 +754,7 @@ let projectsSha = null;    // git blob sha of projects.json (not actually used f
                             // which always fetches a fresh sha right before writing to avoid conflicts)
 let editingIndex = null;   // index into projectsData.projects currently open in the editor, or null for a new project
 let editorGallery = [];    // draft gallery state while the editor is open: [{ filename, url, file (optional new File) }]
-let editorThumb = { filename: null, url: null, file: null }; // draft thumbnail state, same shape as one gallery item
+let editorThumb = { filename: null, url: null, file: null, focus: { x: 50, y: 50 } }; // draft thumbnail state, same shape as one gallery item, plus its focal point
 
 /* ---------- GitHub API helpers ----------
    All three wrap the Contents API (docs.github.com/en/rest/repos/contents).
@@ -1419,9 +1468,9 @@ function openEditor(index) {
   setFieldError('f-gallery-wrap', false);
 
   editorThumb = project
-    ? { filename: project.thumbnail, url: `../assets/${project.thumbnail}`, file: null }
-    : { filename: null, url: null, file: null };
-  updateThumbPreview();
+    ? { filename: project.thumbnail, url: `../assets/${project.thumbnail}`, file: null, focus: parseFocus(project.thumbnailFocus) }
+    : { filename: null, url: null, file: null, focus: { x: 50, y: 50 } };
+  updateFocalStage();
 
   editorGallery = project
     ? project.gallery.map((f) => ({ filename: f, url: `../assets/${f}`, file: null }))
@@ -1446,19 +1495,72 @@ document.getElementById('f-title').addEventListener('input', (e) => {
   if (e.target.value.trim()) setFieldError('f-title-wrap', false);
 });
 
-function updateThumbPreview() {
-  const el = document.getElementById('thumb-preview');
-  el.style.backgroundImage = editorThumb.url ? `url('${editorThumb.url}')` : 'none';
+// project.thumbnailFocus is stored as a CSS-style string ("62% 40%"); undefined for
+// any project saved before this feature existed, or one that's never been repositioned
+// — both cases fall back to dead center, same as the old fixed behavior.
+function parseFocus(str) {
+  if (!str) return { x: 50, y: 50 };
+  const [x, y] = str.split(' ').map((v) => parseFloat(v));
+  return { x: isNaN(x) ? 50 : x, y: isNaN(y) ? 50 : y };
+}
+
+// Redraws the full-image stage, the reticle position, and both live crop previews
+// from the current editorThumb.url/.focus. Called after picking a file, opening the
+// editor, or dragging the reticle — always the single source of truth for the display.
+function updateFocalStage() {
+  const stage = document.getElementById('focal-stage');
+  const reticle = document.getElementById('focal-reticle');
+  stage.style.backgroundImage = editorThumb.url ? `url('${editorThumb.url}')` : 'none';
+  reticle.style.display = editorThumb.url ? '' : 'none';
+  reticle.style.left = editorThumb.focus.x + '%';
+  reticle.style.top = editorThumb.focus.y + '%';
+  updateFocalPreviews();
   if (editorThumb.url) setFieldError('f-thumbnail-wrap', false);
 }
 
+function updateFocalPreviews() {
+  const pos = `${editorThumb.focus.x}% ${editorThumb.focus.y}%`;
+  ['focal-preview-169', 'focal-preview-11'].forEach((id) => {
+    const el = document.getElementById(id);
+    el.style.backgroundImage = editorThumb.url ? `url('${editorThumb.url}')` : 'none';
+    el.style.backgroundPosition = pos;
+  });
+}
+
+// Click-to-set and drag-to-adjust the focal point. Pointer events cover mouse, touch,
+// and pen with one set of handlers. Position is read from the stage's own bounding box
+// so it stays correct no matter the image's aspect ratio or the box's actual size.
+function wireFocalPicker() {
+  const stage = document.getElementById('focal-stage');
+  let dragging = false;
+
+  function setFromEvent(e) {
+    const box = stage.getBoundingClientRect();
+    const x = Math.min(100, Math.max(0, ((e.clientX - box.left) / box.width) * 100));
+    const y = Math.min(100, Math.max(0, ((e.clientY - box.top) / box.height) * 100));
+    editorThumb.focus = { x: Math.round(x), y: Math.round(y) };
+    updateFocalStage();
+  }
+
+  stage.addEventListener('pointerdown', (e) => {
+    if (!editorThumb.url) return; // nothing to pick a focal point on yet
+    dragging = true;
+    stage.setPointerCapture(e.pointerId);
+    setFromEvent(e);
+  });
+  stage.addEventListener('pointermove', (e) => { if (dragging) setFromEvent(e); });
+  stage.addEventListener('pointerup', () => { dragging = false; });
+}
+wireFocalPicker();
+
 // Picking a new thumbnail file swaps in a local blob URL for an instant preview —
-// no filename yet, that's assigned on Save once the file is actually uploaded.
+// no filename yet, that's assigned on Save once the file is actually uploaded. Focal
+// point resets to center since it's a different image now, not a framing carried over.
 document.getElementById('f-thumbnail').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  editorThumb = { filename: null, url: URL.createObjectURL(file), file };
-  updateThumbPreview();
+  editorThumb = { filename: null, url: URL.createObjectURL(file), file, focus: { x: 50, y: 50 } };
+  updateFocalStage();
 });
 
 // Redraws the gallery grid from the current editorGallery array (order = display order
@@ -1607,6 +1709,9 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
 
     // Build the final project record and either replace the edited entry in place
     // (keeps its position in the homepage order) or append a new one at the end.
+    // thumbnailFocus is only written when it's not dead center — most projects never
+    // need repositioning, and this keeps their JSON entries exactly as they were.
+    const isDefaultFocus = editorThumb.focus.x === 50 && editorThumb.focus.y === 50;
     const projectEntry = {
       id: slug,
       title,
@@ -1616,6 +1721,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       director: document.getElementById('f-director').value.trim(),
       dp: document.getElementById('f-dp').value.trim(),
       thumbnail: editorThumb.filename,
+      ...(isDefaultFocus ? {} : { thumbnailFocus: `${editorThumb.focus.x}% ${editorThumb.focus.y}%` }),
       gallery: editorGallery.map((g) => g.filename) // final order = current on-screen order
     };
 
