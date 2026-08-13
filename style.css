@@ -129,11 +129,14 @@ h1, h2, h3 {
 /* Fills the screen below the sticky nav (100dvh minus the nav's own height, ~73px)
    so the reel is fully visible on load without scrolling. */
 .hero {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: calc(100dvh - 73px);
   padding: 20px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  overflow-x: hidden; /* the halo-dither layer below deliberately bleeds past the reel frame;
+                          this stops that bleed from ever creating a horizontal scrollbar */
 }
 
 .reel-frame {
@@ -163,6 +166,25 @@ h1, h2, h3 {
 }
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+/* Fixes visible banding in the halo's box-shadow gradient — a large, very-low-opacity
+   glow like that quantizes into discrete rings on standard 8-bit desktop displays (not
+   visible on phones/high-DPI screens, which is why this only showed up on desktop —
+   reported Aug 2026). A tiled SVG noise texture, blended with mix-blend-mode:overlay at
+   low enough opacity to be imperceptible as "grain" on its own, breaks up those bands.
+   Sits above .reel-frame (later in the DOM = later in paint order) so it dithers the
+   halo itself, not just the frame's own background. pointer-events:none so it never
+   blocks the fullscreen/sound buttons sitting underneath it. */
+.halo-dither {
+  position: absolute;
+  inset: -300px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+  opacity: 0.035;
+  pointer-events: none;
+}
 
 /* padding-top:56.25% is the classic 16:9 aspect-ratio box hack: it reserves the right height
    based on the element's own width, so the absolutely-positioned video/iframe inside it
