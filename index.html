@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=51">
+<link rel="stylesheet" href="style.css?v=52">
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -78,6 +78,10 @@
   </div>
   <div class="halo-dither" aria-hidden="true"></div>
 </header>
+
+<!-- Bridges the reel's halo into the top of the work section — see .ambient-glow in
+     style.css for why this lives here as a sibling instead of inside .hero. -->
+<div class="ambient-glow" aria-hidden="true"></div>
 
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
