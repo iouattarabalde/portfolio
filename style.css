@@ -34,7 +34,15 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; overflow-x: hidden; }
+/* overflow-x: clip, not hidden — hidden here (and on body below) was silently promoting
+   overflow-y to auto (the exact quirk the comment on body below already describes,
+   just not caught here too), turning html/body into their own scroll containers. Since
+   .site-nav is a direct child of body, its position:sticky was resolving against that
+   accidental scroll container instead of the real viewport — reported Aug 2026 as "the
+   nav isn't tethered, it scrolls away with the page." clip suppresses horizontal
+   overflow the same way hidden did, without ever creating a scrollport. Fixed here and
+   on body below in the same pass, same underlying bug in two places. */
+html { scroll-behavior: smooth; overflow-x: clip; }
 
 body {
   margin: 0;
@@ -44,13 +52,19 @@ body {
   font-size: var(--body-size, 15px);
   line-height: var(--leading, 1.6);
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden; /* the halo/ambient-glow layers around the hero deliberately bleed
-                          past their own elements — this is the one safe place to stop
-                          that from ever causing a horizontal scrollbar. (Not on .hero
-                          itself: setting overflow-x there without overflow-y triggers a
-                          browser quirk that auto-computes overflow-y to "auto", turning
-                          .hero into an unwanted scroll container — see Aug 2026 notes
-                          on .hero and .ambient-glow below.) */
+  overflow-x: clip; /* the halo/ambient-glow layers around the hero deliberately bleed
+                        past their own elements — this is the one safe place to stop
+                        that from ever causing a horizontal scrollbar. Was overflow-x:
+                        hidden until Aug 2026: hidden with no overflow-y set silently
+                        promotes overflow-y to auto, turning body into its own scroll
+                        container — and since .site-nav is a direct child of body, its
+                        position:sticky was resolving against that instead of the real
+                        viewport, breaking it (reported as "the nav isn't tethered, it
+                        scrolls away with the page"). clip suppresses the horizontal
+                        bleed the same way hidden did, without ever creating that
+                        scrollport. (Same reasoning applies to the html rule above —
+                        and is exactly what the note on .hero below already warns
+                        about, just hadn't been caught here yet.) */
 }
 
 a { color: inherit; text-decoration: none; }
