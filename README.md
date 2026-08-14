@@ -49,7 +49,7 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 - **Repo** (dépôt) : le dossier de projet complet sur GitHub, avec tout son historique.
 - **Déploiement** : le moment où GitHub Pages republie le site à partir du dernier commit.
   Automatique, prend en général moins d'une minute, parfois deux.
-- **Cache-buster** (`?v=48`) : le `?v=N` à la fin des liens vers `style.css`. Force les
+- **Cache-buster** (`?v=62`) : le `?v=N` à la fin des liens vers `style.css`. Force les
   navigateurs à retélécharger la feuille de style plutôt que de garder une vieille version
   en mémoire. Concerne seulement le code, jamais l'admin.
 - **JSON** : le format des fichiers `data/*.json`. C'est le contenu du site (projets, textes,
@@ -126,9 +126,14 @@ dans les crédits.
 boucle entre la première et la dernière image. Le curseur reste normal partout dans le
 lightbox sauf sur les boutons cliquables (Close, flèches).
 
-**Règles à respecter pour chaque projet** (imposées structurellement dans l'admin) :
-- Le nombre de stills doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes)
-- La vignette de la page d'accueil doit être une image distincte, absente de la galerie
+**Règles à respecter pour chaque projet** (encouragées par l'interface de l'admin, mais pas
+bloquées à l'enregistrement) :
+- Le nombre de stills doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes) —
+  un avertissement coloré s'affiche sous la galerie si ce n'est pas le cas, mais ça n'empêche
+  pas de cliquer Enregistrer
+- La vignette de la page d'accueil doit être une image distincte, absente de la galerie —
+  simple convention portée par des champs d'upload séparés dans l'admin, rien ne vérifie
+  activement qu'elles diffèrent
 
 **Note sur les fichiers orphelins** : retirer une image de la galerie d'un projet dans
 l'admin (ou supprimer un projet entier) ne supprime pas le fichier de `assets/`, seulement
