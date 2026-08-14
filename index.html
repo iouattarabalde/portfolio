@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=67">
+<link rel="stylesheet" href="style.css?v=68">
 <!-- Starts the accent color at a random point in its continuous cycle (Red -> Yellow ->
      Green -> Cyan -> Blue -> Magenta -> Red), requested Aug 2026 — replaces the earlier
      random-pick-of-3-fixed-colors version. Runs synchronously here, before first paint,
@@ -39,7 +39,7 @@
      #8A9A5B default. -->
 <script>
   (function () {
-    var CYCLE_DURATION = 120; // seconds — must match the animation-duration on html.accent-cycling in style.css
+    var CYCLE_DURATION = 60; // seconds — must match the animation-duration on html.accent-cycling in style.css
     var html = document.documentElement;
     html.classList.add('accent-cycling');
     html.style.animationDelay = (-(Math.random() * CYCLE_DURATION)).toFixed(2) + 's'; // negative delay = starts already partway through the loop
