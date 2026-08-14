@@ -284,6 +284,13 @@ h1, h2, h3 {
    top:0 (not below the nav) so it's visible bleeding up behind the nav bar itself, now
    that the nav is semi-transparent — requested Aug 2026 as "halo needs to continue past
    the bar". */
+/* Split into a sizing/positioning parent + two full-size children (noise, gradient)
+   rather than one element with 2 stacked background-image layers — needed so
+   --grain-level (admin Design tab) can scale just the noise's opacity without also
+   dimming the actual glow color underneath it, which sharing one element's opacity
+   would do. Reported Aug 2026: the grain slider had no visible effect here or on
+   .bottom-glow because neither was wired to --grain-level at all yet (it only touched
+   .halo-dither) — this both fixes that and keeps the two concerns separate. */
 .ambient-glow {
   position: absolute;
   top: 0;
@@ -292,36 +299,34 @@ h1, h2, h3 {
   height: 100vh; /* pre-JS fallback only — sizeAmbientGlow() overrides this inline */
   z-index: -1;
   pointer-events: none;
-  background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-    radial-gradient(
-      ellipse 70% 100% at 50% 0%,
-      rgba(255, 255, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.03) 15%,
-      rgba(255, 255, 255, 0.015) 35%,
-      rgba(255, 255, 255, 0.006) 60%,
-      transparent 100%
-    );
-  background-repeat: repeat, no-repeat;
-  background-size: 180px 180px, 100% 100%;
 }
-/* Ambient-glow is z-index:-1 (behind .reel-frame's opaque background), so it never had
-   the halo-dither masking bug above. A 0.32 ceiling test confirmed dithering works here
-   too; manually settled down to 0.1 directly in GitHub afterward (lighter than
-   .halo-dither's 0.2 — this is the broader, more gradual wash, less texture needed to
-   break up its banding). */
+.ambient-glow-noise,
+.ambient-glow-gradient {
+  position: absolute;
+  inset: 0;
+}
+.ambient-glow-noise {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  opacity: var(--grain-level);
+}
+.ambient-glow-gradient {
+  background: radial-gradient(
+    ellipse 70% 100% at 50% 0%,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.03) 15%,
+    rgba(255, 255, 255, 0.015) 35%,
+    rgba(255, 255, 255, 0.006) 60%,
+    transparent 100%
+  );
+}
+/* Manually settled to 0.1 directly in GitHub after a 0.32 ceiling test confirmed
+   dithering works here too (lighter than .halo-dither's 0.2 — this is the broader,
+   more gradual wash, less texture needed to break up its banding). */
 @media (min-width: 768px) {
-  .ambient-glow {
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-      radial-gradient(
-        ellipse 70% 100% at 50% 0%,
-        rgba(255, 255, 255, 0.05) 0%,
-        rgba(255, 255, 255, 0.03) 15%,
-        rgba(255, 255, 255, 0.015) 35%,
-        rgba(255, 255, 255, 0.006) 60%,
-        transparent 100%
-      );
+  .ambient-glow-noise {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
 }
 
@@ -379,36 +384,38 @@ h1, h2, h3 {
    sizing, plain CSS is enough. Same z-index:-1 / transparent-section trick as the other
    glows: #contact has no background color of its own, so this shows through around its
    content. Requested Aug 2026. */
+/* Same split as .ambient-glow above (parent + noise/gradient children), same reason —
+   --grain-level now reaches this layer too instead of having no effect here at all. */
 .bottom-glow {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-    radial-gradient(
-      ellipse 100% 90% at 50% 100%,
-      color-mix(in srgb, var(--accent) 32%, transparent) 0%,
-      color-mix(in srgb, var(--accent) 18%, transparent) 20%,
-      color-mix(in srgb, var(--accent) 8%, transparent) 45%,
-      transparent 95%
-    );
-  background-repeat: repeat, no-repeat;
-  background-size: 180px 180px, 100% 100%;
 }
-/* Same situation as .ambient-glow above: z-index:-1, no masking bug, settled to the
-   same 0.1 for consistency between the two large ambient washes. */
+.bottom-glow-noise,
+.bottom-glow-gradient {
+  position: absolute;
+  inset: 0;
+}
+.bottom-glow-noise {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  opacity: var(--grain-level);
+}
+.bottom-glow-gradient {
+  background: radial-gradient(
+    ellipse 100% 90% at 50% 100%,
+    color-mix(in srgb, var(--accent) 32%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 18%, transparent) 20%,
+    color-mix(in srgb, var(--accent) 8%, transparent) 45%,
+    transparent 95%
+  );
+}
+/* Settled to the same 0.1 as .ambient-glow, for consistency between the two washes. */
 @media (min-width: 768px) {
-  .bottom-glow {
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-      radial-gradient(
-        ellipse 100% 90% at 50% 100%,
-        color-mix(in srgb, var(--accent) 32%, transparent) 0%,
-        color-mix(in srgb, var(--accent) 18%, transparent) 20%,
-        color-mix(in srgb, var(--accent) 8%, transparent) 45%,
-        transparent 95%
-      );
+  .bottom-glow-noise {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
 }
 

@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=57">
+<link rel="stylesheet" href="style.css?v=58">
 <!-- Randomizes the site's accent color on every page load (red/green/blue), requested
      Aug 2026. Runs synchronously here, before first paint, so there's no flash of the
      default green before it swaps. Only on the public pages (index.html, project.html)
@@ -93,7 +93,10 @@
 
 <!-- Bridges the reel's halo into the top of the work section — see .ambient-glow in
      style.css for why this lives here as a sibling instead of inside .hero. -->
-<div class="ambient-glow" aria-hidden="true"></div>
+<div class="ambient-glow" aria-hidden="true">
+  <div class="ambient-glow-noise"></div>
+  <div class="ambient-glow-gradient"></div>
+</div>
 
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
@@ -106,7 +109,10 @@
 </section>
 
 <section class="contact" id="contact">
-  <div class="bottom-glow" aria-hidden="true"></div>
+  <div class="bottom-glow" aria-hidden="true">
+    <div class="bottom-glow-noise"></div>
+    <div class="bottom-glow-gradient"></div>
+  </div>
   <div class="contact-columns">
     <img id="contact-photo" class="contact-photo" src="" alt="Ismael OB">
     <div class="contact-right">
