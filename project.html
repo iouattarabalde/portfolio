@@ -22,13 +22,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=67">
+<link rel="stylesheet" href="style.css?v=68">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full comment. -->
 <script>
   (function () {
-    var CYCLE_DURATION = 120; // seconds — must match the animation-duration on html.accent-cycling in style.css
+    var CYCLE_DURATION = 60; // seconds — must match the animation-duration on html.accent-cycling in style.css
     var html = document.documentElement;
     html.classList.add('accent-cycling');
     html.style.animationDelay = (-(Math.random() * CYCLE_DURATION)).toFixed(2) + 's';
