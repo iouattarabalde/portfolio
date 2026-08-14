@@ -126,22 +126,20 @@
   // Nav bar: continuously fades as you scroll, tied directly to scroll distance rather
   // than a fully-opaque/fully-hidden toggle keyed on direction — it reappears smoothly
   // scrolling back up because it's purely a function of current scroll position, not
-  // which way you're moving. Floors at NAV_FADE_FLOOR instead of reaching 0, so it stays
-  // at least faintly visible rather than disappearing outright. rAF-throttled, same
-  // pattern as index.html. Redesigned Aug 2026 (was a binary opacity 0/1 class toggle
-  // keyed on scroll direction).
+  // which way you're moving. Reaches fully transparent after NAV_FADE_DISTANCE, no
+  // floor (Aug 2026 — index.html's equivalent anchors this to the Projects section
+  // instead of a fixed distance, but project.html has no such landmark to anchor to).
+  // rAF-throttled, same pattern as index.html.
   (function () {
     const navEl = document.querySelector('.site-nav');
     if (!navEl) return;
     const NAV_FADE_START = 20;     // px of scroll before the fade begins
-    const NAV_FADE_DISTANCE = 500; // px of scroll over which it fades from 1 down to the floor
-    const NAV_FADE_FLOOR = 0.6;    // minimum opacity once scrolled past NAV_FADE_START + NAV_FADE_DISTANCE — was 0.25, raised Aug 2026: too faint against a dark browser chrome, read as fully gone rather than dimmed
+    const NAV_FADE_DISTANCE = 500; // px of scroll over which it fades from 1 down to 0
     let ticking = false;
     function update() {
       const y = window.scrollY;
       const progress = Math.min(Math.max((y - NAV_FADE_START) / NAV_FADE_DISTANCE, 0), 1);
-      const opacity = 1 - progress * (1 - NAV_FADE_FLOOR);
-      navEl.style.setProperty('--nav-opacity', opacity.toFixed(3));
+      navEl.style.setProperty('--nav-opacity', (1 - progress).toFixed(3));
       ticking = false;
     }
     window.addEventListener('scroll', () => {
