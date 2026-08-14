@@ -25,7 +25,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css?v=61">
+<link rel="stylesheet" href="../style.css?v=62">
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -143,6 +143,15 @@
   .project-card .row-meta { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); text-transform: uppercase; margin-top: 2px; }
   .project-card .card-actions { display: flex; gap: 8px; padding: 0 12px 12px; }
   .project-card .card-actions .btn { flex: 1; text-align: center; font-size: 10px; padding: 8px; }
+  /* Keyboard-accessible alternative to drag-and-drop reordering — same specificity as
+     the .btn rule above, declared after it, so this wins on cascade order without
+     needing !important. Aug 2026. */
+  .row-actions .btn-move,
+  .card-actions .btn-move {
+    flex: 0 0 auto;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 
   .empty-state {
     border: 1px dashed var(--line);
@@ -1390,6 +1399,7 @@ function renderDashboard() {
       <div class="card-actions">
         <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>
         <button class="btn" data-edit="${i}">Modifier</button>
+        ${filtering ? '' : moveButtonsHtml(i)}
       </div>
     ` : `
       <span class="handle">${filtering ? '' : '⠿'}</span>
@@ -1401,6 +1411,7 @@ function renderDashboard() {
       <div class="row-actions">
         <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>
         <button class="btn" data-edit="${i}">Modifier</button>
+        ${filtering ? '' : moveButtonsHtml(i)}
       </div>
     `;
     list.appendChild(el);
@@ -1409,8 +1420,48 @@ function renderDashboard() {
   list.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => openEditor(parseInt(btn.dataset.edit, 10)));
   });
+  list.querySelectorAll('[data-move-up]').forEach((btn) => {
+    btn.addEventListener('click', () => moveProject(parseInt(btn.dataset.moveUp, 10), -1));
+  });
+  list.querySelectorAll('[data-move-down]').forEach((btn) => {
+    btn.addEventListener('click', () => moveProject(parseInt(btn.dataset.moveDown, 10), 1));
+  });
 
   if (!filtering) wireDragReorder(list, itemClass); // no drag handlers at all while filtered, not just visually disabled
+}
+
+// Markup for the two move buttons — same index (i) as the drag handle's data-index,
+// disabled at whichever end of the full (unfiltered) list it's already at.
+function moveButtonsHtml(i) {
+  const last = projectsData.projects.length - 1;
+  return `
+    <button type="button" class="btn btn-move" data-move-up="${i}" aria-label="Déplacer vers le haut"${i === 0 ? ' disabled' : ''}>↑</button>
+    <button type="button" class="btn btn-move" data-move-down="${i}" aria-label="Déplacer vers le bas"${i === last ? ' disabled' : ''}>↓</button>
+  `;
+}
+
+// Keyboard-accessible alternative to drag-and-drop reordering (which has no native
+// keyboard equivalent) — swaps a project with its neighbor and saves, same
+// snapshot/restore-on-failure pattern as wireDragReorder below. Aug 2026.
+async function moveProject(index, direction) {
+  const target = index + direction;
+  if (target < 0 || target >= projectsData.projects.length) return; // already at the boundary
+  const previousOrder = projectsData.projects.slice();
+  const arr = projectsData.projects;
+  [arr[index], arr[target]] = [arr[target], arr[index]];
+  renderDashboard();
+  const statusEl = document.getElementById('dashboard-status');
+  statusEl.textContent = 'Enregistrement de l\'ordre…';
+  statusEl.className = 'save-status';
+  try {
+    await saveProjectsJson(statusEl);
+  } catch (e) {
+    projectsData.projects = previousOrder;
+    renderDashboard();
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
+  }
 }
 
 document.getElementById('project-search').addEventListener('input', renderDashboard);
