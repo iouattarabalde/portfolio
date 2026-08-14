@@ -25,7 +25,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css?v=60">
+<link rel="stylesheet" href="../style.css?v=61">
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -1431,6 +1431,7 @@ function wireDragReorder(list, itemClass) {
     });
     el.addEventListener('dragend', async () => {
       el.classList.remove('dragging');
+      const previousOrder = projectsData.projects.slice(); // restored below if the save fails
       const newOrder = Array.from(list.querySelectorAll(selector)).map((r) => parseInt(r.dataset.index, 10));
       projectsData.projects = newOrder.map((i) => projectsData.projects[i]);
       renderDashboard();
@@ -1440,6 +1441,8 @@ function wireDragReorder(list, itemClass) {
       try {
         await saveProjectsJson(statusEl);
       } catch (e) {
+        projectsData.projects = previousOrder; // the write failed, don't leave the local order ahead of GitHub
+        renderDashboard();
         statusEl.textContent = 'Erreur : ' + e.message;
         statusEl.className = 'save-status error';
         showToast('Erreur : ' + e.message, 'error');
@@ -1855,6 +1858,11 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   const statusEl = document.getElementById('save-status');
   const delBtn = document.getElementById('delete-project-btn');
   setBtnLoading(delBtn, true);
+  // Snapshot before mutating: if the write below fails, projectsData is restored to
+  // this rather than staying ahead of what's actually on GitHub. Without this, a
+  // failed delete's local removal could get silently completed by an unrelated later
+  // save (e.g. a reorder) that never knew the delete hadn't actually gone through. Aug 2026.
+  const backup = projectsData.projects.slice();
   try {
     projectsData.projects.splice(editingIndex, 1);
     statusEl.textContent = 'Suppression…';
@@ -1862,6 +1870,7 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
     editorEl.classList.remove('open');
     renderDashboard();
   } catch (e) {
+    projectsData.projects = backup; // the write never actually succeeded, undo the local removal
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
     showToast('Erreur : ' + e.message, 'error');
