@@ -270,24 +270,26 @@ h1, h2, h3 {
    Sits above .reel-frame (later in the DOM = later in paint order) so it dithers the
    halo itself, not just the frame's own background. pointer-events:none so it never
    blocks the fullscreen/sound buttons sitting underneath it. Bleed kept modest and
-   vertical-only (top/bottom -150px, no horizontal bleed) — .reel-frame is already full
-   width within .hero's own padding, so there's no room to bleed sideways without risking
+   vertical-only (top -150px, no horizontal bleed) — .reel-frame is already full width
+   within .hero's own padding, so there's no room to bleed sideways without risking
    horizontal overflow on narrow viewports (reported as visible edges/scroll, Aug 2026);
    past 150px vertically the glow has faded close enough to zero that banding isn't
    perceptible anyway.
-   Both the inset and the mask offsets below are also scaled by --halo-size, so if the
+   Both the inset and the mask offset below are also scaled by --halo-size, so if the
    admin dials the halo bigger, this layer's own coverage area grows to match — without
    that, a larger halo would outgrow its dithering and banding could reappear right at
    the edge of what this layer still covers.
-   mask-image cuts a hard-edged hole out of the exact middle of this layer, matching
-   .reel-frame's own rectangle (this box is inset -150px 0 from reel-frame, so that
-   rectangle sits at exactly 150px from the top and 150px from the bottom here). Without
-   it, this being the same width as the video with nothing excluding that middle region
-   meant the dither was painting directly over the reel itself the whole time — invisible
-   at low opacity, obvious once pushed up during the Aug 2026 ceiling test (which is how
-   this got caught). A hard mask edge here is correct, not a compromise: box-shadow
-   itself never paints over its own box's background either, so this just matches a
-   boundary that was already there. */
+   mask-image shows grain only in the top 150px (bleeding up behind the nav) — from
+   there down, everything is transparent: both the hole over .reel-frame's own
+   rectangle itself (without it, this being the same width as the video with nothing
+   excluding that region meant the dither painted directly over the reel — invisible at
+   low opacity, obvious once pushed up during the Aug 2026 ceiling test, which is how
+   this got caught) and the space below the reel down to the bottom of this layer's own
+   box, which used to be a second visible band symmetric with the top one. That bottom
+   band bled 150px past .hero's own edge into the top of #work, landing directly on the
+   Projets heading and reading as the section not being properly black — reported and
+   removed the same way, Aug 2026 (top bleed behind the nav was untouched, only asked
+   about specifically). */
 .halo-dither {
   position: absolute;
   inset: calc(-150px * var(--halo-size)) 0;
@@ -295,8 +297,8 @@ h1, h2, h3 {
   background-repeat: repeat;
   background-size: 180px 180px;
   pointer-events: none;
-  mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent calc(100% - 150px * var(--halo-size)), white calc(100% - 150px * var(--halo-size)), white 100%);
-  -webkit-mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent calc(100% - 150px * var(--halo-size)), white calc(100% - 150px * var(--halo-size)), white 100%);
+  mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent 100%);
   /* Same 1.0 multiplier on mobile and desktop now (requested Aug 2026 — texture should
      be consistent across both, not lighter on mobile). This layer's grain was
      originally tuned lower on mobile because the 8-bit banding rings it fixes only
