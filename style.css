@@ -93,6 +93,15 @@ h1, h2, h3 {
   opacity: 0;
   pointer-events: none;
 }
+/* Keyboard focus must always stay visible: opacity:0 above doesn't remove a faded
+   nav link from the tab order, so without this a keyboard user could focus an
+   invisible link with no visual indicator at all. Forces the nav back to fully
+   visible/interactive the instant any of its own children has focus, regardless
+   of scroll direction. Aug 2026. */
+.site-nav.nav-faded:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .wordmark {
   font-family: var(--display);
@@ -511,7 +520,12 @@ h1, h2, h3 {
 .category-filter button.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(138, 154, 91, 0.12);
+  /* Was hardcoded to rgba(138, 154, 91, ...) — the default green's RGB values — so on
+     the ~2/3 of loads where --accent randomizes to red or blue, this chip's background
+     stayed green while its border/text correctly followed the random color. color-mix
+     tracks --accent properly, same technique already used by .bottom-glow-gradient.
+     Fixed Aug 2026. */
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 /* On phones, 5 chips don't fit one line even shrunk, so scroll horizontally instead of
    wrapping to a second row (scrollbar hidden, swipe still works). Must come after the
