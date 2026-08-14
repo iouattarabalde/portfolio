@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=56">
+<link rel="stylesheet" href="style.css?v=57">
 <!-- Same accent-color randomization as index.html, on every page load — no persistence,
      so navigating between pages can land on a different color each time. See
      index.html for the full comment. -->
@@ -254,6 +254,14 @@
       console.error('Impossible de charger le projet:', err);
       document.getElementById('project-not-found').style.display = '';
     });
+
+  // Background color — editable in the admin (Design tab). No reel/halo on this page,
+  // but --bg still needs to match the rest of the site for consistency. Same pattern as
+  // index.html: silently no-ops if data/design.json doesn't exist yet. Aug 2026.
+  fetch('data/design.json')
+    .then((r) => r.json())
+    .then((d) => { if (d.bg) document.documentElement.style.setProperty('--bg', d.bg); })
+    .catch(() => {});
 </script>
 </body>
 </html>

@@ -25,7 +25,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css?v=56">
+<link rel="stylesheet" href="../style.css?v=57">
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -444,6 +444,26 @@
   .tab-panel { display:none; }
   .tab-panel.active { display:block; }
   .design-topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+
+  /* Réglages visuels (halo/grain/fond) — Aug 2026 */
+  .design-slider-row { margin-bottom: 20px; }
+  .design-slider-row:last-child { margin-bottom: 0; }
+  .design-slider-row label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;
+  }
+  .design-slider-value { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .design-slider-row input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .design-bg-row { display: flex; align-items: center; gap: 10px; }
+  .design-bg-row input[type="color"] {
+    width: 40px; height: 40px; padding: 0; border: 1px solid var(--line);
+    background: none; cursor: pointer; flex-shrink: 0;
+  }
+  .design-bg-row input[type="text"] {
+    width: 110px; background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+    font-family: var(--mono); font-size: 12px; padding: 9px 10px;
+  }
   .design-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 </style>
 </head>
@@ -559,9 +579,43 @@
   </div><!-- /tab-textes -->
 
   <!-- Aperçu : le vrai site en iframe, en taille desktop ou réduit à une largeur de
-       téléphone (390px) pour voir le rendu mobile sans redimensionner sa fenêtre. Pas
-       de réglages ici — c'est un aperçu, pas un éditeur. -->
+       téléphone (390px) pour voir le rendu mobile sans redimensionner sa fenêtre. -->
   <div class="tab-panel" id="tab-design">
+  <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:20px;">
+    <h2 style="font-size:16px; margin-bottom:4px;">Réglages visuels</h2>
+    <p class="field-hint" style="margin:0 0 20px;">Halo du reel, grain, couleur de fond. L'aperçu ci-dessous se met à jour en direct pendant que tu ajustes — rien n'est publié tant que tu n'as pas cliqué Enregistrer.</p>
+
+    <div class="design-slider-row">
+      <label for="design-halo-intensity">Intensité du halo <span class="design-slider-value" id="design-halo-intensity-val">1.00</span></label>
+      <input type="range" id="design-halo-intensity" min="0" max="2" step="0.05" value="1">
+    </div>
+    <div class="design-slider-row">
+      <label for="design-halo-size">Taille du halo <span class="design-slider-value" id="design-halo-size-val">1.00</span></label>
+      <input type="range" id="design-halo-size" min="0.5" max="2" step="0.05" value="1">
+    </div>
+    <div class="design-slider-row">
+      <label for="design-halo-falloff">Étalement du halo (portée du dégradé extérieur, indépendant de la taille) <span class="design-slider-value" id="design-halo-falloff-val">1.00</span></label>
+      <input type="range" id="design-halo-falloff" min="0.5" max="2.5" step="0.05" value="1">
+    </div>
+    <div class="design-slider-row">
+      <label for="design-grain-level">Niveau de grain (anti-banding autour du halo) <span class="design-slider-value" id="design-grain-level-val">1.00</span></label>
+      <input type="range" id="design-grain-level" min="0" max="3" step="0.1" value="1">
+    </div>
+    <div class="design-slider-row">
+      <label for="design-bg">Couleur de fond</label>
+      <div class="design-bg-row">
+        <input type="color" id="design-bg" value="#0C0C0C">
+        <input type="text" id="design-bg-hex" value="#0C0C0C" maxlength="7">
+      </div>
+    </div>
+
+    <div class="design-actions" style="margin-top:22px;">
+      <button class="btn" id="design-reset-btn">Réinitialiser</button>
+      <button class="btn btn-primary" id="design-save-btn">Enregistrer</button>
+      <span class="save-status" id="design-status"></span>
+    </div>
+  </div>
+
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px;">
     <div class="design-topbar">
       <div>
@@ -860,6 +914,23 @@ async function loadSettingsIntoForm() {
   document.getElementById('s-bio-en').value = s.bioEn || '';
   currentPhotoFilename = s.photoFilename || null;
   document.getElementById('s-photo-preview').src = currentPhotoFilename ? `../assets/${currentPhotoFilename}` : '';
+}
+
+// Loads data/design.json (halo/grain/background settings) into the sliders + color
+// picker. Falls back to the same defaults as :root in style.css if the file doesn't
+// exist yet (first use, before any Design save) — 1/1/1/1/#0C0C0C, matching exactly so
+// the sliders always start reflecting reality, saved or not. Aug 2026.
+const DESIGN_DEFAULTS = { haloIntensity: 1, haloSize: 1, haloFalloff: 1, grainLevel: 1, bg: '#0C0C0C' };
+async function loadDesignIntoForm() {
+  const file = await ghGetFile('data/design.json');
+  const d = file ? Object.assign({}, DESIGN_DEFAULTS, JSON.parse(decodeURIComponent(escape(atob(file.content))))) : DESIGN_DEFAULTS;
+  setDesignSlider('design-halo-intensity', d.haloIntensity);
+  setDesignSlider('design-halo-size', d.haloSize);
+  setDesignSlider('design-halo-falloff', d.haloFalloff);
+  setDesignSlider('design-grain-level', d.grainLevel);
+  document.getElementById('design-bg').value = d.bg;
+  document.getElementById('design-bg-hex').value = d.bg;
+  applyDesignVarsToPreview(); // reflect the just-loaded (saved) state in the iframe, not just the sliders
 }
 
 // New file picked -> instant local preview, matching the project editor's pattern.
@@ -1203,6 +1274,7 @@ async function tryConnect(t, { isBoot = false } = {}) {
     renderDashboard();
     loadSettingsIntoForm().catch((e) => console.error('Impossible de charger les coordonnées:', e));
     loadStringsIntoForm().catch((e) => console.error('Impossible de charger les textes du site:', e));
+    loadDesignIntoForm().catch((e) => console.error('Impossible de charger les réglages visuels:', e));
   } catch (e) {
     bootLoader.classList.remove('show');
     gate.style.display = '';
@@ -1793,6 +1865,93 @@ function setPreviewDevice(mode) {
   document.getElementById('design-device-desktop').classList.toggle('active', !mobile);
   document.getElementById('design-device-mobile').classList.toggle('active', mobile);
 }
+
+/* ---------- Réglages visuels (halo/grain/fond) ----------
+   Sliders read/write CSS custom properties directly on the LIVE SITE (via the same-
+   origin iframe's own documentElement), so what's shown is exactly what index.html
+   itself would render with these values — not a separate simulated preview that could
+   drift from the real thing. Nothing is saved to data/design.json until "Enregistrer"
+   is clicked; moving sliders only ever touches the iframe. Aug 2026. */
+function setDesignSlider(id, value) {
+  const input = document.getElementById(id);
+  input.value = value;
+  document.getElementById(id + '-val').textContent = Number(value).toFixed(2);
+}
+
+// Pushes the 5 current control values onto the preview iframe's own :root — called on
+// every slider/color input, and once right after the iframe finishes loading (a fresh
+// load starts back at data/design.json's saved values, wiping out any in-progress,
+// unsaved slider adjustment until this reasserts them).
+function applyDesignVarsToPreview() {
+  let doc;
+  try { doc = previewFrame.contentDocument; } catch (e) { return; } // cross-origin or not ready yet
+  if (!doc || !doc.documentElement) return;
+  const root = doc.documentElement.style;
+  root.setProperty('--halo-intensity', document.getElementById('design-halo-intensity').value);
+  root.setProperty('--halo-size', document.getElementById('design-halo-size').value);
+  root.setProperty('--halo-falloff', document.getElementById('design-halo-falloff').value);
+  root.setProperty('--grain-level', document.getElementById('design-grain-level').value);
+  root.setProperty('--bg', document.getElementById('design-bg').value);
+}
+previewFrame.addEventListener('load', applyDesignVarsToPreview);
+
+['design-halo-intensity', 'design-halo-size', 'design-halo-falloff', 'design-grain-level'].forEach((id) => {
+  document.getElementById(id).addEventListener('input', (e) => {
+    document.getElementById(id + '-val').textContent = Number(e.target.value).toFixed(2);
+    applyDesignVarsToPreview();
+  });
+});
+
+// Color picker and its hex text field stay in sync with each other, either can drive it.
+document.getElementById('design-bg').addEventListener('input', (e) => {
+  document.getElementById('design-bg-hex').value = e.target.value;
+  applyDesignVarsToPreview();
+});
+document.getElementById('design-bg-hex').addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+    document.getElementById('design-bg').value = v;
+    applyDesignVarsToPreview();
+  }
+});
+
+document.getElementById('design-reset-btn').addEventListener('click', () => {
+  setDesignSlider('design-halo-intensity', DESIGN_DEFAULTS.haloIntensity);
+  setDesignSlider('design-halo-size', DESIGN_DEFAULTS.haloSize);
+  setDesignSlider('design-halo-falloff', DESIGN_DEFAULTS.haloFalloff);
+  setDesignSlider('design-grain-level', DESIGN_DEFAULTS.grainLevel);
+  document.getElementById('design-bg').value = DESIGN_DEFAULTS.bg;
+  document.getElementById('design-bg-hex').value = DESIGN_DEFAULTS.bg;
+  applyDesignVarsToPreview();
+  showToast('Valeurs par défaut restaurées dans l\'aperçu — clique Enregistrer pour publier.');
+});
+
+document.getElementById('design-save-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('design-status');
+  const btn = document.getElementById('design-save-btn');
+  setBtnLoading(btn, true);
+  statusEl.textContent = 'Enregistrement…';
+  statusEl.className = 'save-status';
+  try {
+    const payload = {
+      haloIntensity: parseFloat(document.getElementById('design-halo-intensity').value),
+      haloSize: parseFloat(document.getElementById('design-halo-size').value),
+      haloFalloff: parseFloat(document.getElementById('design-halo-falloff').value),
+      grainLevel: parseFloat(document.getElementById('design-grain-level').value),
+      bg: document.getElementById('design-bg-hex').value
+    };
+    await ghPutFile('data/design.json', b64EncodeUnicode(JSON.stringify(payload, null, 2)), 'Admin : mise à jour des réglages visuels');
+    statusEl.textContent = 'Enregistré. En ligne dans ~1 min.';
+    statusEl.className = 'save-status success';
+    showToast('Réglages visuels enregistrés.');
+  } catch (e) {
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
+  } finally {
+    setBtnLoading(btn, false);
+  }
+});
 
 
 /* ---------- Onglets ----------
