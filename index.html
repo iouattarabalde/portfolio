@@ -27,22 +27,66 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=68">
-<!-- Starts the accent color at a random point in its continuous cycle (Red -> Yellow ->
-     Green -> Cyan -> Blue -> Magenta -> Red), requested Aug 2026 — replaces the earlier
-     random-pick-of-3-fixed-colors version. Runs synchronously here, before first paint,
-     so there's no flash of hue 0 before the random offset applies. The actual color
-     math (oklch hue rotation) and animation both live in style.css, under
-     html.accent-cycling — this script only adds that class and randomizes the phase.
+<link rel="stylesheet" href="style.css?v=69">
+<!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
+     Magenta -> Red), one full loop every 60s, random starting point per page load —
+     requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
+
+     This is the SECOND implementation. The first tried to do this entirely in CSS: an
+     animated number (--accent-hue) fed live into oklch()'s hue argument, redesigned
+     once already into --accent itself being a @property-registered <color> animated
+     directly through literal color keyframes. Both versions were spec-valid CSS, and
+     both broke .wordmark span's color in real browser testing anyway (it rendered
+     solid white — --accent was becoming invalid and falling through to the inherited
+     page text color). Animating a color-typed custom property through @property
+     proved too inconsistently supported in practice to keep trusting, so this version
+     drops CSS animation entirely: a requestAnimationFrame loop computes the exact
+     oklch(65% 0.09 hue) -> sRGB hex color for the current moment in JS, every frame,
+     and sets --accent directly via style.setProperty() — exactly the same mechanism
+     the original static 3-color picker used with zero issues, just re-run
+     continuously instead of once. The oklch->sRGB math and the 65%/0.09 L/C choice
+     are the same ones verified earlier for contrast (worst case 5.46:1 against --bg
+     across the full hue circle, comfortably clearing WCAG AA's 4.5:1).
+
      Only on the public pages (index.html, project.html) — deliberately not touched in
      admin/index.html, so the admin panel's own accent stays fixed at style.css's plain
      #8A9A5B default. -->
 <script>
   (function () {
-    var CYCLE_DURATION = 60; // seconds — must match the animation-duration on html.accent-cycling in style.css
+    var CYCLE_MS = 60000; // full 360° loop duration
+    var L = 0.65, C = 0.09; // oklch lightness/chroma — perceptually uniform brightness across every hue, unlike hsl()
     var html = document.documentElement;
-    html.classList.add('accent-cycling');
-    html.style.animationDelay = (-(Math.random() * CYCLE_DURATION)).toFixed(2) + 's'; // negative delay = starts already partway through the loop
+    var startOffset = Math.random() * CYCLE_MS; // randomizes where in the loop this page load begins
+
+    function oklchToHex(hueDeg) {
+      var h = hueDeg * Math.PI / 180;
+      var a = C * Math.cos(h);
+      var b = C * Math.sin(h);
+      var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+      var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+      var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+      var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+      var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+      var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+      var bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+      function toSrgb(c) {
+        c = Math.max(0, Math.min(1, c));
+        return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+      }
+      function hex2(c) {
+        var n = Math.round(toSrgb(c) * 255).toString(16);
+        return n.length === 1 ? '0' + n : n;
+      }
+      return '#' + hex2(r) + hex2(g) + hex2(bl);
+    }
+
+    function tick(now) {
+      var elapsed = (now + startOffset) % CYCLE_MS;
+      var hue = (elapsed / CYCLE_MS) * 360;
+      html.style.setProperty('--accent', oklchToHex(hue));
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
   })();
 </script>
 <script src="i18n.js"></script>
