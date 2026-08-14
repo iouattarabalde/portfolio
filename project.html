@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=65">
+<link rel="stylesheet" href="style.css?v=66">
 <!-- Same accent-color randomization as index.html, on every page load — no persistence,
      so navigating between pages can land on a different color each time. See
      index.html for the full comment. -->
@@ -122,34 +122,6 @@
     updateLangButton();
     renderProjectType(); // re-run so the Type field switches acronym language too
   });
-
-  // Nav bar: continuously fades as you scroll, tied directly to scroll distance rather
-  // than a fully-opaque/fully-hidden toggle keyed on direction — it reappears smoothly
-  // scrolling back up because it's purely a function of current scroll position, not
-  // which way you're moving. Reaches fully transparent after NAV_FADE_DISTANCE, no
-  // floor (Aug 2026 — index.html's equivalent anchors this to the Projects section
-  // instead of a fixed distance, but project.html has no such landmark to anchor to).
-  // rAF-throttled, same pattern as index.html.
-  (function () {
-    const navEl = document.querySelector('.site-nav');
-    if (!navEl) return;
-    const NAV_FADE_START = 20;     // px of scroll before the fade begins
-    const NAV_FADE_DISTANCE = 500; // px of scroll over which it fades from 1 down to 0
-    let ticking = false;
-    function update() {
-      const y = window.scrollY;
-      const progress = Math.min(Math.max((y - NAV_FADE_START) / NAV_FADE_DISTANCE, 0), 1);
-      navEl.style.setProperty('--nav-opacity', (1 - progress).toFixed(3));
-      ticking = false;
-    }
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        requestAnimationFrame(update);
-        ticking = true;
-      }
-    }, { passive: true });
-    update();
-  })();
 
   // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails, opening each
   // at its own index. It's called again after the gallery is (re)rendered from JSON,
