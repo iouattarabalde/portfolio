@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=63">
+<link rel="stylesheet" href="style.css?v=64">
 <!-- Same accent-color randomization as index.html, on every page load — no persistence,
      so navigating between pages can land on a different color each time. See
      index.html for the full comment. -->
@@ -135,7 +135,7 @@
     if (!navEl) return;
     const NAV_FADE_START = 20;     // px of scroll before the fade begins
     const NAV_FADE_DISTANCE = 500; // px of scroll over which it fades from 1 down to the floor
-    const NAV_FADE_FLOOR = 0.25;   // minimum opacity once scrolled past NAV_FADE_START + NAV_FADE_DISTANCE
+    const NAV_FADE_FLOOR = 0.6;    // minimum opacity once scrolled past NAV_FADE_START + NAV_FADE_DISTANCE — was 0.25, raised Aug 2026: too faint against a dark browser chrome, read as fully gone rather than dimmed
     let ticking = false;
     function update() {
       const y = window.scrollY;
