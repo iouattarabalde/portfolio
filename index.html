@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=72">
+<link rel="stylesheet" href="style.css?v=73">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -93,6 +93,8 @@
 </head>
 <body>
 
+<div class="grain-overlay" aria-hidden="true"></div>
+
 <nav class="site-nav">
   <div class="brand">
     <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
@@ -141,7 +143,6 @@
       </button>
     </div>
   </div>
-  <div class="halo-dither" aria-hidden="true"></div>
 </header>
 
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
