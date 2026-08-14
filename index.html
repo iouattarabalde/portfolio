@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=70">
+<link rel="stylesheet" href="style.css?v=71">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -143,13 +143,6 @@
   </div>
   <div class="halo-dither" aria-hidden="true"></div>
 </header>
-
-<!-- Bridges the reel's halo into the top of the work section — see .ambient-glow in
-     style.css for why this lives here as a sibling instead of inside .hero. -->
-<div class="ambient-glow" aria-hidden="true">
-  <div class="ambient-glow-noise"></div>
-  <div class="ambient-glow-gradient"></div>
-</div>
 
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
@@ -331,41 +324,14 @@
         </div>
       </a>
     `).join('');
-    sizeAmbientGlow(); // grid height just changed (new filter, language, or first load) — keep the glow's reach matching it
-  }
-
-  // Sizes .ambient-glow (the halo's extended falloff, reaching into the work section —
-  // requested Aug 2026) so its fade reaches the actual bottom of #work, whatever height
-  // that currently is for however many projects are showing.
-  // Uses ResizeObserver rather than the window 'load' event: 'load' fires based on the
-  // page's own declared resources and does NOT wait for the async data/projects.json
-  // fetch this grid is built from, so it was measuring an still-empty #work and locking
-  // in a too-small height (reported Aug 2026 — the glow visibly stopped after the first
-  // row). ResizeObserver instead recalculates automatically any time #work's real
-  // rendered size changes for any reason: first data load, a filter click, a language
-  // toggle, a font finishing its own reflow, or the viewport resizing.
-  function sizeAmbientGlow() {
-    const glow = document.querySelector('.ambient-glow');
-    const work = document.getElementById('work');
-    if (!glow || !work) return;
-    const glowTop = glow.getBoundingClientRect().top + window.scrollY;
-    const workBottom = work.getBoundingClientRect().bottom + window.scrollY;
-    glow.style.height = Math.max(300, workBottom - glowTop) + 'px';
-  }
-  const workEl = document.getElementById('work');
-  if (workEl && 'ResizeObserver' in window) {
-    new ResizeObserver(sizeAmbientGlow).observe(workEl);
-  } else {
-    window.addEventListener('load', sizeAmbientGlow); // fallback for the rare browser without ResizeObserver
   }
 
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
-  // without this, sizeReel/sizeAmbientGlow ran once per resize event with no limit,
-  // unlike the scroll handler which is deliberately throttled. Aug 2026.
+  // without this, sizeReel ran once per resize event with no limit, unlike the scroll
+  // handler which is deliberately throttled. Aug 2026.
   let resizeTicking = false;
   function onResizeThrottled() {
     sizeReel();
-    sizeAmbientGlow();
     resizeTicking = false;
   }
   window.addEventListener('resize', () => {
