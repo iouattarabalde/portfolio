@@ -2,6 +2,6 @@
   "haloIntensity": 1,
   "haloSize": 1,
   "haloFalloff": 2.5,
-  "grainLevel": 0.5,
+  "grainLevel": 0.35,
   "bg": "#0C0C0C"
 }
