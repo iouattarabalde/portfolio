@@ -1,7 +1,7 @@
 {
-  "haloIntensity": 0,
-  "haloSize": 0.5,
-  "haloFalloff": 0.5,
-  "grainLevel": 0,
-  "bg": "#0C0C0C"
+  "haloIntensity": 0.6,
+  "haloSize": 1,
+  "haloFalloff": 2,
+  "grainLevel": 3,
+  "bg": "#000000"
 }
