@@ -198,7 +198,16 @@ h1, h2, h3 {
    width within .hero's own padding, so there's no room to bleed sideways without risking
    horizontal overflow on narrow viewports (reported as visible edges/scroll, Aug 2026);
    past 150px vertically the glow has faded close enough to zero that banding isn't
-   perceptible anyway. */
+   perceptible anyway.
+   mask-image cuts a hard-edged hole out of the exact middle of this layer, matching
+   .reel-frame's own rectangle (this box is inset -150px 0 from reel-frame, so that
+   rectangle sits at exactly 150px from the top and 150px from the bottom here). Without
+   it, this being the same width as the video with nothing excluding that middle region
+   meant the dither was painting directly over the reel itself the whole time — invisible
+   at low opacity, obvious once pushed up during the Aug 2026 ceiling test (which is how
+   this got caught). A hard mask edge here is correct, not a compromise: box-shadow
+   itself never paints over its own box's background either, so this just matches a
+   boundary that was already there. */
 .halo-dither {
   position: absolute;
   inset: -150px 0;
@@ -206,12 +215,15 @@ h1, h2, h3 {
   background-repeat: repeat;
   background-size: 180px 180px;
   pointer-events: none;
+  mask-image: linear-gradient(to bottom, white 0, white 150px, transparent 150px, transparent calc(100% - 150px), white calc(100% - 150px), white 100%);
+  -webkit-mask-image: linear-gradient(to bottom, white 0, white 150px, transparent 150px, transparent calc(100% - 150px), white calc(100% - 150px), white 100%);
 }
-/* 0.11 wasn't enough either — rings still visible, Aug 2026. Pushed hard to 0.35 here
-   as a ceiling test: if rings are STILL visible at this strength (should look like
-   obvious, ugly visible grain at this point), the noise-dither technique itself isn't
-   the right fix for this and something else is going on — worth knowing before tuning
-   further. Mobile stays untouched at 0.06 above. */
+/* 0.11 wasn't enough — rings still visible, Aug 2026. A 0.35 ceiling test confirmed
+   dithering does fix it (rings gone); also revealed the masking bug fixed above (the
+   grain was visibly painting over the reel itself at that strength). Manually settled
+   back down to 0.2 directly in GitHub once the rings were confirmed fixable — kept as-
+   is here, this comment just explains where 0.2 came from. Mobile stays untouched at
+   0.06 above. */
 @media (min-width: 768px) {
   .halo-dither {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
@@ -266,7 +278,11 @@ h1, h2, h3 {
   background-repeat: repeat, no-repeat;
   background-size: 180px 180px, 100% 100%;
 }
-/* Same ceiling-test push as .halo-dither above (0.1 -> 0.32), same reasoning. */
+/* Ambient-glow is z-index:-1 (behind .reel-frame's opaque background), so it never had
+   the halo-dither masking bug above. A 0.32 ceiling test confirmed dithering works here
+   too; manually settled down to 0.1 directly in GitHub afterward (lighter than
+   .halo-dither's 0.2 — this is the broader, more gradual wash, less texture needed to
+   break up its banding). */
 @media (min-width: 768px) {
   .ambient-glow {
     background-image:
@@ -353,10 +369,12 @@ h1, h2, h3 {
   background-repeat: repeat, no-repeat;
   background-size: 180px 180px, 100% 100%;
 }
+/* Same situation as .ambient-glow above: z-index:-1, no masking bug, settled to the
+   same 0.1 for consistency between the two large ambient washes. */
 @media (min-width: 768px) {
   .bottom-glow {
     background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
       radial-gradient(
         ellipse 100% 90% at 50% 100%,
         color-mix(in srgb, var(--accent) 32%, transparent) 0%,
