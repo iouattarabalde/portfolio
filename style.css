@@ -120,30 +120,14 @@ h1, h2, h3 {
   justify-content: space-between;
   padding: var(--nav-pad, 20px) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
   background: rgba(12, 12, 12, 0.45);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px); /* blurs whatever scrolls underneath the sticky nav — kept throughout the whole opacity-fade experiment below, liked independently of it */
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  /* --nav-opacity is set every scroll frame by the listener in index.html/project.html —
-     a continuous fade tied directly to scroll distance, not a discrete on/off toggle, so
-     it reappears just as smoothly scrolling back up as it fades scrolling down (it's a
-     function of scroll position, not direction). Reaches true 0 by request (Aug 2026)
-     — on index.html, exactly when the nav reaches the Projects section; on project.html,
-     which has no such landmark, over a fixed distance instead. No CSS transition here on
-     purpose: a transition would fight the per-frame JS updates and produce lag/rubber-
-     banding instead of true 1:1 tracking with scroll position. (Previously floored at
-     0.6 so the nav never fully disappeared — removed per explicit request; the
-     :focus-within rule just below is what actually matters for keeping a keyboard-
-     focused nav visible now that 0 is reachable again.) */
-  opacity: var(--nav-opacity, 1);
-}
-/* Keyboard focus always forces the nav fully opaque, however far down the page you've
-   scrolled — critical now that --nav-opacity can reach true 0 (see above): without this,
-   a keyboard user could focus a completely invisible link with zero visual indicator,
-   the exact bug fixed earlier this session. One extra pseudo-class = higher specificity
-   than the base rule above, so this wins over whatever --nav-opacity currently holds
-   without needing !important. */
-.site-nav:focus-within {
-  opacity: 1;
+  /* Always fully visible — no opacity fade. This went through two fade designs this
+     session (a direction-based toggle, then a continuous scroll-linked fade reaching
+     either a 0.6 floor or true 0) before landing back here by explicit request: fully
+     accessible at all times, relying only on position:sticky + the backdrop-filter blur
+     above for legibility over scrolling content. Aug 2026. */
 }
 
 .wordmark {
