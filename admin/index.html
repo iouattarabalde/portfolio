@@ -445,6 +445,16 @@
   .tab-panel.active { display:block; }
   .design-topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
 
+  /* Réglages + aperçu côte à côte, pour voir l'effet des curseurs en même temps qu'on
+     les bouge — empilés sous 1000px de large (colonne étroite : pas la place). Aug 2026. */
+  .design-layout { display: flex; gap: 20px; align-items: flex-start; }
+  .design-controls { flex: 0 0 380px; }
+  .design-preview-col { flex: 1 1 0%; min-width: 0; }
+  @media (max-width: 999px) {
+    .design-layout { flex-direction: column; }
+    .design-controls { flex: 1 1 auto; width: 100%; }
+  }
+
   /* Réglages visuels (halo/grain/fond) — Aug 2026 */
   .design-slider-row { margin-bottom: 20px; }
   .design-slider-row:last-child { margin-bottom: 0; }
@@ -579,11 +589,15 @@
   </div><!-- /tab-textes -->
 
   <!-- Aperçu : le vrai site en iframe, en taille desktop ou réduit à une largeur de
-       téléphone (390px) pour voir le rendu mobile sans redimensionner sa fenêtre. -->
+       téléphone (390px) pour voir le rendu mobile sans redimensionner sa fenêtre.
+       Réglages et aperçu côte à côte (empilés sous 1000px) pour voir l'effet des
+       curseurs en même temps qu'on les bouge — Aug 2026. */
   <div class="tab-panel" id="tab-design">
-  <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:20px;">
+  <div class="design-layout">
+  <div class="design-controls">
+  <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px;">
     <h2 style="font-size:16px; margin-bottom:4px;">Réglages visuels</h2>
-    <p class="field-hint" style="margin:0 0 20px;">Halo du reel, grain, couleur de fond. L'aperçu ci-dessous se met à jour en direct pendant que tu ajustes — rien n'est publié tant que tu n'as pas cliqué Enregistrer.</p>
+    <p class="field-hint" style="margin:0 0 20px;">Halo du reel, grain, couleur de fond. L'aperçu se met à jour en direct pendant que tu ajustes — rien n'est publié tant que tu n'as pas cliqué Enregistrer.</p>
 
     <div class="design-slider-row">
       <label for="design-halo-intensity">Intensité du halo <span class="design-slider-value" id="design-halo-intensity-val">1.00</span></label>
@@ -612,10 +626,12 @@
     <div class="design-actions" style="margin-top:22px;">
       <button class="btn" id="design-reset-btn">Réinitialiser</button>
       <button class="btn btn-primary" id="design-save-btn">Enregistrer</button>
-      <span class="save-status" id="design-status"></span>
     </div>
+    <span class="save-status" id="design-status" style="display:block; margin-top:10px;"></span>
   </div>
+  </div><!-- /design-controls -->
 
+  <div class="design-preview-col">
   <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px;">
     <div class="design-topbar">
       <div>
@@ -631,6 +647,8 @@
       <iframe id="design-preview" src="../index.html" style="display:block; width:100%; height:min(78vh, 900px); border:0; background:#000;" title="Aperçu du site"></iframe>
     </div>
   </div>
+  </div><!-- /design-preview-col -->
+  </div><!-- /design-layout -->
   </div><!-- /tab-design -->
 </div>
 
