@@ -46,6 +46,22 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
+/* Visually hidden but present for screen readers/SEO — used for index.html's h1
+   (the visible "brand" in nav is a link, not a heading, so the page had no h1 at
+   all without this). Standard clip-based pattern, not display:none, so it still
+   participates in the accessibility tree. Aug 2026. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Language toggling — English is default, French shown when body has .lang-fr.
    Every bilingual bit of copy is written twice inline as <span data-fr> / <span data-en>;
    these four rules just show/hide the right one based on the class on <body>.
@@ -167,6 +183,7 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: calc(100vh - 73px); /* fallback for browsers without dvh support — dropped by any browser that understands the next line */
   min-height: calc(100dvh - 73px);
   padding: 20px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
 }
@@ -565,9 +582,10 @@ h1, h2, h3 {
 .work-card .thumb {
   position: absolute;
   inset: 0;
-  background: var(--bg-raised);
-  background-size: cover;
-  background-position: center;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-raised); /* shows while the image loads */
+  object-fit: cover; /* was background-size:cover on a div — now an <img> so loading="lazy" actually works, Aug 2026 */
   transition: transform var(--zoom-dur, 0.5s) ease;
 }
 .work-card:hover .thumb { transform: scale(var(--zoom, 1.04)); }
