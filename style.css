@@ -21,6 +21,15 @@
   --halo-size: 1;       /* multiplies the reel halo's blur+spread radius (all 3 shadow layers) */
   --halo-falloff: 1;    /* multiplies only the outermost/faintest shadow layer's extent — how far the tail reaches, independent of overall size */
   --grain-level: 1;     /* multiplies dither-layer opacity (anti-banding noise around the halo) */
+
+  /* Shared turbulence-noise texture used by .halo-dither, .ambient-glow-noise, and
+     .bottom-glow-noise — those three used to each embed their own copy of this same
+     SVG, differing only in one baked-in alpha value. Baked here at 0.2 (the strongest
+     of the three, .halo-dither's own desktop value) as a single reference; each layer
+     now reaches its own mobile/desktop alpha via a plain opacity multiplier instead
+     (calc(var(--grain-level) * N), see each layer below) — mathematically identical
+     output, one copy of the SVG instead of six. Consolidated Aug 2026. */
+  --noise-svg: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
 * { box-sizing: border-box; }
@@ -257,19 +266,18 @@ h1, h2, h3 {
 .halo-dither {
   position: absolute;
   inset: calc(-150px * var(--halo-size)) 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-image: var(--noise-svg);
   background-repeat: repeat;
   background-size: 180px 180px;
   pointer-events: none;
   mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent calc(100% - 150px * var(--halo-size)), white calc(100% - 150px * var(--halo-size)), white 100%);
   -webkit-mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent calc(100% - 150px * var(--halo-size)), white calc(100% - 150px * var(--halo-size)), white 100%);
-  opacity: var(--grain-level); /* admin-adjustable multiplier, default 1 — not re-declared
-                                   in the desktop media query below, so it applies at every
-                                   breakpoint on top of whichever background-image is active.
-                                   Scoped to just this layer (not .ambient-glow/.bottom-glow,
-                                   whose noise shares an element with their own actual glow
-                                   gradient — scaling those together would conflate "grain"
-                                   with "glow brightness", which isn't what was asked for). */
+  /* 0.3 here = 0.06 / 0.2 — this layer's old mobile alpha, expressed as a fraction of
+     --noise-svg's baked-in 0.2 reference. 1.0 at desktop below = the old 0.2 exactly,
+     since that value IS the reference. Same rendered result as before the SVGs were
+     consolidated, just reached by scaling one shared texture instead of swapping
+     between three separately-baked ones. */
+  opacity: calc(var(--grain-level) * 0.3);
 }
 /* 0.11 wasn't enough — rings still visible, Aug 2026. A 0.35 ceiling test confirmed
    dithering does fix it (rings gone); also revealed the masking bug fixed above (the
@@ -279,7 +287,7 @@ h1, h2, h3 {
    0.06 above. */
 @media (min-width: 768px) {
   .halo-dither {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: var(--grain-level); /* 1.0 multiplier = the reference SVG's own 0.2, i.e. the old desktop value unchanged */
   }
 }
 
@@ -332,10 +340,10 @@ h1, h2, h3 {
   inset: 0;
 }
 .ambient-glow-noise {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-image: var(--noise-svg);
   background-repeat: repeat;
   background-size: 180px 180px;
-  opacity: var(--grain-level);
+  opacity: calc(var(--grain-level) * 0.25); /* 0.25 = old mobile alpha (0.05) / --noise-svg's 0.2 reference */
   /* Without this, the noise tiles at constant density across this element's ENTIRE
      height (which can be several thousand px on a long work grid), while the actual
      glow color fades out within the first ~60% of that — so the noise reads as one big
@@ -377,7 +385,7 @@ h1, h2, h3 {
    more gradual wash, less texture needed to break up its banding). */
 @media (min-width: 768px) {
   .ambient-glow-noise {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: calc(var(--grain-level) * 0.5); /* 0.5 = old desktop alpha (0.1) / 0.2 reference */
   }
 }
 
@@ -449,10 +457,10 @@ h1, h2, h3 {
   inset: 0;
 }
 .bottom-glow-noise {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-image: var(--noise-svg);
   background-repeat: repeat;
   background-size: 180px 180px;
-  opacity: var(--grain-level);
+  opacity: calc(var(--grain-level) * 0.3); /* 0.3 = old mobile alpha (0.06) / --noise-svg's 0.2 reference */
   /* Same reasoning and technique as .ambient-glow-noise's mask above — proportionally
      normalized copy of .bottom-glow-gradient's own shape/stops, so the noise fades
      with the actual colored glow instead of tiling at constant density across all of
@@ -484,7 +492,7 @@ h1, h2, h3 {
 /* Settled to the same 0.1 as .ambient-glow, for consistency between the two washes. */
 @media (min-width: 768px) {
   .bottom-glow-noise {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: calc(var(--grain-level) * 0.5); /* 0.5 = old desktop alpha (0.1) / 0.2 reference */
   }
 }
 
@@ -896,4 +904,22 @@ h1, h2, h3 {
    éditeur visuel léger redevient utile, l'indirection est déjà en place pour l'accueillir. */
 @media (max-width: 700px) {
   body { font-size: var(--body-size-m, var(--body-size, 15px)); }
+}
+
+/* Reduced motion: honors the OS-level accessibility setting for people sensitive to
+   motion. Turns off smooth scrolling and the hover-triggered zoom on gallery/work-card
+   thumbnails. Deliberately does NOT touch the hero reel's autoplay/loop — that's a
+   separate, deliberate choice (muted by default, full user control via the sound/
+   fullscreen buttons), not treated as the kind of incidental motion this addresses.
+   Aug 2026. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .work-card .thumb,
+  .gallery-item img {
+    transition: none;
+  }
+  .work-card:hover .thumb,
+  .gallery-item:hover img {
+    transform: none;
+  }
 }
