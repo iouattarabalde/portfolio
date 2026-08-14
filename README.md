@@ -204,22 +204,28 @@ Si un changement récent n'apparaît pas après une minute ou deux, ce n'est gé
 un problème de données, un nouveau commit (n'importe lequel) suffit à relancer un
 déploiement propre.
 
-## Aperçu du site (onglet Design de l'admin)
+## Aperçu et réglages visuels (onglet Design de l'admin)
 
 L'admin est organisé en trois onglets (Projets, Textes du site, Design), onglet actif
-mémorisé entre les visites. L'onglet "Design" a eu un panneau d'édition visuelle complet
-(couleurs, typographie, grille, mise en page, etc., persistées dans `data/design.json` via
-un fichier `design.js`), retiré le 9 juillet 2026 : trop chargé pour l'usage réel, jugé plus
-overwhelming qu'utile. Il ne reste que l'aperçu du site en iframe avec une bascule
-Desktop/Mobile (réduit l'iframe à 390px de large pour déclencher les mêmes media queries
-qu'un vrai téléphone) — un outil de vérification, pas d'édition.
+mémorisé entre les visites. L'onglet "Design" a eu un premier panneau d'édition visuelle
+complet (couleurs, typographie, grille, mise en page, etc., persistées dans `data/design.json`
+via un fichier `design.js`), retiré le 9 juillet 2026 : trop chargé pour l'usage réel, jugé plus
+overwhelming qu'utile.
 
-`style.css` garde une partie de l'infrastructure de ce panneau : les propriétés qui
-pouvaient être ajustées (colonnes de grille, ratio des vignettes, espacements, etc.)
-utilisent encore `var(--nom, valeur-d-origine)` plutôt qu'une valeur en dur, avec un repli
-identique au design d'origine. Comme plus rien ne définit ces variables, le repli fait
-toujours foi et le rendu est strictement identique à avant — c'est noté dans le CSS même,
-en cas de besoin futur d'un éditeur plus ciblé.
+Un panneau plus ciblé l'a remplacé depuis (Aug 2026) : curseurs pour l'intensité, la taille et
+l'étalement du halo du reel, le niveau de grain (anti-banding), et un sélecteur de couleur de
+fond. Les changements s'appliquent en direct dans l'aperçu (le vrai site en iframe, bascule
+Desktop/Mobile qui réduit l'iframe à 390px de large pour déclencher les mêmes media queries
+qu'un vrai téléphone) sans rien publier. Seul un clic sur **Enregistrer** écrit dans
+`data/design.json` ; **Réinitialiser** remet les valeurs par défaut dans l'aperçu, sans publier
+non plus.
+
+Les propriétés de mise en page plus larges (colonnes de grille, ratio des vignettes,
+espacements, typographie, etc.) restent hors de portée de ce panneau : `style.css` garde
+l'infrastructure de l'ancien éditeur complet pour elles (`var(--nom, valeur-d-origine)` plutôt
+qu'une valeur en dur), mais rien ne les définit actuellement, donc leur repli fait toujours foi
+et le rendu de mise en page reste strictement identique à avant — c'est noté dans le CSS même,
+en cas de besoin futur d'un éditeur plus ciblé pour celles-ci aussi.
 
 ## Carte de partage et favicon
 
