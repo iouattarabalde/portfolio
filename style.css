@@ -34,36 +34,52 @@
   --noise-svg: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
-/* Registers --accent-hue as an animatable number (plain custom properties can't be
-   smoothly interpolated by the browser without this) so @keyframes below can actually
-   tween it, rather than just jumping between values. */
-@property --accent-hue {
-  syntax: '<number>';
+/* Registers --accent as an animatable color (plain custom properties can't be smoothly
+   interpolated by the browser without this) so @keyframes below can actually tween it.
+   initial-value matches :root's own default just above, so registering this changes
+   nothing for anyone not opted into .accent-cycling. */
+@property --accent {
+  syntax: '<color>';
   inherits: true;
-  initial-value: 0;
-}
-@keyframes accent-hue-cycle {
-  to { --accent-hue: 360; }
+  initial-value: #8A9A5B;
 }
 /* Continuously cycling accent color, Aug 2026 — Red -> Yellow -> Green -> Cyan -> Blue
-   -> Magenta -> Red, one full hue rotation every 120s. Uses oklch(), not hsl(): at a
-   fixed hsl() lightness, yellow reads much brighter than blue or magenta at the same
+   -> Magenta -> Red, one full loop every 60s. Uses oklch(), not hsl(): at a fixed
+   hsl() lightness, yellow reads much brighter than blue or magenta at the same
    lightness (a well-known perceptual mismatch), so a plain hue rotation would visibly
-   pulse in brightness as it cycles. oklch()'s L channel is perceptually uniform, so 65%
-   lightness / 0.09 chroma looks equally vivid at every hue instead. Verified this L/C
-   pair at 0.1° resolution around the full circle: worst-case text contrast against
-   --bg is 5.46:1, comfortably clearing WCAG AA (4.5:1) everywhere in the cycle, and
-   nothing falls outside displayable sRGB. var(--accent-hue, 0) has an explicit
-   fallback for the rare browser without @property support, where the animation simply
-   won't run and this resolves to a fixed, still-valid color instead of breaking.
+   pulse in brightness as it cycles. oklch()'s L channel is perceptually uniform, so
+   65% lightness / 0.09 chroma looks equally vivid at every stop. Verified this L/C
+   pair at 0.1° resolution around the full hue circle: worst-case text contrast
+   against --bg is 5.46:1, comfortably clearing WCAG AA (4.5:1) everywhere, and
+   nothing falls outside displayable sRGB.
+   The 6 hue angles below are each color's ACTUAL measured OKLCH hue, not the naive
+   evenly-spaced 0/60/120/180/240/300 HSL assumes — OKLCH's perceptual hue wheel isn't
+   evenly spaced the way HSL's is, so using HSL's angles here would have landed on the
+   wrong colors entirely (this was caught and fixed the same day it shipped).
+   Animates --accent directly through literal color keyframes, not an intermediate
+   --accent-hue number fed into oklch()'s hue argument — that approach shipped first
+   and silently failed (an animated number used live inside a color function argument
+   is a newer, less consistently-supported code path), which invalidated --accent
+   entirely and fell back to inherited white text on .wordmark span. Direct color
+   keyframes are the far more standard, broadly-supported pattern.
    Opt-in via the .accent-cycling class (added by a small inline script in <head>,
    before first paint, which also sets a random negative animation-delay so each page
    load starts at a different point in the loop) rather than applying to :root
    directly — admin/index.html never adds that class, so it keeps the plain #8A9A5B
-   above, exactly as before this existed. */
+   above, exactly as before this existed. Browsers without @property support simply
+   don't animate --accent at all, leaving it at :root's plain #8A9A5B — a safe,
+   non-broken fallback, not a repeat of the white-text bug. */
+@keyframes accent-cycle {
+  0%     { --accent: oklch(65% 0.09 29.2); }  /* Red */
+  16.67% { --accent: oklch(65% 0.09 109.8); } /* Yellow */
+  33.33% { --accent: oklch(65% 0.09 142.5); } /* Green */
+  50%    { --accent: oklch(65% 0.09 194.8); } /* Cyan */
+  66.67% { --accent: oklch(65% 0.09 264.1); } /* Blue */
+  83.33% { --accent: oklch(65% 0.09 328.4); } /* Magenta */
+  100%   { --accent: oklch(65% 0.09 29.2); }  /* back to Red */
+}
 html.accent-cycling {
-  --accent: oklch(65% 0.09 var(--accent-hue, 0));
-  animation: accent-hue-cycle 120s linear infinite;
+  animation: accent-cycle 60s linear infinite;
 }
 
 * { box-sizing: border-box; }
