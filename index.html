@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=63">
+<link rel="stylesheet" href="style.css?v=64">
 <!-- Randomizes the site's accent color on every page load (red/green/blue), requested
      Aug 2026. Runs synchronously here, before first paint, so there's no flash of the
      default green before it swaps. Only on the public pages (index.html, project.html)
@@ -338,7 +338,7 @@
     if (!nav) return;
     const NAV_FADE_START = 20;     // px of scroll before the fade begins
     const NAV_FADE_DISTANCE = 500; // px of scroll over which it fades from 1 down to the floor
-    const NAV_FADE_FLOOR = 0.25;   // minimum opacity once scrolled past NAV_FADE_START + NAV_FADE_DISTANCE
+    const NAV_FADE_FLOOR = 0.6;    // minimum opacity once scrolled past NAV_FADE_START + NAV_FADE_DISTANCE — was 0.25, raised Aug 2026: too faint against a dark browser chrome, read as fully gone rather than dimmed
     let ticking = false;
     function update() {
       const y = window.scrollY;
