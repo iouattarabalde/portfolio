@@ -126,19 +126,22 @@ h1, h2, h3 {
   /* --nav-opacity is set every scroll frame by the listener in index.html/project.html —
      a continuous fade tied directly to scroll distance, not a discrete on/off toggle, so
      it reappears just as smoothly scrolling back up as it fades scrolling down (it's a
-     function of scroll position, not direction). Floors at 0.6 rather than reaching 0,
-     so the nav never actually disappears, only recedes — deliberately avoids reintroducing
-     the invisible-but-still-focusable nav bug fixed earlier. No CSS transition here on
+     function of scroll position, not direction). Reaches true 0 by request (Aug 2026)
+     — on index.html, exactly when the nav reaches the Projects section; on project.html,
+     which has no such landmark, over a fixed distance instead. No CSS transition here on
      purpose: a transition would fight the per-frame JS updates and produce lag/rubber-
-     banding instead of true 1:1 tracking with scroll position. Redesigned Aug 2026 (was
-     a binary opacity 0/1 class toggle keyed on scroll direction). */
+     banding instead of true 1:1 tracking with scroll position. (Previously floored at
+     0.6 so the nav never fully disappeared — removed per explicit request; the
+     :focus-within rule just below is what actually matters for keeping a keyboard-
+     focused nav visible now that 0 is reachable again.) */
   opacity: var(--nav-opacity, 1);
 }
 /* Keyboard focus always forces the nav fully opaque, however far down the page you've
-   scrolled — without this, a keyboard user could land on a link dimmed near the 0.6
-   floor with a much fainter focus indicator than the rest of the site. One extra
-   pseudo-class = higher specificity than the base rule above, so this wins over
-   whatever --nav-opacity currently holds without needing !important. */
+   scrolled — critical now that --nav-opacity can reach true 0 (see above): without this,
+   a keyboard user could focus a completely invisible link with zero visual indicator,
+   the exact bug fixed earlier this session. One extra pseudo-class = higher specificity
+   than the base rule above, so this wins over whatever --nav-opacity currently holds
+   without needing !important. */
 .site-nav:focus-within {
   opacity: 1;
 }
