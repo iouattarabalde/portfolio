@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=60">
+<link rel="stylesheet" href="style.css?v=61">
 <!-- Same accent-color randomization as index.html, on every page load — no persistence,
      so navigating between pages can land on a different color each time. See
      index.html for the full comment. -->
@@ -91,7 +91,7 @@
 </section>
 
 <!-- Full-screen image viewer, opened by clicking any gallery thumbnail (see wireLightbox below) -->
-<div class="lightbox" id="lightbox">
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
   <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-fr data-key="lightbox.close"></span><span data-en data-key="lightbox.close"></span></button>
   <button class="lightbox-nav lightbox-prev" id="lightbox-prev" type="button" aria-label="Previous image">←</button>
   <img id="lightbox-img" src="" alt="">
@@ -160,7 +160,9 @@
   const lightboxImg = document.getElementById('lightbox-img');
   const lightboxPrev = document.getElementById('lightbox-prev');
   const lightboxNext = document.getElementById('lightbox-next');
+  const lightboxCloseBtn = document.getElementById('lightbox-close');
   let lightboxIndex = -1;
+  let lightboxTrigger = null; // element to return focus to on close — set only on the initial open, not on prev/next navigation
 
   function openLightboxAt(index) {
     if (!currentProject) return;
@@ -176,14 +178,28 @@
   }
   function wireLightbox() {
     document.querySelectorAll('.gallery-item').forEach((item, idx) => {
-      item.addEventListener('click', () => openLightboxAt(idx));
+      item.addEventListener('click', () => {
+        lightboxTrigger = item; // fires for both mouse clicks and Enter/Space on the button
+        openLightboxAt(idx);
+        lightboxCloseBtn.focus(); // move keyboard focus into the lightbox on open
+      });
     });
   }
   function closeLightbox() {
     lightbox.classList.remove('open');
     lightboxImg.src = '';
+    if (lightboxTrigger) {
+      lightboxTrigger.focus(); // return focus to the thumbnail that opened it
+      lightboxTrigger = null;
+    }
   }
-  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  // Only the lightbox's own currently-visible buttons (prev/next are display:none
+  // when the gallery has just one image) — used to keep Tab/Shift+Tab cycling inside
+  // the lightbox instead of escaping to page content hidden behind the overlay.
+  function getLightboxFocusable() {
+    return Array.from(lightbox.querySelectorAll('button')).filter((el) => el.offsetParent !== null);
+  }
+  lightboxCloseBtn.addEventListener('click', closeLightbox);
   lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); openLightboxAt(lightboxIndex - 1); });
   lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); openLightboxAt(lightboxIndex + 1); });
   lightbox.addEventListener('click', (e) => {
@@ -191,9 +207,22 @@
   });
   document.addEventListener('keydown', (e) => {
     if (!lightbox.classList.contains('open')) return;
-    if (e.key === 'Escape') closeLightbox();
-    else if (e.key === 'ArrowLeft') openLightboxAt(lightboxIndex - 1);
-    else if (e.key === 'ArrowRight') openLightboxAt(lightboxIndex + 1);
+    if (e.key === 'Escape') { closeLightbox(); return; }
+    if (e.key === 'ArrowLeft') { openLightboxAt(lightboxIndex - 1); return; }
+    if (e.key === 'ArrowRight') { openLightboxAt(lightboxIndex + 1); return; }
+    if (e.key === 'Tab') {
+      const focusable = getLightboxFocusable();
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
   });
 
   // Which project to show comes from the URL, e.g. project.html?project=fleur-de-peau
