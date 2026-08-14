@@ -109,23 +109,24 @@ h1, h2, h3 {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  transition: opacity 0.6s ease; /* the "slowly" in slowly fade in/out — see scroll listener in index.html/project.html */
+  /* --nav-opacity is set every scroll frame by the listener in index.html/project.html —
+     a continuous fade tied directly to scroll distance, not a discrete on/off toggle, so
+     it reappears just as smoothly scrolling back up as it fades scrolling down (it's a
+     function of scroll position, not direction). Floors at 0.25 rather than reaching 0,
+     so the nav never actually disappears, only recedes — deliberately avoids reintroducing
+     the invisible-but-still-focusable nav bug fixed earlier. No CSS transition here on
+     purpose: a transition would fight the per-frame JS updates and produce lag/rubber-
+     banding instead of true 1:1 tracking with scroll position. Redesigned Aug 2026 (was
+     a binary opacity 0/1 class toggle keyed on scroll direction). */
+  opacity: var(--nav-opacity, 1);
 }
-/* Applied/removed by a scroll listener: fades out scrolling down, fades back in
-   scrolling up, stays fully visible near the top. pointer-events off while hidden so
-   an invisible nav can't block clicks on whatever's now showing through it. */
-.site-nav.nav-faded {
-  opacity: 0;
-  pointer-events: none;
-}
-/* Keyboard focus must always stay visible: opacity:0 above doesn't remove a faded
-   nav link from the tab order, so without this a keyboard user could focus an
-   invisible link with no visual indicator at all. Forces the nav back to fully
-   visible/interactive the instant any of its own children has focus, regardless
-   of scroll direction. Aug 2026. */
-.site-nav.nav-faded:focus-within {
+/* Keyboard focus always forces the nav fully opaque, however far down the page you've
+   scrolled — without this, a keyboard user could land on a link dimmed near the 0.25
+   floor with a much fainter focus indicator than the rest of the site. One extra
+   pseudo-class = higher specificity than the base rule above, so this wins over
+   whatever --nav-opacity currently holds without needing !important. */
+.site-nav:focus-within {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .wordmark {
