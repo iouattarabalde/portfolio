@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=56">
+<link rel="stylesheet" href="style.css?v=57">
 <!-- Randomizes the site's accent color on every page load (red/green/blue), requested
      Aug 2026. Runs synchronously here, before first paint, so there's no flash of the
      default green before it swaps. Only on the public pages (index.html, project.html)
@@ -392,6 +392,23 @@
       igEl.href = 'https://instagram.com/' + s.instagramHandle;
     })
     .catch((err) => console.error('Impossible de charger les coordonnées:', err));
+
+  // Halo/grain/background settings — editable in the admin (Design tab, sliders +
+  // color picker). Independent fetch, applied on top of the CSS defaults in :root
+  // (which already match this file's own defaults exactly), so a missing or
+  // not-yet-created data/design.json just silently keeps the CSS defaults — never
+  // breaks the page. Aug 2026.
+  fetch('data/design.json')
+    .then((r) => r.json())
+    .then((d) => {
+      const root = document.documentElement.style;
+      if (d.haloIntensity != null) root.setProperty('--halo-intensity', d.haloIntensity);
+      if (d.haloSize != null) root.setProperty('--halo-size', d.haloSize);
+      if (d.haloFalloff != null) root.setProperty('--halo-falloff', d.haloFalloff);
+      if (d.grainLevel != null) root.setProperty('--grain-level', d.grainLevel);
+      if (d.bg) root.setProperty('--bg', d.bg);
+    })
+    .catch(() => {}); // file may not exist yet (first use, before any admin save) — fine, CSS defaults already match
 </script>
 </body>
 </html>

@@ -12,6 +12,15 @@
   --grid-gap: 6px;            /* shared gap for the work grid and project gallery — small visible gap, ShotDeck-inspired, Aug 2026 */
   --display: "Space Grotesk", sans-serif;  /* headings, titles, card captions */
   --mono: "IBM Plex Mono", monospace;      /* body copy, labels, nav — technical/utility feel */
+
+  /* Admin-adjustable via Design tab sliders (data/design.json, applied by inline script
+     in index.html/project.html) — Aug 2026. Defaults below are 1 (no change) everywhere
+     so the site looks identical to before this existed until an admin value is actually
+     saved. --bg is already above and reused directly, not duplicated here. */
+  --halo-intensity: 1;  /* multiplies the reel halo's shadow opacity */
+  --halo-size: 1;       /* multiplies the reel halo's blur+spread radius (all 3 shadow layers) */
+  --halo-falloff: 1;    /* multiplies only the outermost/faintest shadow layer's extent — how far the tail reaches, independent of overall size */
+  --grain-level: 1;     /* multiplies dither-layer opacity (anti-banding noise around the halo) */
 }
 
 * { box-sizing: border-box; }
@@ -162,10 +171,17 @@ h1, h2, h3 {
   box-shadow: /* bias-light halo — neutral 6500K white, like a grading-room monitor light.
                  clamp() floors match the original mobile values exactly (unchanged there)
                  and scale up on wider viewports so the falloff stays proportionally smooth
-                 on a much larger frame instead of reading as a thin ring. */
-    0 0 clamp(40px, 5vw, 90px) clamp(4px, 0.6vw, 12px) rgba(255, 255, 255, 0.05),
-    0 0 clamp(90px, 10vw, 180px) clamp(18px, 2vw, 40px) rgba(255, 255, 255, 0.04),
-    0 0 clamp(170px, 18vw, 340px) clamp(45px, 4.5vw, 100px) rgba(255, 255, 255, 0.03);
+                 on a much larger frame instead of reading as a thin ring.
+                 Each layer's radius is further scaled by --halo-size (all 3 equally) and,
+                 for the outermost/faintest layer only, also by --halo-falloff — lets that
+                 one layer's reach be extended or pulled in independent of the other two,
+                 i.e. control over how long the tail is without changing the core's size.
+                 Alpha on all 3 scaled by --halo-intensity. All three custom properties
+                 default to 1 (see :root) so this renders identically to the original
+                 fixed values until an admin value overrides them — Aug 2026. */
+    0 0 calc(clamp(40px, 5vw, 90px) * var(--halo-size)) calc(clamp(4px, 0.6vw, 12px) * var(--halo-size)) rgba(255, 255, 255, calc(0.05 * var(--halo-intensity))),
+    0 0 calc(clamp(90px, 10vw, 180px) * var(--halo-size)) calc(clamp(18px, 2vw, 40px) * var(--halo-size)) rgba(255, 255, 255, calc(0.04 * var(--halo-intensity))),
+    0 0 calc(clamp(170px, 18vw, 340px) * var(--halo-size) * var(--halo-falloff)) calc(clamp(45px, 4.5vw, 100px) * var(--halo-size) * var(--halo-falloff)) rgba(255, 255, 255, calc(0.03 * var(--halo-intensity)));
 }
 
 /* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle */
@@ -199,6 +215,10 @@ h1, h2, h3 {
    horizontal overflow on narrow viewports (reported as visible edges/scroll, Aug 2026);
    past 150px vertically the glow has faded close enough to zero that banding isn't
    perceptible anyway.
+   Both the inset and the mask offsets below are also scaled by --halo-size, so if the
+   admin dials the halo bigger, this layer's own coverage area grows to match — without
+   that, a larger halo would outgrow its dithering and banding could reappear right at
+   the edge of what this layer still covers.
    mask-image cuts a hard-edged hole out of the exact middle of this layer, matching
    .reel-frame's own rectangle (this box is inset -150px 0 from reel-frame, so that
    rectangle sits at exactly 150px from the top and 150px from the bottom here). Without
@@ -210,13 +230,20 @@ h1, h2, h3 {
    boundary that was already there. */
 .halo-dither {
   position: absolute;
-  inset: -150px 0;
+  inset: calc(-150px * var(--halo-size)) 0;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-repeat: repeat;
   background-size: 180px 180px;
   pointer-events: none;
-  mask-image: linear-gradient(to bottom, white 0, white 150px, transparent 150px, transparent calc(100% - 150px), white calc(100% - 150px), white 100%);
-  -webkit-mask-image: linear-gradient(to bottom, white 0, white 150px, transparent 150px, transparent calc(100% - 150px), white calc(100% - 150px), white 100%);
+  mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent calc(100% - 150px * var(--halo-size)), white calc(100% - 150px * var(--halo-size)), white 100%);
+  -webkit-mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent calc(100% - 150px * var(--halo-size)), white calc(100% - 150px * var(--halo-size)), white 100%);
+  opacity: var(--grain-level); /* admin-adjustable multiplier, default 1 — not re-declared
+                                   in the desktop media query below, so it applies at every
+                                   breakpoint on top of whichever background-image is active.
+                                   Scoped to just this layer (not .ambient-glow/.bottom-glow,
+                                   whose noise shares an element with their own actual glow
+                                   gradient — scaling those together would conflate "grain"
+                                   with "glow brightness", which isn't what was asked for). */
 }
 /* 0.11 wasn't enough — rings still visible, Aug 2026. A 0.35 ceiling test confirmed
    dithering does fix it (rings gone); also revealed the masking bug fixed above (the
