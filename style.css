@@ -24,19 +24,13 @@
   --halo-falloff: 1;    /* multiplies only the outermost/faintest shadow layer's extent — how far the tail reaches, independent of overall size */
   --grain-level: 1;     /* multiplies dither-layer opacity (anti-banding noise around the halo) */
 
-  /* Shared turbulence-noise texture used by .halo-dither and .bottom-glow-noise (also
-     used by the since-removed .ambient-glow-noise — see the note where .ambient-glow
-     used to live, further down) — those originally each embedded their own copy of
-     this same SVG, differing only in one baked-in alpha value. Baked here at 0.2 (the
-     strongest of them, .halo-dither's own original desktop value) as a single
-     reference; each layer now reaches its own strength via a plain opacity multiplier
-     instead (calc(var(--grain-level) * N), see each layer below) — mathematically
-     identical output, one copy of the SVG instead of several. Consolidated Aug 2026.
-     Originally each multiplier was also split into a lower mobile value and a higher
-     desktop one (the banding this fixes was only ever visible on desktop displays), but
-     that gave mobile
-     and desktop visibly different amounts of grain — unified to one multiplier per
-     layer, same on every screen size, per explicit request the same day. */
+  /* Shared turbulence-noise texture, now used only by .grain-overlay (defined further
+     down, by .sr-only). Previously split across three separate scoped grain layers
+     (.halo-dither, .ambient-glow-noise, .bottom-glow-noise), each embedding its own
+     copy of this SVG at a different baked-in alpha and mobile/desktop split — all
+     consolidated down to this single reference (0.2 alpha, the strongest of the
+     originals) through several rounds of simplification across Aug 2026, ending with
+     every scoped layer removed entirely in favor of one uniform page-wide layer. */
   --noise-svg: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
@@ -106,6 +100,45 @@ a { color: inherit; text-decoration: none; }
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Page-wide grain texture — requested Aug 2026, replaces two earlier layers scoped to
+   specific glows (.halo-dither around the reel, .bottom-glow-noise at the bottom of
+   the page), which only ever showed grain in narrow bleed zones near those glows and
+   had become nearly invisible once the reel halo's own downward bleed was removed (see
+   the note left where .halo-dither used to be, further down). This is one consistent
+   layer covering the whole viewport instead: fixed position (not tied to document
+   height or any section) makes it trivially the same level everywhere by construction,
+   regardless of scroll position or page length — no JS sizing needed, unlike the old
+   #work-height-dependent .ambient-glow. z-index:-1, same stacking approach the removed
+   layers used — only shows through wherever there's no opaque foreground (photos,
+   text, UI), not painted over content, just no longer confined to small bleeds.
+   Two stacked layers (the element itself + its own ::after) rather than one, so the
+   admin's grain slider has real range across its full 0-2: CSS opacity clamps at 1, so
+   a single layer alone would do nothing for the whole top half of that range once
+   --grain-level passed 1. The base layer covers 0-1 (min() clamps it there), the
+   ::after layer fades in from 0 over 1-2 (max() keeps it at 0 below that), offset by
+   half a tile (90px) so the two don't just perfectly overlap — stacking them reads as
+   genuinely denser grain, not merely "the same texture more opaque". */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--noise-svg);
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  opacity: min(var(--grain-level), 1);
+}
+.grain-overlay::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: var(--noise-svg);
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  background-position: 90px 90px;
+  opacity: max(var(--grain-level) - 1, 0);
 }
 
 /* Language toggling — English is default, French shown when body has .lang-fr.
@@ -257,59 +290,19 @@ h1, h2, h3 {
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
-/* Fixes visible banding in the halo's box-shadow gradient — a large, very-low-opacity
-   glow like that quantizes into discrete rings on standard 8-bit desktop displays (not
-   visible on phones/high-DPI screens — reported Aug 2026, confirmed on a MacBook too).
-   First attempt used mix-blend-mode:overlay, which turned out to be the wrong tool here:
-   overlay scales its own strength by how light the backdrop already is (it behaves like
-   multiply below 50% lightness), so against a near-black background it was nearly a
-   no-op — the rings barely moved. This version instead uses feColorMatrix to turn the
-   turbulence noise into pure alpha variance on solid white, then composites it with
-   ordinary alpha blending (no blend mode at all) — its effect no longer depends on the
-   backdrop's own brightness, which is what actually breaks up the 8-bit banding.
-   Sits above .reel-frame (later in the DOM = later in paint order) so it dithers the
-   halo itself, not just the frame's own background. pointer-events:none so it never
-   blocks the fullscreen/sound buttons sitting underneath it. Bleed kept modest and
-   vertical-only (top -150px, no horizontal bleed) — .reel-frame is already full width
-   within .hero's own padding, so there's no room to bleed sideways without risking
-   horizontal overflow on narrow viewports (reported as visible edges/scroll, Aug 2026);
-   past 150px vertically the glow has faded close enough to zero that banding isn't
-   perceptible anyway.
-   Both the inset and the mask offset below are also scaled by --halo-size, so if the
-   admin dials the halo bigger, this layer's own coverage area grows to match — without
-   that, a larger halo would outgrow its dithering and banding could reappear right at
-   the edge of what this layer still covers.
-   mask-image shows grain only in the top 150px (bleeding up behind the nav) — from
-   there down, everything is transparent: both the hole over .reel-frame's own
-   rectangle itself (without it, this being the same width as the video with nothing
-   excluding that region meant the dither painted directly over the reel — invisible at
-   low opacity, obvious once pushed up during the Aug 2026 ceiling test, which is how
-   this got caught) and the space below the reel down to the bottom of this layer's own
-   box, which used to be a second visible band symmetric with the top one. That bottom
-   band bled 150px past .hero's own edge into the top of #work, landing directly on the
-   Projets heading and reading as the section not being properly black — reported and
-   removed the same way, Aug 2026 (top bleed behind the nav was untouched, only asked
-   about specifically). */
-.halo-dither {
-  position: absolute;
-  inset: calc(-150px * var(--halo-size)) 0;
-  background-image: var(--noise-svg);
-  background-repeat: repeat;
-  background-size: 180px 180px;
-  pointer-events: none;
-  mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, white 0, white calc(150px * var(--halo-size)), transparent calc(150px * var(--halo-size)), transparent 100%);
-  /* Same 1.0 multiplier on mobile and desktop now (requested Aug 2026 — texture should
-     be consistent across both, not lighter on mobile). This layer's grain was
-     originally tuned lower on mobile because the 8-bit banding rings it fixes only
-     ever showed up on desktop displays to begin with, so lower intensity there was
-     never risky — raising it to match desktop's carefully-tuned 1.0 doesn't reintroduce
-     any bug, it's simply more grain than mobile strictly needed. Going the other
-     direction (lowering desktop to mobile's old 0.3) was ruled out: desktop's level
-     was arrived at through real testing against actual banding, so turning it down
-     risked bringing the rings back. */
-  opacity: var(--grain-level);
-}
+/* .halo-dither, the reel-scoped anti-banding grain sub-layer, was removed Aug 2026 and
+   folded into .grain-overlay (defined near the top of this file, by .sr-only) — grain
+   is now one consistent page-wide layer instead of small bleeds scoped to specific
+   glows. This also fixed a real regression from removing halo-dither's downward bleed
+   a few commits earlier: its only remaining visible band (bleeding up behind the nav)
+   ended up mostly hidden behind the nav's own translucent+blurred background, so the
+   grain slider had gone from "fixes a narrow, specific problem" to "barely does
+   anything anyone would notice." See .grain-overlay's own comment for the current
+   approach — it still fixes the same 8-bit banding in the reel halo's box-shadow
+   gradient (feColorMatrix-based alpha-variance dithering, not a blend mode — see the
+   removed version's history in git if that reasoning is ever needed again), just as
+   one layer covering the whole page instead of a dedicated one scoped to the reel
+   alone. */
 
 /* .ambient-glow — a second, wider glow bridging the reel's tight halo into the top of
    the work section — was removed Aug 2026 per explicit request ("only keep the halo
@@ -369,50 +362,23 @@ h1, h2, h3 {
    color-mix() rather than a hardcoded color, so it always matches automatically.
    Sized via inset:0 to exactly match #contact's own box — #contact's height is static
    layout (unlike the work grid), so this needs no JS sizing at all, plain CSS is
-   enough. Same z-index:-1 / transparent-section trick as the reel's own halo: #contact
-   has no background color of its own, so this shows through around its content.
-   Requested Aug 2026. */
-/* Split into a sizing/positioning parent + two full-size children (noise, gradient)
-   rather than one element with 2 stacked background-image layers — needed so
-   --grain-level (admin Design tab) can scale just the noise's opacity without also
-   dimming the actual glow color underneath it, which sharing one element's opacity
-   would do. Same technique as .halo-dither above. */
+   enough. z-index:-1 / transparent-section trick: #contact has no background color of
+   its own, so this shows through around its content. Requested Aug 2026.
+   Used to also carry its own grain sub-layer (.bottom-glow-noise) for the same 8-bit-
+   banding reason as the old .halo-dither — removed Aug 2026 and folded into the
+   page-wide .grain-overlay below along with that one, so this wrapper only has the
+   single .bottom-glow-gradient child left now (kept as its own div rather than
+   collapsing into .bottom-glow directly, mainly so the two aren't fighting over the
+   same element for unrelated concerns if a reason to split them again ever comes up). */
 .bottom-glow {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
 }
-.bottom-glow-noise,
 .bottom-glow-gradient {
   position: absolute;
   inset: 0;
-}
-.bottom-glow-noise {
-  background-image: var(--noise-svg);
-  background-repeat: repeat;
-  background-size: 180px 180px;
-  opacity: calc(var(--grain-level) * 0.5); /* same on mobile and desktop now — see .halo-dither's comment above for why, Aug 2026 */
-  /* Same reasoning and technique as .halo-dither's own dithering above — proportionally
-     normalized copy of .bottom-glow-gradient's own shape/stops, so the noise fades
-     with the actual colored glow instead of tiling at constant density across all of
-     #contact regardless of how far that is from where the color has faded out. */
-  mask-image: radial-gradient(
-    ellipse 100% 90% at 50% 100%,
-    white 0%,
-    rgba(255, 255, 255, 0.5625) 20%,
-    rgba(255, 255, 255, 0.25) 45%,
-    transparent 95%
-  );
-  -webkit-mask-image: radial-gradient(
-    ellipse 100% 90% at 50% 100%,
-    white 0%,
-    rgba(255, 255, 255, 0.5625) 20%,
-    rgba(255, 255, 255, 0.25) 45%,
-    transparent 95%
-  );
-}
-.bottom-glow-gradient {
   background: radial-gradient(
     ellipse 100% 90% at 50% 100%,
     color-mix(in srgb, var(--accent) 32%, transparent) 0%,
@@ -421,9 +387,6 @@ h1, h2, h3 {
     transparent 95%
   );
 }
-/* Settled at 0.5 (0.1 alpha equivalent), same intensity as .halo-dither's own dithering
-   above, and now consistent between mobile and desktop too, see .halo-dither's comment
-   above for why. */
 
 .section-head {
   display: flex;
