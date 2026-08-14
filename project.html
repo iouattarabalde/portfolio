@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=72">
+<link rel="stylesheet" href="style.css?v=73">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -69,6 +69,8 @@
 <script src="i18n.js"></script>
 </head>
 <body>
+
+<div class="grain-overlay" aria-hidden="true"></div>
 
 <nav class="site-nav">
   <div class="brand">
@@ -289,12 +291,19 @@
       document.getElementById('project-not-found').style.display = '';
     });
 
-  // Background color — editable in the admin (Design tab). No reel/halo on this page,
-  // but --bg still needs to match the rest of the site for consistency. Same pattern as
-  // index.html: silently no-ops if data/design.json doesn't exist yet. Aug 2026.
+  // Background color and grain level — editable in the admin (Design tab). No reel/
+  // halo on this page, but --bg still needs to match the rest of the site, and since
+  // .grain-overlay (Aug 2026) is a page-wide layer present on every page rather than
+  // scoped to specific reel/contact glows, --grain-level needs to reach here too now —
+  // previously this page had nothing grain-driven to feed, so only --bg was applied.
+  // Same pattern as index.html: silently no-ops if data/design.json doesn't exist yet.
   fetch('data/design.json')
     .then((r) => r.json())
-    .then((d) => { if (d.bg) document.documentElement.style.setProperty('--bg', d.bg); })
+    .then((d) => {
+      const root = document.documentElement.style;
+      if (d.bg) root.setProperty('--bg', d.bg);
+      if (d.grainLevel != null) root.setProperty('--grain-level', d.grainLevel);
+    })
     .catch(() => {});
 </script>
 </body>
