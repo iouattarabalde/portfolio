@@ -27,17 +27,22 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=66">
-<!-- Randomizes the site's accent color on every page load (red/green/blue), requested
-     Aug 2026. Runs synchronously here, before first paint, so there's no flash of the
-     default green before it swaps. Only on the public pages (index.html, project.html)
-     — deliberately not touched in style.css's own :root default or in
-     admin/index.html, so the admin panel's own accent stays fixed. -->
+<link rel="stylesheet" href="style.css?v=67">
+<!-- Starts the accent color at a random point in its continuous cycle (Red -> Yellow ->
+     Green -> Cyan -> Blue -> Magenta -> Red), requested Aug 2026 — replaces the earlier
+     random-pick-of-3-fixed-colors version. Runs synchronously here, before first paint,
+     so there's no flash of hue 0 before the random offset applies. The actual color
+     math (oklch hue rotation) and animation both live in style.css, under
+     html.accent-cycling — this script only adds that class and randomizes the phase.
+     Only on the public pages (index.html, project.html) — deliberately not touched in
+     admin/index.html, so the admin panel's own accent stays fixed at style.css's plain
+     #8A9A5B default. -->
 <script>
   (function () {
-    var colors = ['#8A9A5B', '#B46D55', '#5C84A0']; // green (site default), red, blue — red lightened Aug 2026, original #A8624A failed WCAG AA text contrast (4.20:1) against --bg
-    var chosen = colors[Math.floor(Math.random() * colors.length)];
-    document.documentElement.style.setProperty('--accent', chosen);
+    var CYCLE_DURATION = 120; // seconds — must match the animation-duration on html.accent-cycling in style.css
+    var html = document.documentElement;
+    html.classList.add('accent-cycling');
+    html.style.animationDelay = (-(Math.random() * CYCLE_DURATION)).toFixed(2) + 's'; // negative delay = starts already partway through the loop
   })();
 </script>
 <script src="i18n.js"></script>
