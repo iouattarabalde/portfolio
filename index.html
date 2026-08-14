@@ -310,13 +310,54 @@
     window.addEventListener('load', sizeAmbientGlow); // fallback for the rare browser without ResizeObserver
   }
 
+  const navEl = document.querySelector('.site-nav');
+  const NAV_FADE_START = 20; // px of scroll before the fade begins
+  let navFadeDistance = 500; // safe fallback until measureNavFadeDistance() below runs at least once
+
+  // Fade completes exactly when #work's (Projects') top edge reaches the bottom of the
+  // sticky nav — not a fixed pixel count, so it stays correct across viewport sizes and
+  // however tall the hero currently is (the reel's own height is responsive, see
+  // sizeReel above). Reuses the same workEl reference sizeAmbientGlow uses just above.
+  function measureNavFadeDistance() {
+    if (!navEl || !workEl) return;
+    const workTop = workEl.getBoundingClientRect().top + window.scrollY;
+    navFadeDistance = Math.max(workTop - navEl.offsetHeight - NAV_FADE_START, 50); // floor guards against a tiny/negative distance on very short pages
+  }
+
+  // Nav bar: continuously fades as you scroll, reaching fully transparent right as the
+  // Projects section comes up (see measureNavFadeDistance above) — not a fixed-floor
+  // dim, it goes all the way to 0. Tied directly to scroll distance rather than a
+  // fully-opaque/fully-hidden toggle keyed on direction, so it reappears smoothly
+  // scrolling back up: it's purely a function of current scroll position, not which way
+  // you're moving. rAF-throttled, same pattern as the other scroll/resize listeners in
+  // this file. Redesigned Aug 2026 (previously a fixed 500px fade distance with a 0.6
+  // floor that never reached fully transparent).
+  let navTicking = false;
+  function updateNavOpacity() {
+    if (!navEl) return;
+    const y = window.scrollY;
+    const progress = Math.min(Math.max((y - NAV_FADE_START) / navFadeDistance, 0), 1);
+    navEl.style.setProperty('--nav-opacity', (1 - progress).toFixed(3));
+    navTicking = false;
+  }
+  window.addEventListener('scroll', () => {
+    if (!navTicking) {
+      requestAnimationFrame(updateNavOpacity);
+      navTicking = true;
+    }
+  }, { passive: true });
+
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
   // without this, sizeReel/sizeAmbientGlow ran once per resize event with no limit,
-  // unlike the scroll handler which is deliberately throttled. Aug 2026.
+  // unlike the scroll handler which is deliberately throttled. measureNavFadeDistance
+  // included here too (Aug 2026) since it depends on the hero's height via sizeReel,
+  // same reason sizeAmbientGlow needs to be recalculated on resize.
   let resizeTicking = false;
   function onResizeThrottled() {
     sizeReel();
     sizeAmbientGlow();
+    measureNavFadeDistance();
+    updateNavOpacity();
     resizeTicking = false;
   }
   window.addEventListener('resize', () => {
@@ -326,35 +367,9 @@
     }
   });
 
-  // Nav bar: continuously fades as you scroll, tied directly to scroll distance rather
-  // than a fully-opaque/fully-hidden toggle keyed on direction — it reappears smoothly
-  // scrolling back up because it's purely a function of current scroll position, not
-  // which way you're moving. Floors at NAV_FADE_FLOOR instead of reaching 0, so it stays
-  // at least faintly visible rather than disappearing outright. rAF-throttled, same
-  // pattern as the other scroll/resize listeners in this file. Redesigned Aug 2026 (was
-  // a binary opacity 0/1 class toggle keyed on scroll direction).
-  (function () {
-    const nav = document.querySelector('.site-nav');
-    if (!nav) return;
-    const NAV_FADE_START = 20;     // px of scroll before the fade begins
-    const NAV_FADE_DISTANCE = 500; // px of scroll over which it fades from 1 down to the floor
-    const NAV_FADE_FLOOR = 0.6;    // minimum opacity once scrolled past NAV_FADE_START + NAV_FADE_DISTANCE — was 0.25, raised Aug 2026: too faint against a dark browser chrome, read as fully gone rather than dimmed
-    let ticking = false;
-    function update() {
-      const y = window.scrollY;
-      const progress = Math.min(Math.max((y - NAV_FADE_START) / NAV_FADE_DISTANCE, 0), 1);
-      const opacity = 1 - progress * (1 - NAV_FADE_FLOOR);
-      nav.style.setProperty('--nav-opacity', opacity.toFixed(3));
-      ticking = false;
-    }
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        requestAnimationFrame(update);
-        ticking = true;
-      }
-    }, { passive: true });
-    update(); // sets the correct value immediately (e.g. reloading mid-scroll), not just after the first scroll event
-  })();
+  measureNavFadeDistance();
+  updateNavOpacity(); // sets a reasonable value immediately (e.g. reloading mid-scroll), refined further once 'load' below fires
+  window.addEventListener('load', () => { measureNavFadeDistance(); updateNavOpacity(); });
 
   // Category filter bar: one button per entry in PROJECT_TYPES (from i18n.js), plus an
   // "All"/"Tous" button to clear the filter. Rebuilt on language toggle since the labels
