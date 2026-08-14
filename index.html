@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=60">
+<link rel="stylesheet" href="style.css?v=61">
 <!-- Randomizes the site's accent color on every page load (red/green/blue), requested
      Aug 2026. Runs synchronously here, before first paint, so there's no flash of the
      default green before it swaps. Only on the public pages (index.html, project.html)
@@ -58,6 +58,10 @@
 
 <!-- Hero: self-hosted reel (video/reel.mp4), sized/muted via the script at the bottom -->
 <header class="hero">
+  <h1 class="sr-only">
+    <span data-fr>Ismael OB — Coloriste basé à Montréal</span>
+    <span data-en>Ismael OB — Colorist based in Montreal</span>
+  </h1>
   <div class="reel-frame">
     <div class="reel-embed">
       <video id="reel-video" autoplay muted loop playsinline preload="auto" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
@@ -189,7 +193,6 @@
     frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px'; // 280px floor so it never gets absurdly small
   }
   window.addEventListener('load', sizeReel);
-  window.addEventListener('resize', sizeReel);
 
   // Mute/unmute button overlaid on the reel. Starts muted (required for autoplay to
   // work in every browser); clicking just flips the video's own .muted property and
@@ -271,7 +274,7 @@
     const visible = activeFilter ? cachedProjects.filter((p) => p.type === activeFilter) : cachedProjects;
     grid.innerHTML = visible.map((p) => `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}">
-        <div class="thumb" style="background-image:url('assets/${p.thumbnail}'); background-position:${p.thumbnailFocus || '50% 50%'};"></div>
+        <img class="thumb" src="assets/${p.thumbnail}" alt="${p.title}" loading="lazy" style="object-position:${p.thumbnailFocus || '50% 50%'};">
         <div class="work-card-meta">
           <p class="type">${projectTypeAcronym(p.type, isFr)}</p>
           ${p.artist || p.client ? `<p class="artist">${p.artist || p.client}</p>` : ''}
@@ -306,7 +309,22 @@
   } else {
     window.addEventListener('load', sizeAmbientGlow); // fallback for the rare browser without ResizeObserver
   }
-  window.addEventListener('resize', sizeAmbientGlow);
+
+  // Resize handling is rAF-throttled to match the scroll listener's pattern above —
+  // without this, sizeReel/sizeAmbientGlow ran once per resize event with no limit,
+  // unlike the scroll handler which is deliberately throttled. Aug 2026.
+  let resizeTicking = false;
+  function onResizeThrottled() {
+    sizeReel();
+    sizeAmbientGlow();
+    resizeTicking = false;
+  }
+  window.addEventListener('resize', () => {
+    if (!resizeTicking) {
+      requestAnimationFrame(onResizeThrottled);
+      resizeTicking = true;
+    }
+  });
 
   // Nav bar: fades out while scrolling down, fades back in while scrolling up, always
   // fully visible near the very top. rAF-throttled so it doesn't run more than once per
