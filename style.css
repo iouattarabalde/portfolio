@@ -310,6 +310,31 @@ h1, h2, h3 {
   background-repeat: repeat;
   background-size: 180px 180px;
   opacity: var(--grain-level);
+  /* Without this, the noise tiles at constant density across this element's ENTIRE
+     height (which can be several thousand px on a long work grid), while the actual
+     glow color fades out within the first ~60% of that — so the noise reads as one big
+     uniformly-bright rectangle instead of following the light. Reported Aug 2026: grain
+     looked disproportionately stronger/brighter here than around the reel, and created
+     a visible seam where that uniform block started/stopped. This mask reuses the exact
+     same shape and (proportionally normalized) stops as .ambient-glow-gradient's own
+     radial-gradient, so the noise's visibility now tapers with the glow instead of
+     ignoring it. */
+  mask-image: radial-gradient(
+    ellipse 70% 100% at 50% 0%,
+    white 0%,
+    rgba(255, 255, 255, 0.6) 15%,
+    rgba(255, 255, 255, 0.3) 35%,
+    rgba(255, 255, 255, 0.12) 60%,
+    transparent 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 70% 100% at 50% 0%,
+    white 0%,
+    rgba(255, 255, 255, 0.6) 15%,
+    rgba(255, 255, 255, 0.3) 35%,
+    rgba(255, 255, 255, 0.12) 60%,
+    transparent 100%
+  );
 }
 .ambient-glow-gradient {
   background: radial-gradient(
@@ -402,6 +427,24 @@ h1, h2, h3 {
   background-repeat: repeat;
   background-size: 180px 180px;
   opacity: var(--grain-level);
+  /* Same reasoning and technique as .ambient-glow-noise's mask above — proportionally
+     normalized copy of .bottom-glow-gradient's own shape/stops, so the noise fades
+     with the actual colored glow instead of tiling at constant density across all of
+     #contact regardless of how far that is from where the color has faded out. */
+  mask-image: radial-gradient(
+    ellipse 100% 90% at 50% 100%,
+    white 0%,
+    rgba(255, 255, 255, 0.5625) 20%,
+    rgba(255, 255, 255, 0.25) 45%,
+    transparent 95%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 100% 90% at 50% 100%,
+    white 0%,
+    rgba(255, 255, 255, 0.5625) 20%,
+    rgba(255, 255, 255, 0.25) 45%,
+    transparent 95%
+  );
 }
 .bottom-glow-gradient {
   background: radial-gradient(
