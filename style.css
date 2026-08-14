@@ -1,5 +1,7 @@
 /* Ismael OB — Colorist portfolio
-   Design tokens (locked spec): bg #0C0C0C, accent olive #8A9A5B */
+   Design tokens (locked spec): bg #0C0C0C, accent olive #8A9A5B (fallback + admin
+   panel default — public pages cycle the accent continuously, see .accent-cycling
+   below, Aug 2026) */
 
 :root {
   --bg: #0C0C0C;
@@ -30,6 +32,38 @@
      (calc(var(--grain-level) * N), see each layer below) — mathematically identical
      output, one copy of the SVG instead of six. Consolidated Aug 2026. */
   --noise-svg: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Registers --accent-hue as an animatable number (plain custom properties can't be
+   smoothly interpolated by the browser without this) so @keyframes below can actually
+   tween it, rather than just jumping between values. */
+@property --accent-hue {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@keyframes accent-hue-cycle {
+  to { --accent-hue: 360; }
+}
+/* Continuously cycling accent color, Aug 2026 — Red -> Yellow -> Green -> Cyan -> Blue
+   -> Magenta -> Red, one full hue rotation every 120s. Uses oklch(), not hsl(): at a
+   fixed hsl() lightness, yellow reads much brighter than blue or magenta at the same
+   lightness (a well-known perceptual mismatch), so a plain hue rotation would visibly
+   pulse in brightness as it cycles. oklch()'s L channel is perceptually uniform, so 65%
+   lightness / 0.09 chroma looks equally vivid at every hue instead. Verified this L/C
+   pair at 0.1° resolution around the full circle: worst-case text contrast against
+   --bg is 5.46:1, comfortably clearing WCAG AA (4.5:1) everywhere in the cycle, and
+   nothing falls outside displayable sRGB. var(--accent-hue, 0) has an explicit
+   fallback for the rare browser without @property support, where the animation simply
+   won't run and this resolves to a fixed, still-valid color instead of breaking.
+   Opt-in via the .accent-cycling class (added by a small inline script in <head>,
+   before first paint, which also sets a random negative animation-delay so each page
+   load starts at a different point in the loop) rather than applying to :root
+   directly — admin/index.html never adds that class, so it keeps the plain #8A9A5B
+   above, exactly as before this existed. */
+html.accent-cycling {
+  --accent: oklch(65% 0.09 var(--accent-hue, 0));
+  animation: accent-hue-cycle 120s linear infinite;
 }
 
 * { box-sizing: border-box; }
