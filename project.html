@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=62">
+<link rel="stylesheet" href="style.css?v=63">
 <!-- Same accent-color randomization as index.html, on every page load — no persistence,
      so navigating between pages can land on a different color each time. See
      index.html for the full comment. -->
@@ -123,24 +123,25 @@
     renderProjectType(); // re-run so the Type field switches acronym language too
   });
 
-  // Nav bar: fades out while scrolling down, fades back in while scrolling up, always
-  // fully visible near the very top. rAF-throttled so it doesn't run more than once per
-  // paint frame during a fast scroll. Same behavior as index.html. Requested Aug 2026.
+  // Nav bar: continuously fades as you scroll, tied directly to scroll distance rather
+  // than a fully-opaque/fully-hidden toggle keyed on direction — it reappears smoothly
+  // scrolling back up because it's purely a function of current scroll position, not
+  // which way you're moving. Floors at NAV_FADE_FLOOR instead of reaching 0, so it stays
+  // at least faintly visible rather than disappearing outright. rAF-throttled, same
+  // pattern as index.html. Redesigned Aug 2026 (was a binary opacity 0/1 class toggle
+  // keyed on scroll direction).
   (function () {
     const navEl = document.querySelector('.site-nav');
     if (!navEl) return;
-    let lastY = window.scrollY;
+    const NAV_FADE_START = 20;     // px of scroll before the fade begins
+    const NAV_FADE_DISTANCE = 500; // px of scroll over which it fades from 1 down to the floor
+    const NAV_FADE_FLOOR = 0.25;   // minimum opacity once scrolled past NAV_FADE_START + NAV_FADE_DISTANCE
     let ticking = false;
     function update() {
       const y = window.scrollY;
-      if (y < 24) {
-        navEl.classList.remove('nav-faded');
-      } else if (y > lastY) {
-        navEl.classList.add('nav-faded');
-      } else if (y < lastY) {
-        navEl.classList.remove('nav-faded');
-      }
-      lastY = y;
+      const progress = Math.min(Math.max((y - NAV_FADE_START) / NAV_FADE_DISTANCE, 0), 1);
+      const opacity = 1 - progress * (1 - NAV_FADE_FLOOR);
+      navEl.style.setProperty('--nav-opacity', opacity.toFixed(3));
       ticking = false;
     }
     window.addEventListener('scroll', () => {
@@ -149,6 +150,7 @@
         ticking = true;
       }
     }, { passive: true });
+    update();
   })();
 
   // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails, opening each
