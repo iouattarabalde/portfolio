@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=78">
+<link rel="stylesheet" href="style.css?v=79">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -196,17 +196,36 @@
   let lightboxIndex = -1;
   let lightboxTrigger = null; // element to return focus to on close — set only on the initial open, not on prev/next navigation
 
+  // Crossfades between stills when navigating an already-open lightbox, requested Aug
+  // 2026 — the initial open (lightbox currently closed) skips this, there's nothing to
+  // crossfade FROM yet. Uses the same-document View Transitions API rather than a
+  // manual opacity animation: the browser snapshots the current image, runs the DOM
+  // update, snapshots the new image, and crossfades between them natively. #lightbox-img
+  // has its own view-transition-name (see style.css) so only the image itself
+  // crossfades, not the whole page. Falls back to an instant swap — today's behavior —
+  // in browsers without support, via the simple document.startViewTransition feature
+  // check below; no separate fallback animation to maintain.
   function openLightboxAt(index) {
     if (!currentProject) return;
     const gallery = currentProject.gallery;
     lightboxIndex = (index + gallery.length) % gallery.length; // loops both directions
     const filename = gallery[lightboxIndex];
-    lightboxImg.src = `assets/${filename}`;
-    lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
-    lightbox.classList.add('open');
     const hasMultiple = gallery.length > 1;
-    lightboxPrev.style.display = hasMultiple ? '' : 'none';
-    lightboxNext.style.display = hasMultiple ? '' : 'none';
+    const isNavigating = lightbox.classList.contains('open');
+
+    function applyImage() {
+      lightboxImg.src = `assets/${filename}`;
+      lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
+      lightbox.classList.add('open');
+      lightboxPrev.style.display = hasMultiple ? '' : 'none';
+      lightboxNext.style.display = hasMultiple ? '' : 'none';
+    }
+
+    if (isNavigating && document.startViewTransition) {
+      document.startViewTransition(() => applyImage());
+    } else {
+      applyImage();
+    }
   }
   function wireLightbox() {
     document.querySelectorAll('.gallery-item').forEach((item, idx) => {
