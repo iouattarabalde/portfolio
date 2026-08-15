@@ -143,13 +143,12 @@ a { color: inherit; text-decoration: none; }
 
 /* Language toggling — English is default, French shown when body has .lang-fr.
    Every bilingual bit of copy is written twice inline as <span data-fr> / <span data-en>;
-   these four rules just show/hide the right one based on the class on <body>.
+   these three rules just show/hide the right one based on the class on <body>.
    The JS in each page's language-toggle button flips this class and remembers the choice
    in localStorage so it persists across pages. */
 [data-fr] { display: none; }
 body.lang-fr [data-en] { display: none; }
 body.lang-fr [data-fr] { display: inline; }
-body.lang-fr [data-fr].block { display: block; }
 
 .eyebrow {
   font-family: var(--mono);
