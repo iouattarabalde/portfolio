@@ -255,18 +255,15 @@
       // desktop, Aug 2026.
       const revealing = entries.filter((e) => e.isIntersecting);
       revealing.forEach((entry, i) => {
-        entry.target.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
-        observer.unobserve(entry.target);
-        // Deferred two frames — same paint race as wireGridReveal() in index.html.
-        // Without this, a still that's already in the viewport the instant observe()
-        // runs (the whole gallery on a short project, or the first row on any device)
-        // can flip to visible before the browser has painted its initial hidden
-        // state, skipping the transition outright instead of animating it.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            entry.target.classList.add('reveal-visible');
-          });
-        });
+        const el = entry.target;
+        observer.unobserve(el);
+        el.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
+        // Forces a synchronous reflow, committing the current (hidden) state before
+        // changing it — see wireGridReveal() in index.html for the full reasoning.
+        // Replaces a double-rAF attempt that wasn't reliable enough in practice
+        // (reported still glitching on mobile's first row, Aug 2026).
+        void el.offsetHeight;
+        el.classList.add('reveal-visible');
       });
     }, { threshold: 0.1, rootMargin: '0px 0px -120px 0px' }); // was -40px — see wireGridReveal() for why
     items.forEach((item) => observer.observe(item));
