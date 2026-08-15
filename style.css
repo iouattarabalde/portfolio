@@ -51,6 +51,23 @@
 
 * { box-sizing: border-box; }
 
+/* Crossfades between full page navigations (clicking a work-card, Next Project, Back
+   to Projects) instead of the default hard cut — requested Aug 2026. This is the
+   cross-document View Transitions API: purely declarative, no JS at all, and needs to
+   be present on both the page navigated FROM and the page navigated TO for the browser
+   to animate between them (both index.html and project.html carry this same rule via
+   the shared stylesheet, so every navigation between them qualifies).
+   Browsers that don't yet support this simply ignore the at-rule entirely — navigation
+   falls back to today's instant cut, exactly as if this didn't exist. No fallback code
+   needed, no feature-detection branch: this is as safe a progressive enhancement as
+   CSS gets. admin/index.html shares this same stylesheet but never does same-tab
+   cross-document navigation within its own UI (its "Voir" link opens a project in a
+   new tab via target="_blank", a different browsing context entirely), so this has
+   nothing to do there either way. */
+@view-transition {
+  navigation: auto;
+}
+
 /* overflow-x: clip, not hidden — hidden here (and on body below) was silently promoting
    overflow-y to auto (the exact quirk the comment on body below already describes,
    just not caught here too), turning html/body into their own scroll containers. Since
@@ -177,6 +194,7 @@ h1, h2, h3 {
   background: rgba(12, 12, 12, 0.45);
   backdrop-filter: blur(10px); /* blurs whatever scrolls underneath the sticky nav — kept throughout the whole opacity-fade experiment below, liked independently of it */
   -webkit-backdrop-filter: blur(10px);
+  view-transition-name: site-nav; /* identical on every page, so it stays put during the @view-transition crossfade above instead of visibly fading out and back in as part of the whole-page transition */
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   /* Always fully visible — no opacity fade. This went through two fade designs this
      session (a direction-based toggle, then a continuous scroll-linked fade reaching
@@ -479,6 +497,22 @@ h1, h2, h3 {
   flex-direction: column;
   justify-content: flex-end; /* pins the caption to the bottom of the card */
   padding: var(--card-pad, 14px);
+}
+
+/* Generic scroll-entrance animation, requested Aug 2026 — kept decoupled from
+   .work-card's own styling (a separate class added alongside it, not baked into
+   .work-card directly) so it's reusable anywhere else a "fades + drifts up into place"
+   entrance makes sense later, not just the work grid. .reveal-visible is added by
+   wireGridReveal() in index.html once IntersectionObserver reports the element has
+   entered the viewport. */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .work-card .thumb {
@@ -886,5 +920,10 @@ h1, h2, h3 {
   .work-card:hover .thumb,
   .gallery-item:hover img {
     transform: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
