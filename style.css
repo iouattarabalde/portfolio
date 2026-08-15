@@ -242,8 +242,25 @@ h1, h2, h3 {
   text-transform: uppercase;
 }
 
-.nav-links a { opacity: 0.75; transition: opacity 0.2s; }
+.nav-links a {
+  position: relative; /* positioning context for the ::after underline below */
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
 .nav-links a:hover { opacity: 1; color: var(--accent); }
+/* Thin underline that grows in from the left on hover, requested Aug 2026 — a second,
+   smaller cue alongside the existing color change rather than a replacement for it. */
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 0;
+  height: 1px;
+  background: currentColor; /* tracks the link's own hover color automatically, no separate var(--accent) reference to keep in sync */
+  transition: width 0.25s ease;
+}
+.nav-links a:hover::after { width: 100%; }
 
 #lang-toggle {
   font-family: var(--mono);
@@ -443,8 +460,30 @@ h1, h2, h3 {
   font-size: 11px;
   letter-spacing: calc(0.1em * var(--tracking, 1));
   text-transform: uppercase;
+  position: relative; /* positioning context for .filter-indicator below */
+}
+/* Slides + resizes to match whichever button is .active, instead of each button
+   independently toggling its own border/background — requested Aug 2026. A persistent
+   element (see the static markup in index.html and positionFilterIndicator() there)
+   rather than one rebuilt from scratch on every render, specifically so it has a
+   previous position to animate FROM. Placed first in the DOM so normal paint order
+   puts it behind the buttons (all plain flex items, no z-index needed) without
+   affecting their own flex layout — position:absolute already takes it out of flex
+   flow entirely, same technique .bottom-glow uses inside #project-info's own flex row. */
+.filter-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border: 1px solid var(--accent);
+  border-radius: 8px; /* matches .category-filter button's own radius below */
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+  pointer-events: none;
 }
 .category-filter button {
+  position: relative; /* stacks above .filter-indicator in normal paint order (indicator is DOM-first) without needing z-index */
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 8px; /* small radius, ShotDeck-inspired, Aug 2026 */
@@ -455,14 +494,8 @@ h1, h2, h3 {
 }
 .category-filter button:hover { border-color: var(--accent); color: var(--accent); }
 .category-filter button.active {
-  border-color: var(--accent);
   color: var(--accent);
-  /* Was hardcoded to rgba(138, 154, 91, ...) — the default green's RGB values — so on
-     the ~2/3 of loads where --accent randomizes to red or blue, this chip's background
-     stayed green while its border/text correctly followed the random color. color-mix
-     tracks --accent properly, same technique already used by .bottom-glow-gradient.
-     Fixed Aug 2026. */
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: transparent; /* the accent border/background now come from .filter-indicator sliding underneath instead of this button's own state, Aug 2026 */
 }
 /* On phones, 5 chips don't fit one line even shrunk, so scroll horizontally instead of
    wrapping to a second row (scrollbar hidden, swipe still works). Must come after the
@@ -854,6 +887,7 @@ h1, h2, h3 {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain; /* never crops the enlarged image, unlike the grid thumbnails */
+  view-transition-name: lightbox-img; /* scopes the same-document View Transition (see openLightboxAt in project.html) to just this image crossfading between stills, instead of the browser treating the whole page as one transitioning root */
 }
 .lightbox-close {
   position: absolute;
