@@ -22,7 +22,7 @@ les cas qui sortent de l'admin.
 | Changer un texte du site (nav, titres, étiquettes) | Admin → Textes du site | |
 | Ajouter ou retirer un type de projet (AD, MV, etc.) | Admin → Textes du site → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
 | Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | L'aperçu reflète aussi tes réglages non enregistrés (halo, grain, fond) |
-| Ajuster l'intensité/taille/étalement du halo du reel, le grain, ou la couleur de fond | Admin → Design → curseurs en haut de l'onglet | Rien ne se publie tant que tu n'as pas cliqué Enregistrer ; Réinitialiser remet les valeurs par défaut dans l'aperçu (sans publier) |
+| Ajuster l'intensité/taille/étalement du halo du reel, le grain (texture appliquée sur tout le site), ou la couleur de fond | Admin → Design → curseurs en haut de l'onglet | Rien ne se publie tant que tu n'as pas cliqué Enregistrer ; Réinitialiser remet les valeurs par défaut dans l'aperçu (sans publier) |
 | Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
 | Remplacer le reel principal (vidéo hero) | **Pas dans l'admin** | Envoyer le fichier vidéo à Claude par le chat — nécessite un vrai réencodage |
 | Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
@@ -49,7 +49,7 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 - **Repo** (dépôt) : le dossier de projet complet sur GitHub, avec tout son historique.
 - **Déploiement** : le moment où GitHub Pages republie le site à partir du dernier commit.
   Automatique, prend en général moins d'une minute, parfois deux.
-- **Cache-buster** (`?v=62`) : le `?v=N` à la fin des liens vers `style.css`. Force les
+- **Cache-buster** (`?v=76`) : le `?v=N` à la fin des liens vers `style.css`. Force les
   navigateurs à retélécharger la feuille de style plutôt que de garder une vieille version
   en mémoire. Concerne seulement le code, jamais l'admin.
 - **JSON** : le format des fichiers `data/*.json`. C'est le contenu du site (projets, textes,
@@ -125,6 +125,13 @@ dans les crédits.
 **Lightbox** : flèches à l'écran + flèches du clavier (←/→) pour naviguer entre les stills,
 boucle entre la première et la dernière image. Le curseur reste normal partout dans le
 lightbox sauf sur les boutons cliquables (Close, flèches).
+
+**Projet suivant** (Aug 2026) : carte cliquable en bas de page, à droite des crédits (empilée
+sous les crédits et alignée à droite sur mobile), pour sauter directement au projet suivant
+sans repasser par la grille. "Suivant" = l'entrée suivante dans l'ordre de `projects.json`
+(le même ordre que la grille et que le glisser-déposer de l'admin), boucle au premier projet
+après le dernier. Disparaît si un seul projet existe au total. Rien à configurer dans
+l'admin — entièrement dérivé de `projects.json`, comme la grille elle-même.
 
 **Règles à respecter pour chaque projet** (encouragées par l'interface de l'admin, mais pas
 bloquées à l'enregistrement) :
@@ -218,12 +225,20 @@ via un fichier `design.js`), retiré le 9 juillet 2026 : trop chargé pour l'usa
 overwhelming qu'utile.
 
 Un panneau plus ciblé l'a remplacé depuis (Aug 2026) : curseurs pour l'intensité, la taille et
-l'étalement du halo du reel, le niveau de grain (anti-banding), et un sélecteur de couleur de
-fond. Les changements s'appliquent en direct dans l'aperçu (le vrai site en iframe, bascule
+l'étalement du halo du reel, le niveau de grain, et un sélecteur de couleur de fond. Les
+changements s'appliquent en direct dans l'aperçu (le vrai site en iframe, bascule
 Desktop/Mobile qui réduit l'iframe à 390px de large pour déclencher les mêmes media queries
 qu'un vrai téléphone) sans rien publier. Seul un clic sur **Enregistrer** écrit dans
 `data/design.json` ; **Réinitialiser** remet les valeurs par défaut dans l'aperçu, sans publier
 non plus.
+
+Le grain a changé de nature en cours de route (Aug 2026) : d'abord un correctif anti-banding
+scopé au halo du reel (`.halo-dither`) et au bas de la section Contact (`.bottom-glow-noise`),
+il est devenu une texture appliquée uniformément sur toute la page (`.grain-overlay`), visible
+sur `index.html` et `project.html`. Le curseur va maintenant jusqu'à 2.0 (au lieu de 1.0) :
+au-delà de 1.0, une seconde couche de la même texture se superpose (décalée d'une demi-tuile)
+pour donner un vrai surplus de densité — une opacité CSS seule plafonne à 1.0 et n'aurait rien
+donné sur la moitié supérieure du curseur sans ce détour.
 
 Les propriétés de mise en page plus larges (colonnes de grille, ratio des vignettes,
 espacements, typographie, etc.) restent hors de portée de ce panneau : `style.css` garde
