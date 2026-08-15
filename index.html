@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=78">
+<link rel="stylesheet" href="style.css?v=79">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -159,7 +159,9 @@
 <section id="work">
   <div class="section-head">
     <h2><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
-    <div class="category-filter" id="category-filter"></div>
+    <div class="category-filter" id="category-filter">
+      <div class="filter-indicator" id="filter-indicator" aria-hidden="true"></div>
+    </div>
   </div>
 
   <div class="work-grid" id="work-grid"></div>
@@ -375,6 +377,7 @@
   let resizeTicking = false;
   function onResizeThrottled() {
     sizeReel();
+    positionFilterIndicator(); // button positions/widths shift on reflow — keep the indicator matching them
     resizeTicking = false;
   }
   window.addEventListener('resize', () => {
@@ -388,6 +391,10 @@
   // "All"/"Tous" button to clear the filter. Rebuilt on language toggle since the labels
   // are bilingual; clicking a button just sets activeFilter and re-renders the grid —
   // it doesn't refetch anything, filtering happens against the already-cached project list.
+  // Only removes/recreates the <button> elements on each call, not #filter-indicator —
+  // that one's a persistent element (see the static markup above) specifically so it can
+  // slide between positions via CSS transition instead of being destroyed and recreated
+  // with no previous position to animate from, requested Aug 2026.
   function renderCategoryFilter() {
     const container = document.getElementById('category-filter');
     if (!container) return;
@@ -396,16 +403,34 @@
     const items = [{ code: null, label: allLabel }].concat(
       Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
     );
-    container.innerHTML = items.map((item) => `
-      <button type="button" class="${activeFilter === item.code ? 'active' : ''}" data-filter="${item.code || ''}">${item.label}</button>
-    `).join('');
-    container.querySelectorAll('button').forEach((btn) => {
+    container.querySelectorAll('button').forEach((b) => b.remove());
+    items.forEach((item) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      if (activeFilter === item.code) btn.classList.add('active');
+      btn.dataset.filter = item.code || '';
+      btn.textContent = item.label;
       btn.addEventListener('click', () => {
         activeFilter = btn.dataset.filter || null;
         renderCategoryFilter();
         renderWorkGrid();
       });
+      container.appendChild(btn);
     });
+    positionFilterIndicator();
+  }
+
+  // Slides/resizes #filter-indicator to exactly match the currently .active button's
+  // own box — the CSS transition on the indicator's own transform/width/height is what
+  // actually produces the sliding motion; this just supplies the target position.
+  function positionFilterIndicator() {
+    const container = document.getElementById('category-filter');
+    const indicator = document.getElementById('filter-indicator');
+    const activeBtn = container && container.querySelector('button.active');
+    if (!indicator || !activeBtn) return;
+    indicator.style.width = activeBtn.offsetWidth + 'px';
+    indicator.style.height = activeBtn.offsetHeight + 'px';
+    indicator.style.transform = `translate(${activeBtn.offsetLeft}px, ${activeBtn.offsetTop}px)`;
   }
 
   // i18n (all static bilingual copy + project type acronyms) and the project list are
