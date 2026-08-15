@@ -125,7 +125,7 @@
   </h1>
   <div class="reel-frame">
     <div class="reel-embed">
-      <video id="reel-video" autoplay muted loop playsinline preload="auto" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
+      <video id="reel-video" autoplay muted loop playsinline webkit-playsinline preload="auto" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
         <!-- Same 1080p resolution both files, lower bitrate on mobile to keep the
              autoplay download reasonable on cellular (~40MB vs ~84MB). The browser
              picks a source once at load based on viewport width at that moment — it
@@ -255,6 +255,30 @@
   const soundBtn = document.getElementById('sound-toggle');
   const iconMuted = document.getElementById('icon-muted');
   const iconUnmuted = document.getElementById('icon-unmuted');
+
+  // Explicit play() call, reinforcing the autoplay attribute rather than relying on it
+  // alone — reported not autoplaying on mobile, Aug 2026. Re-setting .muted as a live
+  // property (not just trusting the initial HTML attribute) matters here: some mobile
+  // browsers check the current property value at the moment play() is actually called,
+  // not just what was declared in markup. If the browser blocks it outright anyway
+  // (e.g. iOS Low Power Mode overrides even a muted+playsinline video, and that can't
+  // be worked around from JS), retry once on the very first touch or scroll — nearly
+  // every mobile browser's autoplay restriction lifts after any user interaction with
+  // the page, even one unrelated to the video itself.
+  if (reelVideo) {
+    reelVideo.muted = true;
+    const playAttempt = reelVideo.play();
+    if (playAttempt && playAttempt.catch) {
+      playAttempt.catch(() => {
+        const resumeOnInteraction = () => {
+          reelVideo.play().catch(() => {});
+        };
+        window.addEventListener('touchstart', resumeOnInteraction, { once: true, passive: true });
+        window.addEventListener('scroll', resumeOnInteraction, { once: true, passive: true });
+      });
+    }
+  }
+
   if (reelVideo && soundBtn) {
     soundBtn.addEventListener('click', () => {
       reelVideo.muted = !reelVideo.muted;
