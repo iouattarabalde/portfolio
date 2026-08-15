@@ -1219,7 +1219,14 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
 /* ---------- Image compression ----------
    Client-side resize + re-encode via <canvas>, since there's no ffmpeg here — this is
    the same idea as the ffmpeg resize/quality settings used elsewhere on the site, just
-   done with what the browser has built in. Runs on every new image before upload. */
+   done with what the browser has built in. Runs on every new image before upload.
+   maxWidth is sized per how the result actually gets displayed, not left at the 1920
+   default everywhere: 800 for the contact photo (shown at 96-120px), 1200 for project
+   thumbnails (work grid / next-project card / admin's own lists — never shown full-
+   size), and the 1920 default for gallery stills (the one case genuinely viewed full-
+   size, in the lightbox). Aug 2026 — thumbnails used to share gallery's 1920px cap,
+   routinely shipping ~2x more resolution than any of their actual display contexts
+   ever needed. */
 
 // Draws the image onto a canvas capped at maxWidth (aspect ratio preserved, no upscaling
 // past the source size since the resize only ever shrinks), then re-exports as JPEG.
@@ -1840,7 +1847,13 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
     // Vignette (only if a new file was picked — see the f-thumbnail change handler above)
     if (editorThumb.file) {
       statusEl.textContent = 'Envoi de la vignette…';
-      const compressed = await compressImage(editorThumb.file);
+      // maxWidth 1200 (not the 1920 default): thumbnails are only ever displayed small
+      // — work grid cards, the next-project card, admin's own list views — never full-
+      // size like gallery stills are in the lightbox. 1200px comfortably covers even a
+      // 2x-pixel-density display at the largest realistic card width; the 1920px
+      // default was routinely ~2x oversized for how this file actually gets used.
+      // Existing thumbnails across all 16 projects were resized to match, Aug 2026.
+      const compressed = await compressImage(editorThumb.file, 1200);
       const b64 = await blobToBase64(compressed);
       const filename = `${slug}-cover.jpg`;
       await ghPutFile(`assets/${filename}`, b64, `Admin : vignette pour ${title}`);
