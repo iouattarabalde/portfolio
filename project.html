@@ -217,6 +217,32 @@
       });
     });
   }
+
+  // Same scroll-reveal as the homepage work grid (see wireGridReveal() in index.html
+  // for the full reasoning) — fades + drifts each still up into place as it enters the
+  // viewport, instead of the whole gallery just being there instantly. Only ever runs
+  // once here, unlike the grid's version: this page's gallery renders from a single
+  // fetch, with no filter/re-render to account for. Reuses the exact same .reveal /
+  // .reveal-visible CSS classes, so nothing needed changing in style.css for this.
+  function wireGalleryReveal() {
+    const items = document.querySelectorAll('.gallery-item.reveal');
+    if (!('IntersectionObserver' in window)) {
+      items.forEach((el) => el.classList.add('reveal-visible'));
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    items.forEach((item, i) => {
+      item.style.transitionDelay = `${Math.min(i % 4, 3) * 60}ms`; // small stagger, capped so late stills in a long gallery don't wait on an ever-growing delay
+      observer.observe(item);
+    });
+  }
   function closeLightbox() {
     lightbox.classList.remove('open');
     lightboxImg.src = '';
@@ -319,13 +345,14 @@
       // that's exactly what the admin's drag-and-drop reordering updates.
       const gallery = document.getElementById('project-gallery');
       gallery.innerHTML = project.gallery.map((filename, i) => `
-        <button class="gallery-item" data-full="assets/${filename}">
+        <button class="gallery-item reveal" data-full="assets/${filename}">
           <img src="assets/${filename}" alt="${project.title} — still ${i + 1}" loading="lazy">
         </button>
       `).join('');
 
       document.getElementById('project-info').style.display = '';
       wireLightbox();
+      wireGalleryReveal();
     })
     .catch((err) => {
       console.error('Impossible de charger le projet:', err);
