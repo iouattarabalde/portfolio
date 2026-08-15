@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=73">
+<link rel="stylesheet" href="style.css?v=74">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -89,30 +89,45 @@
 
 <!-- Hidden until the project is found and rendered (display:none avoids a flash of empty content) -->
 <section class="project-info" id="project-info" style="display:none;">
-  <a class="project-back" href="index.html#work">← <span data-fr data-key="project.back"></span><span data-en data-key="project.back"></span></a>
-  <h1 class="project-title" id="project-title"></h1>
-  <dl class="credits">
-    <div>
-      <dt><span data-fr data-key="project.type_label"></span><span data-en data-key="project.type_label"></span></dt>
-      <dd id="project-type">—</dd>
-    </div>
-    <div id="project-client-wrap" style="display:none;">
-      <dt><span data-fr data-key="project.client_label"></span><span data-en data-key="project.client_label"></span></dt>
-      <dd id="project-client">—</dd>
-    </div>
-    <div id="project-artist-wrap" style="display:none;">
-      <dt><span data-fr data-key="project.artist_label"></span><span data-en data-key="project.artist_label"></span></dt>
-      <dd id="project-artist">—</dd>
-    </div>
-    <div>
-      <dt><span data-fr data-key="project.director_label"></span><span data-en data-key="project.director_label"></span></dt>
-      <dd id="project-director">—</dd>
-    </div>
-    <div>
-      <dt><span data-fr data-key="project.dp_label"></span><span data-en data-key="project.dp_label"></span></dt>
-      <dd id="project-dp">—</dd>
-    </div>
-  </dl>
+  <div class="project-info-main">
+    <a class="project-back" href="index.html#work">← <span data-fr data-key="project.back"></span><span data-en data-key="project.back"></span></a>
+    <h1 class="project-title" id="project-title"></h1>
+    <dl class="credits">
+      <div>
+        <dt><span data-fr data-key="project.type_label"></span><span data-en data-key="project.type_label"></span></dt>
+        <dd id="project-type">—</dd>
+      </div>
+      <div id="project-client-wrap" style="display:none;">
+        <dt><span data-fr data-key="project.client_label"></span><span data-en data-key="project.client_label"></span></dt>
+        <dd id="project-client">—</dd>
+      </div>
+      <div id="project-artist-wrap" style="display:none;">
+        <dt><span data-fr data-key="project.artist_label"></span><span data-en data-key="project.artist_label"></span></dt>
+        <dd id="project-artist">—</dd>
+      </div>
+      <div>
+        <dt><span data-fr data-key="project.director_label"></span><span data-en data-key="project.director_label"></span></dt>
+        <dd id="project-director">—</dd>
+      </div>
+      <div>
+        <dt><span data-fr data-key="project.dp_label"></span><span data-en data-key="project.dp_label"></span></dt>
+        <dd id="project-dp">—</dd>
+      </div>
+    </dl>
+  </div>
+
+  <!-- Jump straight to the next project without going back through the grid — requested
+       Aug 2026. "Next" means the following entry in projects.json's own order (same
+       order the admin's drag-and-drop reordering controls, same order the homepage grid
+       renders in before any type filter is applied — there's no filter state to inherit
+       here), wrapping back to the first project after the last one. Hidden entirely by
+       JS if there's only one project total, since a link back to itself isn't useful.
+       Populated + shown by JS below alongside the rest of project-info. -->
+  <a class="next-project" id="next-project" href="#" style="display:none;">
+    <p class="next-project-label"><span data-fr data-key="project.next_label"></span><span data-en data-key="project.next_label"></span></p>
+    <img class="next-project-thumb" id="next-project-thumb" alt="" loading="lazy">
+    <p class="next-project-title" id="next-project-title"></p>
+  </a>
 </section>
 
 <!-- Shown instead of project-info if the ?project= id doesn't match anything in projects.json -->
@@ -273,6 +288,22 @@
       }
       document.getElementById('project-director').textContent = project.director || '—';
       document.getElementById('project-dp').textContent = project.dp || '—';
+
+      // Jump-to-next-project card — "next" is the following entry in projects.json's
+      // own order, wrapping back to the first project after the last one. Hidden
+      // entirely if there's only one project total (a link back to itself isn't useful).
+      if (data.projects.length > 1) {
+        const currentIndex = data.projects.findIndex((p) => p.id === projectId);
+        const nextProject = data.projects[(currentIndex + 1) % data.projects.length];
+        const nextLink = document.getElementById('next-project');
+        const nextThumb = document.getElementById('next-project-thumb');
+        nextLink.href = `project.html?project=${encodeURIComponent(nextProject.id)}`;
+        nextThumb.src = `assets/${nextProject.thumbnail}`;
+        nextThumb.alt = nextProject.title;
+        nextThumb.style.objectPosition = nextProject.thumbnailFocus || '50% 50%';
+        document.getElementById('next-project-title').textContent = nextProject.title;
+        nextLink.style.display = '';
+      }
 
       // Gallery order matches the order of filenames in projects.json's "gallery" array —
       // that's exactly what the admin's drag-and-drop reordering updates.
