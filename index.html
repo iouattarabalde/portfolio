@@ -395,25 +395,24 @@
       // desktop, Aug 2026.
       const revealing = entries.filter((e) => e.isIntersecting);
       revealing.forEach((entry, i) => {
-        entry.target.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
-        observer.unobserve(entry.target);
-        // Deferred two frames — a card that's ALREADY in the viewport the instant
-        // observe() runs (a filtered grid on desktop, where more columns means more
-        // of it fits in view at once and clicking a filter re-triggers this
-        // immediately since you're already looking right at it; or the very first row
-        // on any device on initial load) can have the observer's callback fire before
-        // the browser has actually painted that card's initial hidden state. Flipping
-        // straight to visible before that paint lands means there's nothing committed
-        // to transition FROM, so the browser skips the animation outright — reported
-        // as a straight cut on desktop filter clicks, and a glitchy partial frame on
-        // mobile's first row. One rAF can still land in the same frame as the
-        // observer's callback in some browsers; nesting a second one reliably pushes
-        // past the frame where the hidden state gets painted. Reported Aug 2026.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            entry.target.classList.add('reveal-visible');
-          });
-        });
+        const el = entry.target;
+        observer.unobserve(el);
+        el.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
+        // Forces a synchronous style/layout flush — reading a layout-dependent
+        // property like offsetHeight makes the browser compute and commit the
+        // CURRENT (hidden) state right now, guaranteeing something valid to
+        // transition FROM once the visible class gets added immediately after.
+        // Two nested requestAnimationFrame calls were tried first (see git history)
+        // and weren't reliable enough in practice — rAF timing is a heuristic, not a
+        // guarantee, and the observer's own callback evidently can still fire fast
+        // enough to beat it in some cases, especially when a card is already in the
+        // viewport the instant observe() runs (a filtered grid on desktop, where more
+        // columns means more of it fits in view at once; or the first row on any
+        // device on initial load). This synchronous technique doesn't depend on any
+        // timing assumption at all. Reported still not working after the rAF attempt,
+        // Aug 2026.
+        void el.offsetHeight;
+        el.classList.add('reveal-visible');
       });
     }, { threshold: 0.1, rootMargin: '0px 0px -120px 0px' }); // was -40px — cards now need to be substantially in view, not just barely peeking in, before triggering
     cards.forEach((card) => observer.observe(card));
