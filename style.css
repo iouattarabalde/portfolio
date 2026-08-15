@@ -356,14 +356,17 @@ h1, h2, h3 {
   scroll-margin-top: 88px;
 }
 
-/* Colored halo rising from the very bottom of the page (Contact is the last section —
-   nothing follows it before </body>), fading upward into the section, tinted with
-   whatever --accent the session randomized (see the inline script in <head>) via
-   color-mix() rather than a hardcoded color, so it always matches automatically.
-   Sized via inset:0 to exactly match #contact's own box — #contact's height is static
-   layout (unlike the work grid), so this needs no JS sizing at all, plain CSS is
-   enough. z-index:-1 / transparent-section trick: #contact has no background color of
-   its own, so this shows through around its content. Requested Aug 2026.
+/* Colored halo rising from the very bottom of the page — on index.html that's #contact
+   (nothing follows it before </body>), and since Aug 2026 also #project-info on
+   project.html (that page's own last section, same role). Fades upward into whichever
+   section hosts it, tinted with whatever --accent the session randomized (see the
+   inline script in <head>) via color-mix() rather than a hardcoded color, so it always
+   matches automatically. Sized via inset:0 to exactly match the host section's own
+   box — both #contact and #project-info are static layout (unlike the work grid), so
+   this needs no JS sizing at all, plain CSS is enough. z-index:-1 / transparent-section
+   trick: neither host section has a background color of its own, so this shows
+   through around their content. Requested Aug 2026 for #contact, extended to
+   #project-info the same day.
    Used to also carry its own grain sub-layer (.bottom-glow-noise) for the same 8-bit-
    banding reason as the old .halo-dither — removed Aug 2026 and folded into the
    page-wide .grain-overlay below along with that one, so this wrapper only has the
@@ -706,6 +709,9 @@ h1, h2, h3 {
   align-items: flex-start;
   gap: 48px;
   padding: clamp(var(--sect-y-m, 28px), 6vw, calc(var(--sect-y, 56px) * 0.86)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  position: relative; /* positioning context for .bottom-glow, added Aug 2026 — absolutely-
+                          positioned children of a flex container aren't flex items
+                          themselves, so this doesn't disturb the two-column layout above */
 }
 .project-info-main {
   flex: 1;
