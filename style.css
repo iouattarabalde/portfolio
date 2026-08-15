@@ -761,6 +761,7 @@ h1, h2, h3 {
   display: block;
   flex: 0 0 240px;
   text-decoration: none;
+  text-align: right; /* card sits on the right of the page — its own text should read as anchored there too, not left-aligned within its column */
 }
 .next-project-label {
   font-size: 10px;
@@ -788,7 +789,12 @@ h1, h2, h3 {
 
 @media (max-width: 700px) {
   .project-info { flex-direction: column; gap: 32px; }
-  .next-project { flex: 0 0 auto; width: 100%; max-width: 320px; }
+  /* .project-info's align-items:flex-start applies to the cross axis, which becomes
+     horizontal once flex-direction is column here — without this override the card
+     would just left-align like everything else on the page once stacked, losing the
+     "belongs on the right" distinction entirely instead of carrying it into the
+     stacked layout. */
+  .next-project { flex: 0 0 auto; align-self: flex-end; width: 100%; max-width: 320px; }
 }
 
 /* ---------- Lightbox ---------- */
