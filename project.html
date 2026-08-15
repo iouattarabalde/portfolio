@@ -21,6 +21,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=77">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
@@ -57,10 +58,16 @@
       return '#' + hex2(r) + hex2(g) + hex2(bl);
     }
 
+    var UPDATE_INTERVAL_MS = 120; // ~8x/sec — imperceptibly different from every frame for a 60s cycle, but ~8x less work (see index.html for the full reasoning)
+    var lastUpdate = -Infinity;
+
     function tick(now) {
-      var elapsed = (now + startOffset) % CYCLE_MS;
-      var hue = (elapsed / CYCLE_MS) * 360;
-      html.style.setProperty('--accent', oklchToHex(hue));
+      if (now - lastUpdate >= UPDATE_INTERVAL_MS) {
+        var elapsed = (now + startOffset) % CYCLE_MS;
+        var hue = (elapsed / CYCLE_MS) * 360;
+        html.style.setProperty('--accent', oklchToHex(hue));
+        lastUpdate = now;
+      }
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
