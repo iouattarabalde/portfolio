@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=77">
+<link rel="stylesheet" href="style.css?v=78">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -325,7 +325,7 @@
     const isFr = body.classList.contains('lang-fr');
     const visible = activeFilter ? cachedProjects.filter((p) => p.type === activeFilter) : cachedProjects;
     grid.innerHTML = visible.map((p) => `
-      <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}">
+      <a class="work-card reveal" href="project.html?project=${encodeURIComponent(p.id)}">
         <img class="thumb" src="assets/${p.thumbnail}" alt="${p.title}" loading="lazy" style="object-position:${p.thumbnailFocus || '50% 50%'};">
         <div class="work-card-meta">
           <p class="type">${projectTypeAcronym(p.type, isFr)}</p>
@@ -334,6 +334,39 @@
         </div>
       </a>
     `).join('');
+    wireGridReveal();
+  }
+
+  // Fades + drifts each card up into place as it enters the viewport, instead of
+  // everything just being there instantly — requested Aug 2026. Re-run on every
+  // render (initial load, filter change, language toggle all rebuild the grid's
+  // innerHTML from scratch, so previously-observed elements no longer exist). Cards
+  // already in the viewport at observe-time reveal almost immediately, since
+  // IntersectionObserver reports current intersection state on first observation —
+  // that's what gives the initial page load its own subtle staggered entrance, not
+  // separate code from what handles scrolling further down later.
+  // Falls back to showing everything immediately in browsers without
+  // IntersectionObserver support (extremely rare), and prefers-reduced-motion is
+  // handled entirely in CSS (see the reduced-motion block in style.css), not here —
+  // it forces opacity:1 unconditionally there regardless of what this observer does.
+  function wireGridReveal() {
+    const cards = document.querySelectorAll('.work-card.reveal');
+    if (!('IntersectionObserver' in window)) {
+      cards.forEach((c) => c.classList.add('reveal-visible'));
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    cards.forEach((card, i) => {
+      card.style.transitionDelay = `${Math.min(i % 4, 3) * 60}ms`; // small stagger, capped so late cards in a long grid don't wait on an ever-growing delay
+      observer.observe(card);
+    });
   }
 
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
