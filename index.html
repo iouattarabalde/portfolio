@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=79">
+<link rel="stylesheet" href="style.css?v=80">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -382,17 +382,25 @@
       return;
     }
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('reveal-visible');
-          observer.unobserve(entry.target);
-        }
+      // Stagger is relative to how many cards are revealing together in THIS batch,
+      // not each card's fixed position in the whole grid — assigning delay at observe
+      // time (the original approach) capped out at 180ms total spread no matter how
+      // many cards triggered together, which barely registered on desktop: a tall
+      // viewport with 4 columns often has most/all of the grid's rows already in view
+      // the instant you scroll to it, so a dozen-plus cards would all reveal in one
+      // barely-staggered burst. Computing delay from each entry's order within the
+      // current batch instead means a big simultaneous reveal actually cascades, while
+      // a single card crossing the threshold later during normal scrolling still
+      // reveals immediately with no artificial wait. Reported not noticeable enough on
+      // desktop, Aug 2026.
+      const revealing = entries.filter((e) => e.isIntersecting);
+      revealing.forEach((entry, i) => {
+        entry.target.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
+        entry.target.classList.add('reveal-visible');
+        observer.unobserve(entry.target);
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-    cards.forEach((card, i) => {
-      card.style.transitionDelay = `${Math.min(i % 4, 3) * 60}ms`; // small stagger, capped so late cards in a long grid don't wait on an ever-growing delay
-      observer.observe(card);
-    });
+    }, { threshold: 0.1, rootMargin: '0px 0px -120px 0px' }); // was -40px — cards now need to be substantially in view, not just barely peeking in, before triggering
+    cards.forEach((card) => observer.observe(card));
   }
 
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
