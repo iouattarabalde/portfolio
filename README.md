@@ -185,7 +185,9 @@ Permet de :
 - Rechercher/filtrer la liste de projets par titre ou type
 - Ouvrir un projet sur le site en direct depuis sa ligne ("Voir")
 - Glisser-déposer pour réordonner les projets sur la page d'accueil (sauvegarde automatique)
-- Uploader des images, compressées automatiquement (canvas, 1920px max, JPEG qualité 0.85)
+- Uploader des images, compressées automatiquement (canvas, JPEG qualité 0.85, taille max
+  selon l'usage : 1200px pour les vignettes de projet, 1920px pour les stills de galerie,
+  800px pour la photo de contact — chacune n'est jamais affichée plus grande que ça)
 - Glisser-déposer pour réordonner la galerie d'un projet
 - Modifier tous les textes du site — coordonnées, navigation, titres, et les
   acronymes/libellés de chaque type de projet, en français et en anglais
