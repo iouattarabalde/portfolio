@@ -56,6 +56,10 @@
       "fr": "Artiste",
       "en": "Artist"
     },
+    "project.next_label": {
+      "fr": "Prochain projet",
+      "en": "Next project"
+    },
     "project.not_found_eyebrow": {
       "fr": "Introuvable",
       "en": "Not found"
