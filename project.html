@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=79">
+<link rel="stylesheet" href="style.css?v=80">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -250,17 +250,17 @@
       return;
     }
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('reveal-visible');
-          observer.unobserve(entry.target);
-        }
+      // Same batch-relative stagger as the homepage work grid — see wireGridReveal()
+      // in index.html for the full reasoning. Reported not noticeable enough on
+      // desktop, Aug 2026.
+      const revealing = entries.filter((e) => e.isIntersecting);
+      revealing.forEach((entry, i) => {
+        entry.target.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
+        entry.target.classList.add('reveal-visible');
+        observer.unobserve(entry.target);
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-    items.forEach((item, i) => {
-      item.style.transitionDelay = `${Math.min(i % 4, 3) * 60}ms`; // small stagger, capped so late stills in a long gallery don't wait on an ever-growing delay
-      observer.observe(item);
-    });
+    }, { threshold: 0.1, rootMargin: '0px 0px -120px 0px' }); // was -40px — see wireGridReveal() for why
+    items.forEach((item) => observer.observe(item));
   }
   function closeLightbox() {
     lightbox.classList.remove('open');
