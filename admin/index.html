@@ -536,11 +536,17 @@
   </div>
   <div style="display:flex; gap:10px; margin-bottom:16px;">
     <input type="text" id="project-search" placeholder="Rechercher un projet…" style="flex:1; background:var(--bg-raised); border:1px solid var(--line); color:var(--fg); font-family:var(--mono); font-size:13px; padding:10px 12px;">
+    <select id="project-sort" style="background:var(--bg-raised); border:1px solid var(--line); color:var(--fg); font-family:var(--mono); font-size:13px; padding:10px 12px;">
+      <option value="custom">Ordre personnalisé</option>
+      <option value="type">Trier par type</option>
+      <option value="stills">Trier par nb. de stills</option>
+    </select>
     <div class="view-toggle" id="view-toggle">
       <button type="button" class="view-toggle-btn" data-view="list" title="Vue liste">☰</button>
       <button type="button" class="view-toggle-btn" data-view="grid" title="Vue grille">▦</button>
     </div>
   </div>
+  <p id="sort-hint" class="field-hint" style="display:none; margin:-10px 0 14px;">Tri actif : le glisser-déposer est désactivé. Reviens à « Ordre personnalisé » pour réordonner.</p>
   <div id="project-list"></div>
   <p id="dashboard-status" class="save-status" style="margin-top:14px;"></p>
   </div><!-- /tab-projets -->
@@ -1464,18 +1470,48 @@ document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
   btn.addEventListener('click', () => setProjectViewMode(btn.dataset.view));
 });
 
+// Sort dropdown is display-only: it never touches projectsData.projects (the real,
+// drag-reorderable homepage order), it just changes what order renderDashboard draws
+// the cards/rows in. Because of that, dragging and the move buttons — which both rely
+// on an item's on-screen position matching its true array index — are disabled
+// whenever a sort other than "custom" is active, same reasoning as the search filter.
+// Remembered across sessions (localStorage) like the view mode.
+let projectSortMode = localStorage.getItem('admin-project-sort') || 'custom';
+
+function sortProjects(entries, mode) {
+  if (mode === 'type') {
+    return entries.slice().sort((a, b) =>
+      projectTypeAcronym(a.p.type, true).localeCompare(projectTypeAcronym(b.p.type, true))
+      || a.p.title.localeCompare(b.p.title)
+    );
+  }
+  if (mode === 'stills') {
+    // Most stills first — the more common reason to check this is "which galleries are
+    // still thin", and thin ones are easier to spot at the bottom than scattered on top.
+    return entries.slice().sort((a, b) =>
+      b.p.gallery.length - a.p.gallery.length || a.p.title.localeCompare(b.p.title)
+    );
+  }
+  return entries; // 'custom' — leave in projectsData.projects order (the real, saved order)
+}
+
 function renderDashboard() {
   const list = document.getElementById('project-list');
   const query = document.getElementById('project-search').value.trim().toLowerCase();
   const filtering = query.length > 0;
+  const sorting = projectSortMode !== 'custom';
+  const reorderable = !filtering && !sorting; // dragging/move buttons only make sense against the true, unfiltered, unsorted order
   const isGrid = projectViewMode === 'grid';
   const itemClass = isGrid ? 'project-card' : 'project-row';
 
-  const visible = filtering
+  document.getElementById('sort-hint').style.display = sorting ? '' : 'none';
+
+  const filtered = filtering
     ? projectsData.projects
         .map((p, i) => ({ p, i }))
         .filter(({ p }) => p.title.toLowerCase().includes(query) || p.type.toLowerCase().includes(query))
     : projectsData.projects.map((p, i) => ({ p, i }));
+  const visible = sortProjects(filtered, projectSortMode);
 
   list.className = isGrid ? 'grid-view' : '';
 
@@ -1492,8 +1528,8 @@ function renderDashboard() {
   visible.forEach(({ p, i }) => {
     const el = document.createElement('div');
     el.className = itemClass;
-    el.draggable = !filtering; // reordering disabled while a search is active, see comment above
-    if (filtering) el.style.cursor = 'default';
+    el.draggable = reorderable;
+    if (!reorderable) el.style.cursor = 'default';
     el.dataset.index = i; // remembers this item's position in projectsData.projects for drag reordering
     el.innerHTML = isGrid ? `
       <div class="card-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
@@ -1504,10 +1540,10 @@ function renderDashboard() {
       <div class="card-actions">
         <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>
         <button class="btn" data-edit="${i}">Modifier</button>
-        ${filtering ? '' : moveButtonsHtml(i)}
+        ${reorderable ? moveButtonsHtml(i) : ''}
       </div>
     ` : `
-      <span class="handle">${filtering ? '' : '⠿'}</span>
+      <span class="handle">${reorderable ? '⠿' : ''}</span>
       <div class="row-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
       <div class="row-info">
         <div class="row-title">${p.title}</div>
@@ -1516,7 +1552,7 @@ function renderDashboard() {
       <div class="row-actions">
         <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>
         <button class="btn" data-edit="${i}">Modifier</button>
-        ${filtering ? '' : moveButtonsHtml(i)}
+        ${reorderable ? moveButtonsHtml(i) : ''}
       </div>
     `;
     list.appendChild(el);
@@ -1532,7 +1568,7 @@ function renderDashboard() {
     btn.addEventListener('click', () => moveProject(parseInt(btn.dataset.moveDown, 10), 1));
   });
 
-  if (!filtering) wireDragReorder(list, itemClass); // no drag handlers at all while filtered, not just visually disabled
+  if (reorderable) wireDragReorder(list, itemClass); // no drag handlers at all while filtered or sorted, not just visually disabled
 }
 
 // Markup for the two move buttons — same index (i) as the drag handle's data-index,
@@ -1570,6 +1606,14 @@ async function moveProject(index, direction) {
 }
 
 document.getElementById('project-search').addEventListener('input', renderDashboard);
+
+const projectSortSelect = document.getElementById('project-sort');
+projectSortSelect.value = projectSortMode; // reflect the remembered mode before the first render
+projectSortSelect.addEventListener('change', () => {
+  projectSortMode = projectSortSelect.value;
+  localStorage.setItem('admin-project-sort', projectSortMode);
+  renderDashboard();
+});
 
 // Native HTML5 drag-and-drop reordering, shared by both views. On drop, reads the new
 // DOM order back out (via each item's data-index), rebuilds projectsData.projects to
