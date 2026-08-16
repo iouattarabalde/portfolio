@@ -740,6 +740,7 @@ body.same-doc-transition .site-nav {
     flex-direction: column;
   }
   .contact-photo-frame {
+    flex: 0 0 auto; /* resets the row-direction flex-basis above, which was being reinterpreted as a HEIGHT once flex-direction flips to column here — without this, the frame rendered short and wide instead of the intended tall portrait, reported Aug 2026. auto lets width + aspect-ratio determine the size instead, same as they already do */
     width: 100%;
     max-width: var(--photo-w-m, 320px);
     margin: 0 auto; /* centers the photo once the columns stack (auto cross-axis margins win over align-items) */
