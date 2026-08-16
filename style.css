@@ -969,11 +969,47 @@ body.same-doc-transition .site-nav {
   padding: clamp(20px, 6vw, 64px);
 }
 .lightbox.open { display: flex; }
-.lightbox img {
+/* Groups the image and the palette strip below it so they get centered as one unit —
+   added Aug 2026 alongside the palette strip itself. Content-sized (not stretched),
+   so its own width naturally matches whichever of its children is widest — in
+   practice always the image, since the palette strip's own width is explicitly set
+   to match it via JS (see the lightboxImg 'load' listener in project.html) rather
+   than relied on to just work out via this shrink-to-fit behavior alone. */
+.lightbox-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   max-width: 100%;
-  max-height: 100%;
+}
+.lightbox-content img {
+  display: block;
+  max-width: 100%;
+  /* Viewport-relative rather than a percentage of .lightbox-content's own height —
+     that height is content-driven (auto), not a definite value, and percentage
+     resolution against an auto-height ancestor is exactly the kind of edge case that
+     behaves inconsistently across browsers without being able to verify it live.
+     min() keeps this sane on short viewports too, always leaving room for the
+     palette strip + margin below and the lightbox's own padding above/below. */
+  max-height: min(70vh, calc(100vh - 180px));
   object-fit: contain; /* never crops the enlarged image, unlike the grid thumbnails */
   view-transition-name: lightbox-img; /* scopes the same-document View Transition (see openLightboxAt in project.html) to just this image crossfading between stills, instead of the browser treating the whole page as one transitioning root */
+}
+/* Color palette strip below the enlarged still, requested Aug 2026 (ShotDeck-style
+   reference) — 13 swatches per image, extracted via median-cut color quantization
+   and stored directly in data/projects.json per gallery entry (computed once, either
+   at upload time in the admin or during the one-time Aug 2026 backfill of all 543
+   existing gallery images, not recomputed live in every visitor's browser — a still
+   image's dominant colors never change, so there's no reason to redo that work on
+   every page load). Width is set via JS to match the image's own rendered width
+   exactly (see project.html), not CSS alone. */
+.lightbox-palette {
+  display: flex;
+  height: 32px;
+  margin-top: 14px;
+  flex-shrink: 0;
+}
+.lightbox-palette > div {
+  flex: 1;
 }
 .lightbox-close {
   position: absolute;
