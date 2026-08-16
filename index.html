@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=80">
+<link rel="stylesheet" href="style.css?v=81">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -351,7 +351,7 @@
     const isFr = body.classList.contains('lang-fr');
     const visible = activeFilter ? cachedProjects.filter((p) => p.type === activeFilter) : cachedProjects;
     grid.innerHTML = visible.map((p) => `
-      <a class="work-card reveal" href="project.html?project=${encodeURIComponent(p.id)}">
+      <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}">
         <img class="thumb" src="assets/${p.thumbnail}" alt="${p.title}" loading="lazy" style="object-position:${p.thumbnailFocus || '50% 50%'};">
         <div class="work-card-meta">
           <p class="type">${projectTypeAcronym(p.type, isFr)}</p>
@@ -360,62 +360,6 @@
         </div>
       </a>
     `).join('');
-    wireGridReveal();
-  }
-
-  // Fades + drifts each card up into place as it enters the viewport, instead of
-  // everything just being there instantly — requested Aug 2026. Re-run on every
-  // render (initial load, filter change, language toggle all rebuild the grid's
-  // innerHTML from scratch, so previously-observed elements no longer exist). Cards
-  // already in the viewport at observe-time reveal almost immediately, since
-  // IntersectionObserver reports current intersection state on first observation —
-  // that's what gives the initial page load its own subtle staggered entrance, not
-  // separate code from what handles scrolling further down later.
-  // Falls back to showing everything immediately in browsers without
-  // IntersectionObserver support (extremely rare), and prefers-reduced-motion is
-  // handled entirely in CSS (see the reduced-motion block in style.css), not here —
-  // it forces opacity:1 unconditionally there regardless of what this observer does.
-  function wireGridReveal() {
-    const cards = document.querySelectorAll('.work-card.reveal');
-    if (!('IntersectionObserver' in window)) {
-      cards.forEach((c) => c.classList.add('reveal-visible'));
-      return;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      // Stagger is relative to how many cards are revealing together in THIS batch,
-      // not each card's fixed position in the whole grid — assigning delay at observe
-      // time (the original approach) capped out at 180ms total spread no matter how
-      // many cards triggered together, which barely registered on desktop: a tall
-      // viewport with 4 columns often has most/all of the grid's rows already in view
-      // the instant you scroll to it, so a dozen-plus cards would all reveal in one
-      // barely-staggered burst. Computing delay from each entry's order within the
-      // current batch instead means a big simultaneous reveal actually cascades, while
-      // a single card crossing the threshold later during normal scrolling still
-      // reveals immediately with no artificial wait. Reported not noticeable enough on
-      // desktop, Aug 2026.
-      const revealing = entries.filter((e) => e.isIntersecting);
-      revealing.forEach((entry, i) => {
-        const el = entry.target;
-        observer.unobserve(el);
-        el.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
-        // Forces a synchronous style/layout flush — reading a layout-dependent
-        // property like offsetHeight makes the browser compute and commit the
-        // CURRENT (hidden) state right now, guaranteeing something valid to
-        // transition FROM once the visible class gets added immediately after.
-        // Two nested requestAnimationFrame calls were tried first (see git history)
-        // and weren't reliable enough in practice — rAF timing is a heuristic, not a
-        // guarantee, and the observer's own callback evidently can still fire fast
-        // enough to beat it in some cases, especially when a card is already in the
-        // viewport the instant observe() runs (a filtered grid on desktop, where more
-        // columns means more of it fits in view at once; or the first row on any
-        // device on initial load). This synchronous technique doesn't depend on any
-        // timing assumption at all. Reported still not working after the rAF attempt,
-        // Aug 2026.
-        void el.offsetHeight;
-        el.classList.add('reveal-visible');
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -120px 0px' }); // was -40px — cards now need to be substantially in view, not just barely peeking in, before triggering
-    cards.forEach((card) => observer.observe(card));
   }
 
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
