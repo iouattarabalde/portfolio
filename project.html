@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=86">
+<link rel="stylesheet" href="style.css?v=87">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -289,7 +289,9 @@
   lightboxCloseBtn.addEventListener('click', closeLightbox);
   lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); openLightboxAt(lightboxIndex - 1); });
   lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); openLightboxAt(lightboxIndex + 1); });
+  let lastSwipeTime = 0;
   lightbox.addEventListener('click', (e) => {
+    if (Date.now() - lastSwipeTime < 300) return; // ignore the synthetic click that follows a swipe's touchend, see the swipe listener below for why
     if (e.target === lightbox) closeLightbox(); // only closes on backdrop clicks, not the image itself
   });
   document.addEventListener('keydown', (e) => {
@@ -311,6 +313,29 @@
       }
     }
   });
+
+  // Swipe to navigate on mobile, requested Aug 2026 — reuses openLightboxAt() exactly
+  // like the arrow buttons and keyboard arrows do, so it gets the same crossfade
+  // transition and index-looping for free, nothing new to maintain there. Requires the
+  // gesture to be predominantly horizontal (deltaX bigger than deltaY) so an incidental
+  // vertical touch doesn't get misread as a swipe, and a minimum distance so a simple
+  // tap never triggers navigation. Right-to-left swipe (deltaX negative) advances to
+  // the next image, matching the standard mobile gallery convention.
+  let touchStartX = 0;
+  let touchStartY = 0;
+  lightbox.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  lightbox.addEventListener('touchend', (e) => {
+    if (!currentProject || currentProject.gallery.length <= 1) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    const deltaY = e.changedTouches[0].clientY - touchStartY;
+    const SWIPE_THRESHOLD = 50;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    lastSwipeTime = Date.now();
+    openLightboxAt(deltaX > 0 ? lightboxIndex - 1 : lightboxIndex + 1);
+  }, { passive: true });
 
   // Which project to show comes from the URL, e.g. project.html?project=fleur-de-peau
   const params = new URLSearchParams(window.location.search);
