@@ -522,8 +522,31 @@ body.same-doc-transition .site-nav {
   border: 1px solid var(--accent);
   border-radius: 8px; /* matches .category-filter button's own radius below */
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-  transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+  /* Overshoot easing instead of a flat ease, requested Aug 2026 — cubic-bezier's 2nd
+     value above 1 is what produces the overshoot (the curve crosses past 100% progress
+     before settling back), giving the slide a felt "snap" at the end instead of just
+     arriving. Duration bumped from 0.3s to 0.4s alongside it so the overshoot has room
+     to actually read instead of feeling rushed. */
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
+}
+/* Quick press-pulse, requested Aug 2026 alongside the overshoot easing above — fires
+   the instant a filter button is clicked (see pulseFilterIndicator() in index.html),
+   overlapping the start of the slide rather than strictly preceding it, for tactile
+   click feedback distinct from the travel animation itself. Uses the separate scale
+   property, not the transform shorthand, so it composes with the JS-driven
+   transform:translate(...) positioning above instead of overriding it — same
+   composing technique used elsewhere in this file (hero parallax, contact photo
+   drift) for the same reason. */
+@keyframes filter-indicator-press {
+  0% { scale: 1; }
+  40% { scale: 0.9; }
+  100% { scale: 1; }
+}
+.filter-indicator.pressed {
+  animation: filter-indicator-press 0.25s ease-out;
 }
 .category-filter button {
   position: relative; /* stacks above .filter-indicator in normal paint order (indicator is DOM-first) without needing z-index */
@@ -1094,5 +1117,11 @@ body.same-doc-transition .site-nav {
   .reel-frame::after {
     animation: none;
     opacity: var(--brackets-o, 0.35);
+  }
+  .filter-indicator {
+    transition: none;
+  }
+  .filter-indicator.pressed {
+    animation: none;
   }
 }
