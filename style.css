@@ -1071,6 +1071,21 @@ body.same-doc-transition .site-nav {
 .lightbox-prev { left: clamp(10px, 3vw, 28px); }
 .lightbox-next { right: clamp(10px, 3vw, 28px); }
 
+@media (max-width: 700px) {
+  /* Vertically centering the arrows put them directly over the photo on mobile,
+     reported Aug 2026 — the image's own max-height (see .lightbox-content img above)
+     keeps it well within the upper ~70% of the viewport, so anchoring the arrows to
+     the BOTTOM instead reliably lands them in the empty backdrop space below the
+     image and its palette strip, regardless of any given still's aspect ratio (which
+     is why this is bottom-anchored rather than tied to the image's own variable
+     rendered height). */
+  .lightbox-nav {
+    top: auto;
+    bottom: 28px;
+    transform: none;
+  }
+}
+
 /* ---------- Jetons de mise en page paramétrables ----------
    Le CSS ci-dessus consomme des variables (--wg-cols, --card-ratio, --photo-w, --body-size,
    etc.) plutôt que des valeurs en dur, chacune avec un repli identique au design d'origine
