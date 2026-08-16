@@ -532,21 +532,12 @@ h1, h2, h3 {
   padding: var(--card-pad, 14px);
 }
 
-/* Generic scroll-entrance animation, requested Aug 2026 — kept decoupled from
-   .work-card's own styling (a separate class added alongside it, not baked into
-   .work-card directly) so it's reusable anywhere else a "fades + drifts up into place"
-   entrance makes sense later, not just the work grid. .reveal-visible is added by
-   wireGridReveal() in index.html once IntersectionObserver reports the element has
-   entered the viewport. */
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-.reveal.reveal-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+/* .reveal / .reveal-visible (a scroll-triggered fade+drift entrance for the work grid
+   and project gallery) was tried Aug 2026, went through two rounds of fixes for a
+   paint-timing race (requestAnimationFrame deferral, then a synchronous forced reflow
+   via offsetHeight) and still never worked reliably in practice — removed the same day
+   rather than keep guessing at browser timing without live access to actually debug it.
+   wireGridReveal()/wireGalleryReveal() in index.html/project.html are gone with it. */
 
 .work-card .thumb {
   position: absolute;
@@ -954,10 +945,5 @@ h1, h2, h3 {
   .work-card:hover .thumb,
   .gallery-item:hover img {
     transform: none;
-  }
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
   }
 }
