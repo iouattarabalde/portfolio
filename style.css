@@ -203,6 +203,20 @@ h1, h2, h3 {
      above for legibility over scrolling content. Aug 2026. */
 }
 
+/* Any same-document View Transition (the lightbox crossfade, the work-grid filter
+   crossfade) needs the nav excluded from its own view-transition-name while it runs —
+   otherwise the nav gets pulled into the browser's view-transition top layer, which
+   renders above everything else regardless of normal z-index, and visibly pops over
+   whatever's actually transitioning. Hit this first with the lightbox crossfade, Aug
+   2026; JS now adds .same-doc-transition to <body> for the duration of any
+   startViewTransition() call (see withViewTransition() in index.html/project.html)
+   instead of toggling the nav's own inline style per feature, so this one rule covers
+   every same-document transition added from here on, not just the ones that existed
+   when it was written. */
+body.same-doc-transition .site-nav {
+  view-transition-name: none;
+}
+
 .wordmark {
   font-family: var(--display);
   font-weight: 700;
@@ -289,12 +303,30 @@ h1, h2, h3 {
   padding: 20px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
 }
 
+/* Entrance animation on load, requested Aug 2026 — pure CSS, plays once when the page
+   loads, not scroll-triggered at all, so there's no timing race of any kind to worry
+   about (the same reasoning as the grid/gallery entrance above). Uses the transform
+   shorthand for this one-time slide+fade, while the scroll-linked parallax just below
+   uses the separate scale property instead, so the two don't fight over the same
+   property — same technique as the thumb-drift/hover-zoom combo above. */
+@keyframes hero-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .reel-frame {
   position: relative;
   width: 100%;
   max-width: 1400px;
   border: 1px solid var(--line);
   background: var(--bg-raised);
+  animation: hero-enter 0.8s ease-out;
+  /* Subtle scroll-linked parallax, requested Aug 2026 — set by updateHeroParallax() in
+     index.html, a direct scroll-value-following custom property (same technique the
+     earlier nav-fade-on-scroll experiment used, before that was reverted for unrelated
+     visual reasons, not technical ones — the underlying pattern works fine). No CSS
+     transition here on purpose, matching that same precedent: a transition would make
+     the scale lag behind the actual scroll position instead of tracking it 1:1. */
+  scale: var(--parallax-scale, 1);
   box-shadow: /* bias-light halo — neutral 6500K white, like a grading-room monitor light.
                  clamp() floors match the original mobile values exactly (unchanged there)
                  and scale up on wider viewports so the falloff stays proportionally smooth
@@ -311,7 +343,17 @@ h1, h2, h3 {
     0 0 calc(clamp(170px, 18vw, 340px) * var(--halo-size) * var(--halo-falloff)) calc(clamp(45px, 4.5vw, 100px) * var(--halo-size) * var(--halo-falloff)) rgba(255, 255, 255, calc(0.03 * var(--halo-intensity)));
 }
 
-/* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle */
+/* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle.
+   Scale+fade in slightly after the frame itself (0.4s delay), like they're snapping into
+   focus once the frame has settled — requested Aug 2026. Animates TO var(--brackets-o,
+   0.35), the same admin-configurable value the static opacity already used, so the
+   Design tab's grain/halo sliders still control the resting state correctly once the
+   entrance finishes; backwards fill-mode shows the (invisible) from-state during the
+   delay instead of flashing full brackets before the delayed start. */
+@keyframes bracket-enter {
+  from { opacity: 0; scale: 1.4; }
+  to { opacity: var(--brackets-o, 0.35); scale: 1; }
+}
 .reel-frame::before,
 .reel-frame::after {
   content: "";
@@ -320,6 +362,7 @@ h1, h2, h3 {
   height: 18px;
   border: 1px solid var(--accent);
   opacity: var(--brackets-o, 0.35); /* dimmed once the bias-light halo was added, Aug 2026 */
+  animation: bracket-enter 0.5s ease-out 0.4s backwards;
 }
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
@@ -519,6 +562,7 @@ h1, h2, h3 {
   grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
   gap: var(--wg-gap, var(--grid-gap));
   background: var(--bg); /* seamless black gap between cards, ShotDeck-inspired, Aug 2026 */
+  view-transition-name: work-grid; /* scopes the same-document crossfade on filter change (see the click handler in index.html) to just this container, instead of the browser treating the whole page as one transitioning root */
 }
 
 .work-card {
@@ -532,12 +576,63 @@ h1, h2, h3 {
   padding: var(--card-pad, 14px);
 }
 
-/* .reveal / .reveal-visible (a scroll-triggered fade+drift entrance for the work grid
-   and project gallery) was tried Aug 2026, went through two rounds of fixes for a
-   paint-timing race (requestAnimationFrame deferral, then a synchronous forced reflow
-   via offsetHeight) and still never worked reliably in practice — removed the same day
-   rather than keep guessing at browser timing without live access to actually debug it.
-   wireGridReveal()/wireGalleryReveal() in index.html/project.html are gone with it. */
+/* Entrance animation for grid/gallery cards, requested Aug 2026 — replaces the earlier
+   scroll-triggered .reveal attempt (removed the same day after two rounds of fixes —
+   requestAnimationFrame deferral, then a synchronous forced reflow via offsetHeight —
+   never made it reliable in practice). This is architecturally different and doesn't
+   share that failure mode: @keyframes animations run on their own clock the instant
+   animation applies to an element, they don't need the browser to have already painted
+   a "before" state to transition FROM the way a CSS transition does — there's no race
+   to lose. Triggers on every render (initial load AND filter changes both create
+   brand-new elements via innerHTML), pure CSS, zero JS/observer involved.
+   nth-child stagger is capped at 12 steps so a long list doesn't push the last cards'
+   entrance out by an ever-growing wait. */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.work-card,
+.gallery-item {
+  animation: card-enter 0.6s ease-out backwards;
+}
+.work-card:nth-child(1), .gallery-item:nth-child(1) { animation-delay: 0ms; }
+.work-card:nth-child(2), .gallery-item:nth-child(2) { animation-delay: 40ms; }
+.work-card:nth-child(3), .gallery-item:nth-child(3) { animation-delay: 80ms; }
+.work-card:nth-child(4), .gallery-item:nth-child(4) { animation-delay: 120ms; }
+.work-card:nth-child(5), .gallery-item:nth-child(5) { animation-delay: 160ms; }
+.work-card:nth-child(6), .gallery-item:nth-child(6) { animation-delay: 200ms; }
+.work-card:nth-child(7), .gallery-item:nth-child(7) { animation-delay: 240ms; }
+.work-card:nth-child(8), .gallery-item:nth-child(8) { animation-delay: 280ms; }
+.work-card:nth-child(9), .gallery-item:nth-child(9) { animation-delay: 320ms; }
+.work-card:nth-child(10), .gallery-item:nth-child(10) { animation-delay: 360ms; }
+.work-card:nth-child(11), .gallery-item:nth-child(11) { animation-delay: 400ms; }
+.work-card:nth-child(n+12), .gallery-item:nth-child(n+12) { animation-delay: 440ms; }
+
+/* Continuous, ambient pan/zoom on thumbnails — deliberately NOT hover-gated. Touch
+   devices have no real hover state, and the explicit ask this round was for every
+   animation to behave identically regardless of screen size, so this runs perpetually
+   on every device the same way instead of only appearing for desktop mouse users (the
+   gap the nav-underline hover effect has, by comparison). Uses the separate scale /
+   translate CSS properties rather than the transform shorthand specifically so it
+   composes with the EXISTING hover-zoom below (which does use the transform shorthand)
+   instead of fighting over the same property — per the CSS Transforms spec, when both
+   are present the shorthand transform is applied first and the individual
+   scale/translate/rotate properties are layered on top of it, so the two combine
+   instead of one overriding the other. Staggered via nth-child (3 phase offsets, using
+   negative animation-delay the same way the accent color cycle randomizes its own
+   start position) so thumbnails aren't all drifting in perfect unison, which would
+   read as mechanical rather than ambient. Aug 2026. */
+@keyframes thumb-drift {
+  0%, 100% { scale: 1; translate: 0 0; }
+  50% { scale: 1.035; translate: -1.2% 1%; }
+}
+.work-card .thumb,
+.gallery-item img {
+  animation: thumb-drift 22s ease-in-out infinite;
+}
+.work-card:nth-child(3n+1) .thumb, .gallery-item:nth-child(3n+1) img { animation-delay: 0s; }
+.work-card:nth-child(3n+2) .thumb, .gallery-item:nth-child(3n+2) img { animation-delay: -7.3s; }
+.work-card:nth-child(3n) .thumb, .gallery-item:nth-child(3n) img { animation-delay: -14.6s; }
 
 .work-card .thumb {
   position: absolute;
@@ -931,11 +1026,14 @@ h1, h2, h3 {
 }
 
 /* Reduced motion: honors the OS-level accessibility setting for people sensitive to
-   motion. Turns off smooth scrolling and the hover-triggered zoom on gallery/work-card
-   thumbnails. Deliberately does NOT touch the hero reel's autoplay/loop — that's a
-   separate, deliberate choice (muted by default, full user control via the sound/
-   fullscreen buttons), not treated as the kind of incidental motion this addresses.
-   Aug 2026. */
+   motion. Turns off smooth scrolling, the hover-triggered zoom on gallery/work-card
+   thumbnails, the card entrance + ambient thumb-drift animations, the hero's load-in
+   and corner-bracket entrance, and the scroll-linked parallax (updateHeroParallax() in
+   index.html also skips registering its scroll listener entirely for these users, so
+   it's not just visually inert, it's not doing the work at all). Deliberately does NOT
+   touch the hero reel's autoplay/loop — that's a separate, deliberate choice (muted by
+   default, full user control via the sound/fullscreen buttons), not treated as the
+   kind of incidental motion this addresses. Aug 2026. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .work-card .thumb,
@@ -945,5 +1043,20 @@ h1, h2, h3 {
   .work-card:hover .thumb,
   .gallery-item:hover img {
     transform: none;
+  }
+  .work-card,
+  .gallery-item,
+  .work-card .thumb,
+  .gallery-item img {
+    animation: none;
+  }
+  .reel-frame {
+    animation: none;
+    scale: 1;
+  }
+  .reel-frame::before,
+  .reel-frame::after {
+    animation: none;
+    opacity: var(--brackets-o, 0.35);
   }
 }
