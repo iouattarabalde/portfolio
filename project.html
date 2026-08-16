@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=82">
+<link rel="stylesheet" href="style.css?v=83">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -154,7 +154,10 @@
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
   <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-fr data-key="lightbox.close"></span><span data-en data-key="lightbox.close"></span></button>
   <button class="lightbox-nav lightbox-prev" id="lightbox-prev" type="button" aria-label="Previous image">←</button>
-  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-content">
+    <img id="lightbox-img" src="" alt="">
+    <div class="lightbox-palette" id="lightbox-palette" aria-hidden="true"></div>
+  </div>
   <button class="lightbox-nav lightbox-next" id="lightbox-next" type="button" aria-label="Next image">→</button>
 </div>
 
@@ -190,11 +193,22 @@
   // vice versa, via the (i + length) % length trick in openLightboxAt.
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxPalette = document.getElementById('lightbox-palette');
   const lightboxPrev = document.getElementById('lightbox-prev');
   const lightboxNext = document.getElementById('lightbox-next');
   const lightboxCloseBtn = document.getElementById('lightbox-close');
   let lightboxIndex = -1;
   let lightboxTrigger = null; // element to return focus to on close — set only on the initial open, not on prev/next navigation
+
+  // Keeps the palette strip exactly as wide as the image actually renders at — measured
+  // directly in JS rather than relied on via a CSS percentage-height chain (the lightbox
+  // wrapper's height is content-driven, not a definite value, which is exactly the kind
+  // of ambiguous case that behaves inconsistently across browsers without live testing
+  // to verify it). Runs on every image load, not just the first, since different stills
+  // can have different aspect ratios and therefore different rendered widths.
+  lightboxImg.addEventListener('load', () => {
+    lightboxPalette.style.width = lightboxImg.offsetWidth + 'px';
+  });
 
   // Runs updateFn as a same-document View Transition when supported, otherwise just
   // runs it directly. Temporarily adds .same-doc-transition to <body> for the duration
@@ -229,13 +243,14 @@
     if (!currentProject) return;
     const gallery = currentProject.gallery;
     lightboxIndex = (index + gallery.length) % gallery.length; // loops both directions
-    const filename = gallery[lightboxIndex];
+    const item = gallery[lightboxIndex]; // {filename, palette} — see data/projects.json, Aug 2026
     const hasMultiple = gallery.length > 1;
     const isNavigating = lightbox.classList.contains('open');
 
     function applyImage() {
-      lightboxImg.src = `assets/${filename}`;
+      lightboxImg.src = `assets/${item.filename}`;
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
+      lightboxPalette.innerHTML = (item.palette || []).map((hex) => `<div style="background:${hex}"></div>`).join('');
       lightbox.classList.add('open');
       lightboxPrev.style.display = hasMultiple ? '' : 'none';
       lightboxNext.style.display = hasMultiple ? '' : 'none';
@@ -259,6 +274,7 @@
   function closeLightbox() {
     lightbox.classList.remove('open');
     lightboxImg.src = '';
+    lightboxPalette.innerHTML = '';
     if (lightboxTrigger) {
       lightboxTrigger.focus(); // return focus to the thumbnail that opened it
       lightboxTrigger = null;
@@ -354,12 +370,13 @@
         nextLink.style.display = '';
       }
 
-      // Gallery order matches the order of filenames in projects.json's "gallery" array —
-      // that's exactly what the admin's drag-and-drop reordering updates.
+      // Gallery order matches the order of entries in projects.json's "gallery" array —
+      // that's exactly what the admin's drag-and-drop reordering updates. Each entry is
+      // {filename, palette} since Aug 2026 (palette used by the lightbox, not the grid).
       const gallery = document.getElementById('project-gallery');
-      gallery.innerHTML = project.gallery.map((filename, i) => `
-        <button class="gallery-item" data-full="assets/${filename}">
-          <img src="assets/${filename}" alt="${project.title} — still ${i + 1}" loading="lazy">
+      gallery.innerHTML = project.gallery.map((item, i) => `
+        <button class="gallery-item" data-full="assets/${item.filename}">
+          <img src="assets/${item.filename}" alt="${project.title} — still ${i + 1}" loading="lazy">
         </button>
       `).join('');
 
