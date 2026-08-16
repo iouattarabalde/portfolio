@@ -608,31 +608,14 @@ body.same-doc-transition .site-nav {
 .work-card:nth-child(11), .gallery-item:nth-child(11) { animation-delay: 400ms; }
 .work-card:nth-child(n+12), .gallery-item:nth-child(n+12) { animation-delay: 440ms; }
 
-/* Continuous, ambient pan/zoom on thumbnails — deliberately NOT hover-gated. Touch
-   devices have no real hover state, and the explicit ask this round was for every
-   animation to behave identically regardless of screen size, so this runs perpetually
-   on every device the same way instead of only appearing for desktop mouse users (the
-   gap the nav-underline hover effect has, by comparison). Uses the separate scale /
-   translate CSS properties rather than the transform shorthand specifically so it
-   composes with the EXISTING hover-zoom below (which does use the transform shorthand)
-   instead of fighting over the same property — per the CSS Transforms spec, when both
-   are present the shorthand transform is applied first and the individual
-   scale/translate/rotate properties are layered on top of it, so the two combine
-   instead of one overriding the other. Staggered via nth-child (3 phase offsets, using
-   negative animation-delay the same way the accent color cycle randomizes its own
-   start position) so thumbnails aren't all drifting in perfect unison, which would
-   read as mechanical rather than ambient. Aug 2026. */
+/* Continuous, ambient pan/zoom — moved to .contact-photo below, Aug 2026, per explicit
+   request (was on the work-grid/gallery thumbnails). See .contact-photo-frame's own
+   comment for the current reasoning; this keyframe definition is shared by both. */
 @keyframes thumb-drift {
   0%, 100% { scale: 1; translate: 0 0; }
   50% { scale: 1.035; translate: -1.2% 1%; }
 }
-.work-card .thumb,
-.gallery-item img {
-  animation: thumb-drift 22s ease-in-out infinite;
-}
-.work-card:nth-child(3n+1) .thumb, .gallery-item:nth-child(3n+1) img { animation-delay: 0s; }
-.work-card:nth-child(3n+2) .thumb, .gallery-item:nth-child(3n+2) img { animation-delay: -7.3s; }
-.work-card:nth-child(3n) .thumb, .gallery-item:nth-child(3n) img { animation-delay: -14.6s; }
+
 
 .work-card .thumb {
   position: absolute;
@@ -721,15 +704,29 @@ body.same-doc-transition .site-nav {
   align-items: flex-start;
 }
 
-.contact-photo {
+.contact-photo-frame {
   flex: 0 0 clamp(200px, 34vw, var(--photo-w, 440px));
   width: clamp(200px, 34vw, var(--photo-w, 440px));
   aspect-ratio: 4 / 5;
-  object-fit: cover;
   border: 1px solid var(--line);
   background: var(--bg-raised); /* shows while the image loads */
   border-radius: 18px; /* deliberate exception to the zero-radius rule — Apple-shift preview feedback, Aug 2026 */
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.55); /* single product-style shadow, reserved for this photo only */
+  overflow: hidden; /* clips the drift animation below to this frame — without it, the whole photo (border/shadow included) would visibly scale/shift as one piece instead of reading as image content gently panning within a fixed window */
+}
+.contact-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Continuous, ambient pan/zoom — moved here from the work-grid/gallery thumbnails,
+     Aug 2026, per explicit request. Deliberately not hover-gated (touch devices have
+     no real hover state, and there's only ever one of these on the page anyway, no
+     grid-density reason to keep it interaction-only) — uses the shared thumb-drift
+     keyframe defined earlier in this file. No stagger needed here, unlike the grid
+     version: with a single photo there's nothing else on the page for it to look
+     out of sync with. */
+  animation: thumb-drift 22s ease-in-out infinite;
 }
 
 .contact-right {
@@ -742,7 +739,7 @@ body.same-doc-transition .site-nav {
   .contact-columns {
     flex-direction: column;
   }
-  .contact-photo {
+  .contact-photo-frame {
     width: 100%;
     max-width: var(--photo-w-m, 320px);
     margin: 0 auto; /* centers the photo once the columns stack (auto cross-axis margins win over align-items) */
@@ -1063,13 +1060,14 @@ body.same-doc-transition .site-nav {
 
 /* Reduced motion: honors the OS-level accessibility setting for people sensitive to
    motion. Turns off smooth scrolling, the hover-triggered zoom on gallery/work-card
-   thumbnails, the card entrance + ambient thumb-drift animations, the hero's load-in
-   and corner-bracket entrance, and the scroll-linked parallax (updateHeroParallax() in
-   index.html also skips registering its scroll listener entirely for these users, so
-   it's not just visually inert, it's not doing the work at all). Deliberately does NOT
-   touch the hero reel's autoplay/loop — that's a separate, deliberate choice (muted by
-   default, full user control via the sound/fullscreen buttons), not treated as the
-   kind of incidental motion this addresses. Aug 2026. */
+   thumbnails, the card entrance animation, the contact photo's ambient drift, the
+   hero's load-in and corner-bracket entrance, and the scroll-linked parallax
+   (updateHeroParallax() in index.html also skips registering its scroll listener
+   entirely for these users, so it's not just visually inert, it's not doing the work
+   at all). Deliberately does NOT touch the hero reel's autoplay/loop — that's a
+   separate, deliberate choice (muted by default, full user control via the sound/
+   fullscreen buttons), not treated as the kind of incidental motion this addresses.
+   Aug 2026. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .work-card .thumb,
@@ -1081,9 +1079,10 @@ body.same-doc-transition .site-nav {
     transform: none;
   }
   .work-card,
-  .gallery-item,
-  .work-card .thumb,
-  .gallery-item img {
+  .gallery-item {
+    animation: none;
+  }
+  .contact-photo {
     animation: none;
   }
   .reel-frame {
