@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=81">
+<link rel="stylesheet" href="style.css?v=82">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -193,9 +193,28 @@
   const lightboxPrev = document.getElementById('lightbox-prev');
   const lightboxNext = document.getElementById('lightbox-next');
   const lightboxCloseBtn = document.getElementById('lightbox-close');
-  const siteNavEl = document.querySelector('.site-nav');
   let lightboxIndex = -1;
   let lightboxTrigger = null; // element to return focus to on close — set only on the initial open, not on prev/next navigation
+
+  // Runs updateFn as a same-document View Transition when supported, otherwise just
+  // runs it directly. Temporarily adds .same-doc-transition to <body> for the duration
+  // — see the CSS rule of the same name in style.css for why (excludes the nav from
+  // its own view-transition-name, which otherwise renders it above everything else
+  // during the transition regardless of normal z-index — the bug that first showed up
+  // right here, in this exact crossfade, now generalized into this shared helper so it
+  // doesn't need re-solving for every new same-document transition). Same helper
+  // (duplicated) also drives the work-grid filter crossfade in index.html. Aug 2026.
+  function withViewTransition(updateFn) {
+    if (!document.startViewTransition) {
+      updateFn();
+      return;
+    }
+    document.body.classList.add('same-doc-transition');
+    const transition = document.startViewTransition(updateFn);
+    transition.finished.finally(() => {
+      document.body.classList.remove('same-doc-transition');
+    });
+  }
 
   // Crossfades between stills when navigating an already-open lightbox, requested Aug
   // 2026 — the initial open (lightbox currently closed) skips this, there's nothing to
@@ -204,8 +223,8 @@
   // update, snapshots the new image, and crossfades between them natively. #lightbox-img
   // has its own view-transition-name (see style.css) so only the image itself
   // crossfades, not the whole page. Falls back to an instant swap — today's behavior —
-  // in browsers without support, via the simple document.startViewTransition feature
-  // check below; no separate fallback animation to maintain.
+  // in browsers without support, handled inside withViewTransition() above; no separate
+  // fallback animation to maintain.
   function openLightboxAt(index) {
     if (!currentProject) return;
     const gallery = currentProject.gallery;
@@ -213,16 +232,6 @@
     const filename = gallery[lightboxIndex];
     const hasMultiple = gallery.length > 1;
     const isNavigating = lightbox.classList.contains('open');
-
-    // Excludes the nav from its own view-transition group while the lightbox is open —
-    // .site-nav has view-transition-name:site-nav (see style.css) so it survives
-    // cross-document page navigation without flashing, but that same naming also
-    // pulls it into the browser's view-transition top layer during THIS same-document
-    // transition, which renders above everything, including the lightbox's own
-    // overlay, regardless of normal z-index. Without this, the nav visibly popped
-    // over the lightbox for the duration of every crossfade. Restored in
-    // closeLightbox() below. Reported Aug 2026.
-    if (siteNavEl) siteNavEl.style.viewTransitionName = 'none';
 
     function applyImage() {
       lightboxImg.src = `assets/${filename}`;
@@ -232,8 +241,8 @@
       lightboxNext.style.display = hasMultiple ? '' : 'none';
     }
 
-    if (isNavigating && document.startViewTransition) {
-      document.startViewTransition(() => applyImage());
+    if (isNavigating) {
+      withViewTransition(applyImage);
     } else {
       applyImage();
     }
@@ -250,7 +259,6 @@
   function closeLightbox() {
     lightbox.classList.remove('open');
     lightboxImg.src = '';
-    if (siteNavEl) siteNavEl.style.viewTransitionName = ''; // restores the CSS-defined name for cross-document page transitions
     if (lightboxTrigger) {
       lightboxTrigger.focus(); // return focus to the thumbnail that opened it
       lightboxTrigger = null;
