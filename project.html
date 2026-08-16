@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=80">
+<link rel="stylesheet" href="style.css?v=81">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -236,38 +236,6 @@
       });
     });
   }
-
-  // Same scroll-reveal as the homepage work grid (see wireGridReveal() in index.html
-  // for the full reasoning) — fades + drifts each still up into place as it enters the
-  // viewport, instead of the whole gallery just being there instantly. Only ever runs
-  // once here, unlike the grid's version: this page's gallery renders from a single
-  // fetch, with no filter/re-render to account for. Reuses the exact same .reveal /
-  // .reveal-visible CSS classes, so nothing needed changing in style.css for this.
-  function wireGalleryReveal() {
-    const items = document.querySelectorAll('.gallery-item.reveal');
-    if (!('IntersectionObserver' in window)) {
-      items.forEach((el) => el.classList.add('reveal-visible'));
-      return;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      // Same batch-relative stagger as the homepage work grid — see wireGridReveal()
-      // in index.html for the full reasoning. Reported not noticeable enough on
-      // desktop, Aug 2026.
-      const revealing = entries.filter((e) => e.isIntersecting);
-      revealing.forEach((entry, i) => {
-        const el = entry.target;
-        observer.unobserve(el);
-        el.style.transitionDelay = `${Math.min(i, 11) * 45}ms`;
-        // Forces a synchronous reflow, committing the current (hidden) state before
-        // changing it — see wireGridReveal() in index.html for the full reasoning.
-        // Replaces a double-rAF attempt that wasn't reliable enough in practice
-        // (reported still glitching on mobile's first row, Aug 2026).
-        void el.offsetHeight;
-        el.classList.add('reveal-visible');
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -120px 0px' }); // was -40px — see wireGridReveal() for why
-    items.forEach((item) => observer.observe(item));
-  }
   function closeLightbox() {
     lightbox.classList.remove('open');
     lightboxImg.src = '';
@@ -370,14 +338,13 @@
       // that's exactly what the admin's drag-and-drop reordering updates.
       const gallery = document.getElementById('project-gallery');
       gallery.innerHTML = project.gallery.map((filename, i) => `
-        <button class="gallery-item reveal" data-full="assets/${filename}">
+        <button class="gallery-item" data-full="assets/${filename}">
           <img src="assets/${filename}" alt="${project.title} — still ${i + 1}" loading="lazy">
         </button>
       `).join('');
 
       document.getElementById('project-info').style.display = '';
       wireLightbox();
-      wireGalleryReveal();
     })
     .catch((err) => {
       console.error('Impossible de charger le projet:', err);
