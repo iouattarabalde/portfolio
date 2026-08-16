@@ -25,7 +25,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css?v=82">
+<link rel="stylesheet" href="../style.css?v=83">
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -846,7 +846,7 @@ let projectsData = null;   // { projects: [...] } — the full, in-memory conten
 let projectsSha = null;    // git blob sha of projects.json (not actually used for writes — see ghPutFile,
                             // which always fetches a fresh sha right before writing to avoid conflicts)
 let editingIndex = null;   // index into projectsData.projects currently open in the editor, or null for a new project
-let editorGallery = [];    // draft gallery state while the editor is open: [{ filename, url, file (optional new File) }]
+let editorGallery = [];    // draft gallery state while the editor is open: [{ filename, palette, url, file (optional new File) }] — palette is undefined until a new file is actually uploaded (computed at save time, see saveProject's upload loop), Aug 2026
 let editorThumb = { filename: null, url: null, file: null, focus: { x: 50, y: 50 } }; // draft thumbnail state, same shape as one gallery item, plus its focal point
 
 /* ---------- GitHub API helpers ----------
@@ -1250,6 +1250,103 @@ function compressImage(file, maxWidth = 1920, quality = 0.85) {
   });
 }
 
+/* ---------- Color palette extraction ----------
+   Gallery stills get a 13-color palette (median-cut quantization) shown as a strip
+   under the enlarged image in the lightbox, requested Aug 2026 (ShotDeck-style
+   reference). This is the exact same algorithm used for the one-time Python backfill
+   that populated all 543 pre-existing gallery images' palettes — kept in sync
+   deliberately, so newly-uploaded stills produce palettes consistent with the
+   backfilled ones rather than looking like a different, later-generation process.
+   Downscales to a small canvas first (analysis doesn't need full resolution, and this
+   keeps it fast even for a large source photo) — same pattern as compressImage above,
+   just a much smaller target size since color analysis and display-quality resizing
+   have very different resolution needs. */
+function extractPalette(file, numColors = 13, sampleSize = 120) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > sampleSize || height > sampleSize) {
+        if (width > height) {
+          height = Math.round(height * (sampleSize / width));
+          width = sampleSize;
+        } else {
+          width = Math.round(width * (sampleSize / height));
+          height = sampleSize;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const { data } = ctx.getImageData(0, 0, width, height);
+      const pixels = [];
+      for (let i = 0; i < data.length; i += 4) {
+        pixels.push([data[i], data[i + 1], data[i + 2]]);
+      }
+
+      // Finds which of R/G/B has the widest spread within a bucket of pixels — median
+      // cut always splits along whichever channel varies most, since that's the split
+      // most likely to separate visually distinct colors rather than an arbitrary one.
+      function channelRange(bucket) {
+        let bestCh = 0, bestRange = -1;
+        for (let ch = 0; ch < 3; ch++) {
+          let min = 255, max = 0;
+          for (const p of bucket) {
+            if (p[ch] < min) min = p[ch];
+            if (p[ch] > max) max = p[ch];
+          }
+          const range = max - min;
+          if (range > bestRange) { bestRange = range; bestCh = ch; }
+        }
+        return [bestCh, bestRange];
+      }
+
+      // Iteratively splits whichever bucket currently has the widest range, rather than
+      // a fixed recursion depth — gives exact control over the final color count
+      // (numColors doesn't need to be a power of 2 this way).
+      let buckets = [pixels];
+      while (buckets.length < numColors) {
+        let bestIdx = -1, bestRange = -1;
+        for (let i = 0; i < buckets.length; i++) {
+          if (buckets[i].length < 2) continue;
+          const [, range] = channelRange(buckets[i]);
+          if (range > bestRange) { bestRange = range; bestIdx = i; }
+        }
+        if (bestIdx === -1 || bestRange <= 0) break; // nothing left worth splitting further
+        const bucket = buckets.splice(bestIdx, 1)[0];
+        const [channel] = channelRange(bucket);
+        bucket.sort((a, b) => a[channel] - b[channel]);
+        const mid = Math.floor(bucket.length / 2);
+        buckets.push(bucket.slice(0, mid), bucket.slice(mid));
+      }
+
+      // Each bucket's representative color is the average of every pixel inside it.
+      const colors = buckets.filter((b) => b.length).map((b) => {
+        const sum = [0, 0, 0];
+        for (const p of b) { sum[0] += p[0]; sum[1] += p[1]; sum[2] += p[2]; }
+        return sum.map((s) => Math.round(s / b.length));
+      });
+
+      // Sorted by HSL lightness so the strip reads as a clean gradient rather than a
+      // random jumble — same sort the Python backfill script uses.
+      function lightness([r, g, b]) {
+        r /= 255; g /= 255; b /= 255;
+        return (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
+      }
+      colors.sort((a, b) => lightness(a) - lightness(b));
+
+      const hex = colors.map(([r, g, b]) =>
+        '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('').toUpperCase()
+      );
+      resolve(hex);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 // GitHub's Contents API wants file content as a plain base64 string (no data: URL prefix),
 // which is exactly what FileReader gives after the first comma — split it off.
 function blobToBase64(blob) {
@@ -1637,7 +1734,7 @@ function openEditor(index) {
   updateFocalStage();
 
   editorGallery = project
-    ? project.gallery.map((f) => ({ filename: f, url: `../assets/${f}`, file: null }))
+    ? project.gallery.map((g) => ({ filename: g.filename, palette: g.palette, url: `../assets/${g.filename}`, file: null }))
     : [];
   renderGalleryEditor();
 
@@ -1869,11 +1966,15 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       const item = editorGallery[i];
       if (item.file) {
         statusEl.textContent = `Envoi de l'image ${i + 1} / ${editorGallery.length}…`;
-        const compressed = await compressImage(item.file);
+        const [compressed, palette] = await Promise.all([
+          compressImage(item.file),
+          extractPalette(item.file)
+        ]);
         const b64 = await blobToBase64(compressed);
         const filename = `${slug}-${Date.now()}-${i}.jpg`;
         await ghPutFile(`assets/${filename}`, b64, `Admin : still ${i + 1} pour ${title}`);
         item.filename = filename;
+        item.palette = palette;
       }
     }
 
@@ -1892,7 +1993,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       dp: document.getElementById('f-dp').value.trim(),
       thumbnail: editorThumb.filename,
       ...(isDefaultFocus ? {} : { thumbnailFocus: `${editorThumb.focus.x}% ${editorThumb.focus.y}%` }),
-      gallery: editorGallery.map((g) => g.filename) // final order = current on-screen order
+      gallery: editorGallery.map((g) => ({ filename: g.filename, palette: g.palette })) // final order = current on-screen order
     };
 
     if (editingIndex !== null) {
