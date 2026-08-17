@@ -304,8 +304,13 @@
         const resumeOnInteraction = () => {
           reelVideo.play().catch(() => {});
         };
+        // touchstart/scroll cover the common cases; click and pointerdown are added so a
+        // direct tap on the native "tap to play" icon Low Power Mode stamps on the poster
+        // resolves on that same tap, not just a for a later scroll or unrelated touch.
         window.addEventListener('touchstart', resumeOnInteraction, { once: true, passive: true });
         window.addEventListener('scroll', resumeOnInteraction, { once: true, passive: true });
+        window.addEventListener('click', resumeOnInteraction, { once: true, passive: true });
+        window.addEventListener('pointerdown', resumeOnInteraction, { once: true, passive: true });
       });
     }
   }
