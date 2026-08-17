@@ -1232,3 +1232,71 @@ body.grid-dense {
     animation: none;
   }
 }
+
+/* ---------- Reel tag (museum wall label) ----------
+   A small photorealistic gallery-label card positioned over the bottom-left of the
+   hero reel. Inspired by museum wall-text cards — white stock, typeset name + italic
+   title, multi-layer shadow for the "lifted paper" depth.
+
+   The global .grain-overlay has z-index:-1 and sits behind all content, so it doesn't
+   land on top of the card. Instead, the card gets its own ::after grain layer using the
+   same --noise-svg and mix-blend-mode:multiply, which gives the paper surface the same
+   film-grain texture as the rest of the page regardless of stacking order. */
+.reel-tag {
+  position: absolute;
+  bottom: clamp(14px, 3.5%, 22px);
+  left:   clamp(14px, 3.5%, 22px);
+  z-index: 2;
+  background: #FDFCF8;
+  padding: 9px 13px 10px;
+  pointer-events: none;
+  /* Contact shadow (sharp) + near + mid + far diffuse — creates the "card lifted
+     off the screen surface" look from the museum label reference. */
+  box-shadow:
+    0 1px 0   rgba(0, 0, 0, 0.28),
+    0 2px 4px rgba(0, 0, 0, 0.18),
+    0 6px 14px rgba(0, 0, 0, 0.14),
+    0 14px 28px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+/* Grain layer — mirrors the global --noise-svg at a reduced opacity so the card
+   surface reads as paper-textured, not screen-flat. mix-blend-mode:multiply keeps
+   the warm white base visible while darkening it with the noise pattern. */
+.reel-tag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--noise-svg);
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.reel-tag-name {
+  display: block;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #131313;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.reel-tag-title {
+  display: block;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 400;
+  font-style: italic;
+  color: #2e2e2e;
+  line-height: 1;
+}
+@media (max-width: 480px) {
+  /* At very small sizes the reel is compact — nudge the label in tighter
+     and scale the type down one notch so it doesn't crowd the corner. */
+  .reel-tag { padding: 7px 10px 8px; }
+  .reel-tag-name { font-size: 10px; }
+  .reel-tag-title { font-size: 9px; }
+}
