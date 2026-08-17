@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=90">
+<link rel="stylesheet" href="style.css?v=91">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -158,17 +158,33 @@
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
   <div class="section-head">
-    <h2><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
+    <div class="section-title-row">
+      <h2><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
+      <!-- Mobile-only (see .grid-density-toggle in style.css, hidden above 1000px) — lets
+           the visitor pick 2-up or 4-up for the work grid on their own phone instead of a
+           single fixed density for everyone. Icons (not "2"/"4" text) per request, Aug
+           2026 — two outlined rectangles vs. a 2×2 grid of them, same currentColor/
+           stroke-width treatment as the reel controls in the header above. Defaults to
+           2-up; choice persists via localStorage (see wireGridDensityToggle below). -->
+      <div class="grid-density-toggle" id="grid-density-toggle" role="group" aria-label="Grid density">
+        <button type="button" data-density="2" class="active" aria-label="2 per row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="8" height="16" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+            <rect x="13" y="4" width="8" height="16" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+        </button>
+        <button type="button" data-density="4" aria-label="4 per row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.8"/>
+            <rect x="13" y="3" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.8"/>
+            <rect x="3" y="13" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.8"/>
+            <rect x="13" y="13" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+        </button>
+      </div>
+    </div>
     <div class="category-filter" id="category-filter">
       <div class="filter-indicator" id="filter-indicator" aria-hidden="true"></div>
-    </div>
-    <!-- Mobile-only (see .grid-density-toggle in style.css, hidden above 1000px) — lets
-         the visitor pick 2-up or 4-up for the work grid on their own phone instead of a
-         single fixed density for everyone. Defaults to 2-up; choice persists via
-         localStorage (see wireGridDensityToggle in the script below), requested Aug 2026. -->
-    <div class="grid-density-toggle" id="grid-density-toggle" role="group" aria-label="Grid density">
-      <button type="button" data-density="2" class="active">2</button>
-      <button type="button" data-density="4">4</button>
     </div>
   </div>
 
