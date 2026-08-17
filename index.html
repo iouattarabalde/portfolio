@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=87">
+<link rel="stylesheet" href="style.css?v=88">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -441,8 +441,8 @@
   // it doesn't refetch anything, filtering happens against the already-cached project list.
   // Only removes/recreates the <button> elements on each call, not #filter-indicator —
   // that one's a persistent element (see the static markup above) specifically so it can
-  // slide between positions via CSS transition instead of being destroyed and recreated
-  // with no previous position to animate from, requested Aug 2026.
+  // fade between positions via CSS transition instead of being destroyed and recreated
+  // with no previous state to fade from, requested Aug 2026.
   function renderCategoryFilter() {
     const container = document.getElementById('category-filter');
     if (!container) return;
@@ -460,8 +460,8 @@
       btn.textContent = item.label;
       btn.addEventListener('click', () => {
         activeFilter = btn.dataset.filter || null;
-        pulseFilterIndicator(); // tactile click feedback, independent of the slide below
-        renderCategoryFilter(); // NOT wrapped in withViewTransition — keeps the indicator's own smooth CSS transition working exactly as before, unaffected by the grid's own crossfade below
+        pulseFilterIndicator(); // tactile click feedback, independent of the fade below
+        renderCategoryFilter(); // NOT wrapped in withViewTransition — keeps the indicator's own fade transition working exactly as before, unaffected by the grid's own crossfade below
         withViewTransition(() => {
           renderWorkGrid();
         });
@@ -471,22 +471,36 @@
     positionFilterIndicator();
   }
 
-  // Slides/resizes #filter-indicator to exactly match the currently .active button's
-  // own box — the CSS transition on the indicator's own transform/width/height is what
-  // actually produces the sliding motion; this just supplies the target position.
+  // Resizes/repositions #filter-indicator to exactly match the currently .active
+  // button's own box. Used to slide there via a CSS transform transition (clunky,
+  // per feedback Aug 2026); now it fades out, jumps to the new button's box instantly
+  // while invisible, then fades back in — the 150ms timeout below matches the
+  // .filter-indicator opacity transition duration in style.css exactly, so the fade-in
+  // starts the instant the reposition happens rather than racing it. First render (the
+  // indicator still at its unset 0x0 default) skips the fade entirely and just snaps
+  // into place, since there's no previous position to fade away from.
   function positionFilterIndicator() {
     const container = document.getElementById('category-filter');
     const indicator = document.getElementById('filter-indicator');
     const activeBtn = container && container.querySelector('button.active');
     if (!indicator || !activeBtn) return;
-    indicator.style.width = activeBtn.offsetWidth + 'px';
-    indicator.style.height = activeBtn.offsetHeight + 'px';
-    indicator.style.transform = `translate(${activeBtn.offsetLeft}px, ${activeBtn.offsetTop}px)`;
+    const move = () => {
+      indicator.style.width = activeBtn.offsetWidth + 'px';
+      indicator.style.height = activeBtn.offsetHeight + 'px';
+      indicator.style.transform = `translate(${activeBtn.offsetLeft}px, ${activeBtn.offsetTop}px)`;
+      indicator.style.opacity = '1';
+    };
+    const isFirstRender = indicator.style.width === '' || indicator.style.width === '0px';
+    if (isFirstRender) {
+      move();
+      return;
+    }
+    indicator.style.opacity = '0';
+    window.setTimeout(move, 150);
   }
 
-  // Quick scale-down/up "press" on the indicator, requested Aug 2026 alongside the
-  // overshoot easing on its slide (see .filter-indicator in style.css) — fired on
-  // every filter click, overlapping the start of the slide rather than strictly
+  // Quick scale-down/up "press" on the indicator, requested Aug 2026 — fired on
+  // every filter click, overlapping the start of the fade rather than strictly
   // preceding it. Removing the class before re-adding it (with a forced reflow in
   // between) is what lets this retrigger on rapid successive clicks — simply adding
   // an already-present class again is a no-op to the browser and wouldn't restart the
