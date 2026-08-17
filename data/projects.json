@@ -17844,6 +17844,451 @@
           ]
         }
       ]
+    },
+    {
+      "id": "ville-de-montmagny-portrait-de-citoyen",
+      "title": "Ville de Montmagny - Portrait de citoyen",
+      "type": "FILM",
+      "client": "Ville de Montmagny",
+      "artist": "",
+      "director": "Simon Dufour",
+      "dp": "Simon Dufour",
+      "thumbnail": "ville-de-montmagny-portrait-de-citoyen-cover.jpg",
+      "thumbnailFocus": "45% 51%",
+      "gallery": [
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979909542-0.jpg",
+          "palette": [
+            "#241A15",
+            "#3D2B1E",
+            "#4C4133",
+            "#69482B",
+            "#6C583C",
+            "#626053",
+            "#8E5C2C",
+            "#906A38",
+            "#7F765E",
+            "#AB7C33",
+            "#ACAC89",
+            "#C6D5BD",
+            "#DEECD9"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979920902-1.jpg",
+          "palette": [
+            "#161211",
+            "#2B2520",
+            "#483F31",
+            "#505048",
+            "#68573F",
+            "#736750",
+            "#7C7966",
+            "#7F9790",
+            "#84B5AE",
+            "#89C0B7",
+            "#A4B6A2",
+            "#9FCABC",
+            "#CADAC7"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979923318-2.jpg",
+          "palette": [
+            "#221D16",
+            "#3C3627",
+            "#2E3634",
+            "#374948",
+            "#3F5858",
+            "#4C5F5E",
+            "#4A676A",
+            "#52888A",
+            "#657C79",
+            "#689694",
+            "#69A4A2",
+            "#82A59A",
+            "#90BAAB"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979925407-3.jpg",
+          "palette": [
+            "#120F0D",
+            "#221A15",
+            "#341C14",
+            "#433326",
+            "#5A2113",
+            "#743823",
+            "#565E4C",
+            "#896149",
+            "#777B5E",
+            "#A0755E",
+            "#7F957C",
+            "#A89E82",
+            "#C1D8C0"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979927508-4.jpg",
+          "palette": [
+            "#100F0B",
+            "#191810",
+            "#222318",
+            "#353721",
+            "#584A2C",
+            "#434A3D",
+            "#6D552F",
+            "#596B60",
+            "#6E8878",
+            "#77907E",
+            "#7E9784",
+            "#87A18C",
+            "#9BB599"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979929921-5.jpg",
+          "palette": [
+            "#0E0D0C",
+            "#1F1B15",
+            "#262823",
+            "#312B20",
+            "#384F4F",
+            "#24616D",
+            "#635030",
+            "#446B6B",
+            "#467F82",
+            "#678B83",
+            "#5EA3A2",
+            "#729B90",
+            "#7EADA2"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979932166-6.jpg",
+          "palette": [
+            "#080909",
+            "#0B0A09",
+            "#130F0D",
+            "#251B13",
+            "#2D2E25",
+            "#403421",
+            "#484632",
+            "#4C5546",
+            "#695835",
+            "#646A51",
+            "#7B7350",
+            "#717962",
+            "#8F9D7E"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979934347-7.jpg",
+          "palette": [
+            "#1E140F",
+            "#42301F",
+            "#3D3B31",
+            "#4F4B3A",
+            "#6D4927",
+            "#45544E",
+            "#516055",
+            "#83653B",
+            "#3D8389",
+            "#7C7B62",
+            "#95A484",
+            "#9BBEAB",
+            "#B5CBB2"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979936515-8.jpg",
+          "palette": [
+            "#10110C",
+            "#1D1B12",
+            "#26231A",
+            "#35321C",
+            "#432216",
+            "#3A392D",
+            "#5A4A1E",
+            "#635333",
+            "#6A673C",
+            "#89724A",
+            "#908669",
+            "#A59D78",
+            "#BDC7AB"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979938919-9.jpg",
+          "palette": [
+            "#121212",
+            "#1B1E20",
+            "#2F393D",
+            "#314A58",
+            "#3A4850",
+            "#4C4E4B",
+            "#415966",
+            "#6A5F57",
+            "#5D6B70",
+            "#7F7169",
+            "#8F8378",
+            "#92A099",
+            "#A69D8C"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979941014-10.jpg",
+          "palette": [
+            "#1F130F",
+            "#482C1F",
+            "#603E2B",
+            "#675042",
+            "#835230",
+            "#8E6544",
+            "#9E764F",
+            "#B38751",
+            "#AF9068",
+            "#C5A670",
+            "#D0BF92",
+            "#DDDAB9",
+            "#E3EDDE"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979943342-11.jpg",
+          "palette": [
+            "#211D16",
+            "#2B3231",
+            "#474633",
+            "#646344",
+            "#505D52",
+            "#7D6D40",
+            "#546A68",
+            "#687F78",
+            "#7E8E7B",
+            "#94A287",
+            "#99B5A1",
+            "#B9CBB0",
+            "#CDE2CE"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979945719-12.jpg",
+          "palette": [
+            "#252117",
+            "#3F3520",
+            "#594A2E",
+            "#67654B",
+            "#7D6A46",
+            "#5C7672",
+            "#838162",
+            "#67807B",
+            "#6C8883",
+            "#738E87",
+            "#788D81",
+            "#778F87",
+            "#819589"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979948029-13.jpg",
+          "palette": [
+            "#15100D",
+            "#3C2E1F",
+            "#543C22",
+            "#5A4D34",
+            "#75552C",
+            "#566763",
+            "#636C61",
+            "#647772",
+            "#69817D",
+            "#738981",
+            "#7B8B7F",
+            "#7C9188",
+            "#829A90"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979950123-14.jpg",
+          "palette": [
+            "#050A0C",
+            "#081015",
+            "#18252A",
+            "#223B46",
+            "#355155",
+            "#376470",
+            "#566867",
+            "#598088",
+            "#7A8B88",
+            "#85A8A5",
+            "#A6B4A6",
+            "#ADC8C1",
+            "#D3E5D6"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979952439-15.jpg",
+          "palette": [
+            "#14110E",
+            "#243B41",
+            "#383A31",
+            "#394C4A",
+            "#355459",
+            "#605843",
+            "#466161",
+            "#5C726D",
+            "#817D65",
+            "#858876",
+            "#969479",
+            "#B0A17C",
+            "#C7BE99"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979954769-16.jpg",
+          "palette": [
+            "#12110C",
+            "#1B160F",
+            "#1D2112",
+            "#272316",
+            "#30321C",
+            "#473F24",
+            "#555122",
+            "#726521",
+            "#595642",
+            "#8D8128",
+            "#776347",
+            "#827F5D",
+            "#978F4E"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979956868-17.jpg",
+          "palette": [
+            "#2A2B2C",
+            "#424844",
+            "#4C5A5D",
+            "#5E6763",
+            "#6B6A5A",
+            "#898061",
+            "#6A7F81",
+            "#97A391",
+            "#C2CAB2",
+            "#B2D2C8",
+            "#BBD8CD",
+            "#BDDAD0",
+            "#CDE1D6"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979959082-18.jpg",
+          "palette": [
+            "#170F0D",
+            "#191A1F",
+            "#332825",
+            "#3F2E28",
+            "#553328",
+            "#4A504F",
+            "#725749",
+            "#6C6D68",
+            "#677A7C",
+            "#768582",
+            "#7F8C89",
+            "#8A928B",
+            "#9EB8AD"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979961237-19.jpg",
+          "palette": [
+            "#0F0E0F",
+            "#2D1D14",
+            "#413121",
+            "#543720",
+            "#4D4331",
+            "#624123",
+            "#644930",
+            "#754C24",
+            "#675238",
+            "#7F5A34",
+            "#846748",
+            "#907956",
+            "#898269"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979963283-20.jpg",
+          "palette": [
+            "#050A0B",
+            "#070C0E",
+            "#11191D",
+            "#17313D",
+            "#2A4044",
+            "#38413F",
+            "#544D3D",
+            "#315D69",
+            "#4F767A",
+            "#739893",
+            "#88B4AD",
+            "#ADCFBD",
+            "#C8E4D5"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979965356-21.jpg",
+          "palette": [
+            "#061426",
+            "#051D39",
+            "#05203E",
+            "#052344",
+            "#06274A",
+            "#063058",
+            "#084477",
+            "#115486",
+            "#215F90",
+            "#326B9A",
+            "#4978A4",
+            "#597FA9",
+            "#6786AE"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979967464-22.jpg",
+          "palette": [
+            "#241713",
+            "#462F24",
+            "#5A3C28",
+            "#6C482E",
+            "#6E5649",
+            "#8E7055",
+            "#BA8850",
+            "#978474",
+            "#BC9764",
+            "#B29D80",
+            "#CDB583",
+            "#DFD5A5",
+            "#ECE9C2"
+          ]
+        },
+        {
+          "filename": "ville-de-montmagny-portrait-de-citoyen-1786979969536-23.jpg",
+          "palette": [
+            "#201818",
+            "#3A2822",
+            "#553E36",
+            "#6F4B32",
+            "#5F575A",
+            "#7F5B40",
+            "#7C695E",
+            "#9C7244",
+            "#9A8064",
+            "#B69D70",
+            "#C9B889",
+            "#D4CEA4",
+            "#DCE2C7"
+          ]
+        }
+      ]
     }
   ]
 }
