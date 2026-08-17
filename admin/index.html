@@ -944,7 +944,7 @@ async function fetchProjects() {
 // Writes the current in-memory projectsData back to data/projects.json. Called after
 // every change: adding/editing/deleting a project, and reordering the project list.
 async function saveProjectsJson(statusEl, toastMessage = 'Enregistré. En ligne dans ~1 min.') {
-  const content = b64EncodeUnicode(JSON.stringify(projectsData, null, 2));
+  const content = b64EncodeUnicode(JSON.stringify(projectsData)); // minifié — réduit le payload PUT de 624 KB à ~313 KB (l'indentation ×4 niveaux sur les palettes représentait ~311 KB de whitespace)
   const result = await ghPutFile('data/projects.json', content, 'Admin : mise à jour projects.json');
   projectsSha = result.content.sha;
   if (statusEl) statusEl.textContent = '';
