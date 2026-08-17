@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=89">
+<link rel="stylesheet" href="style.css?v=90">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -161,6 +161,14 @@
     <h2><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
     <div class="category-filter" id="category-filter">
       <div class="filter-indicator" id="filter-indicator" aria-hidden="true"></div>
+    </div>
+    <!-- Mobile-only (see .grid-density-toggle in style.css, hidden above 1000px) — lets
+         the visitor pick 2-up or 4-up for the work grid on their own phone instead of a
+         single fixed density for everyone. Defaults to 2-up; choice persists via
+         localStorage (see wireGridDensityToggle in the script below), requested Aug 2026. -->
+    <div class="grid-density-toggle" id="grid-density-toggle" role="group" aria-label="Grid density">
+      <button type="button" data-density="2" class="active">2</button>
+      <button type="button" data-density="4">4</button>
     </div>
   </div>
 
@@ -512,6 +520,37 @@
     void indicator.offsetWidth; // forces the reflow needed to retrigger the animation
     indicator.classList.add('pressed');
   }
+
+  // Mobile/tablet work grid density toggle (2-up default, 4-up optional), requested
+  // Aug 2026. Pure CSS does the actual layout switch — this just toggles body.grid-dense
+  // (see style.css for the --wg-cols-m/--wg-gap-m/--card-pad-m overrides that class
+  // carries) and remembers the choice in localStorage so it persists across visits.
+  // Wired once at load, independent of renderWorkGrid()/renderCategoryFilter() — the
+  // grid's existing cards just reflow when the CSS column count changes, nothing needs
+  // to be rebuilt in JS.
+  const GRID_DENSITY_KEY = 'workGridDensity';
+  function applyGridDensity(density) {
+    body.classList.toggle('grid-dense', density === '4');
+    const toggle = document.getElementById('grid-density-toggle');
+    if (!toggle) return;
+    toggle.querySelectorAll('button').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.density === density);
+    });
+  }
+  function wireGridDensityToggle() {
+    const toggle = document.getElementById('grid-density-toggle');
+    if (!toggle) return;
+    const saved = localStorage.getItem(GRID_DENSITY_KEY) || '2';
+    applyGridDensity(saved);
+    toggle.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const density = btn.dataset.density;
+        localStorage.setItem(GRID_DENSITY_KEY, density);
+        applyGridDensity(density);
+      });
+    });
+  }
+  wireGridDensityToggle();
 
   // i18n (all static bilingual copy + project type acronyms) and the project list are
   // independent fetches, loaded in parallel — applyStrings() needs the former, and
