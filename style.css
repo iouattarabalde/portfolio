@@ -470,8 +470,12 @@ body.same-doc-transition .site-nav {
 
 .section-head {
   display: flex;
+  flex-wrap: wrap; /* lets the grid-density toggle (mobile/tablet only) drop to its own
+    line instead of squeezing against the category-filter chips on narrower desktops-in-
+    between widths (700–1000px) where both are visible at once */
   align-items: baseline;
   justify-content: space-between;
+  row-gap: 8px;
 
   padding: clamp(var(--sect-y-m, 28px), 6vw, var(--sect-y, 56px)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)) 18px;
 }
@@ -576,6 +580,43 @@ body.same-doc-transition .site-nav {
   }
   .category-filter::-webkit-scrollbar { display: none; }
   .category-filter button { flex-shrink: 0; }
+}
+
+/* Lets the visitor switch the work grid between 2-up and 4-up on their own phone
+   (see the markup in index.html and wireGridDensityToggle() in its script) instead
+   of a single density fixed for everyone. Hidden entirely above 1000px, since the
+   work grid itself only has a mobile/desktop split at that breakpoint (see
+   .work-grid below) — there's nothing for this to toggle on a desktop-width screen.
+   Styled as a compact two-button pill, deliberately smaller than the category-filter
+   chips beside it so it doesn't compete with the actual content filters for
+   attention. */
+.grid-density-toggle {
+  display: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: calc(0.1em * var(--tracking, 1));
+}
+@media (max-width: 1000px) {
+  .grid-density-toggle {
+    display: flex;
+    gap: 4px;
+  }
+}
+.grid-density-toggle button {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.grid-density-toggle button:hover { border-color: var(--accent); color: var(--accent); }
+.grid-density-toggle button.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .work-grid {
@@ -817,19 +858,24 @@ body.same-doc-transition .site-nav {
 /* ---------- Responsive: work grid column counts ---------- */
 @media (max-width: 1000px) {
   .work-grid {
-    /* Was 2 by default (--wg-cols-m); switched to match the desktop density of 4,
-       requested Aug 2026. Still overridable per the admin's design tokens if a
-       different mobile column count is ever wanted, same as before. */
-    grid-template-columns: repeat(var(--wg-cols-m, 4), 1fr);
-    /* Gap and card padding tightened 75% (6px→1.5px, 10px→2.5px) to compensate for
-       the 2→4 column switch above, requested Aug 2026 — at 4-up, the old spacing ate
-       too much of each card's already-smaller width. No longer chained to the
-       desktop --wg-gap/--grid-gap tokens (was var(--wg-gap-m, var(--wg-gap,
-       var(--grid-gap)))) since mobile now needs its own tighter default independent
-       of whatever the desktop gap is set to. */
-    gap: var(--wg-gap-m, 1.5px);
+    /* Defaults to 2 up, same as before the brief 4-up experiment (Aug 2026) — that
+       was reverted in favor of a toggle instead (see .grid-density-toggle below),
+       since not everyone wants the denser 4-up view on a phone. body.grid-dense
+       (set by the toggle, see index.html) overrides --wg-cols-m/--wg-gap-m/
+       --card-pad-m together to switch into the tighter 4-up spacing. */
+    grid-template-columns: repeat(var(--wg-cols-m, 2), 1fr);
+    gap: var(--wg-gap-m, var(--wg-gap, var(--grid-gap)));
   }
-  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, 2.5px); } /* near-square by default at this density */
+  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, 10px); } /* near-square by default at this density */
+}
+/* 4-up mode: tightened gap/padding 75% (6px→1.5px, 10px→2.5px) so the denser layout
+   doesn't eat too much of each already-smaller card. Set on body (not .work-grid
+   directly) so the custom properties inherit down to .work-card too, which reads
+   --card-pad-m on itself. */
+body.grid-dense {
+  --wg-cols-m: 4;
+  --wg-gap-m: 1.5px;
+  --card-pad-m: 2.5px;
 }
 
 /* Phones in landscape still match max-width:1000px above, but there's enough horizontal
