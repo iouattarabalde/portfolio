@@ -878,11 +878,22 @@ async function ghPutFile(path, base64Content, message) {
   const existing = await ghGetFile(path);
   const body = { message, content: base64Content };
   if (existing && existing.sha) body.sha = existing.sha;
-  const res = await fetch(API + path, {
-    method: 'PUT',
-    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' },
-    body: JSON.stringify(body)
-  });
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method: 'PUT',
+      headers: {
+        Authorization: 'token ' + token,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (networkErr) {
+    // fetch() threw before receiving any response — network error or CORS masking a
+    // server error. Distinguish from HTTP errors for easier debugging.
+    throw new Error(`Erreur réseau (PUT ${path}) : vérifier la connexion ou désactiver les extensions de navigateur. Détail : ${networkErr.message}`);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`PUT ${path} → ${res.status} ${err.message || ''}`);
