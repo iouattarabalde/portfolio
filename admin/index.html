@@ -883,7 +883,7 @@ async function ghGetFile(path) {
       throw new Error(`Erreur réseau (GET ${path}) : connexion instable ou extension bloquante. Détail : ${networkErr.message}`);
     }
     if (res.status === 404) return null;
-    if (res.status === 503 && attempt < 3) { await wait(attempt * 1500); continue; }
+    if ((res.status === 502 || res.status === 503) && attempt < 3) { await wait(attempt * 1500); continue; }
     if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
     return res.json();
   }
@@ -894,10 +894,13 @@ async function ghGetFile(path) {
 // Retries up to 3× with backoff on network errors and GitHub 503s — the API can
 // return 503 without CORS headers, which the browser reports as "Failed to fetch".
 async function ghPutFile(path, base64Content, message) {
-  const existing = await ghGetFile(path);
-  const body = { message, content: base64Content };
-  if (existing && existing.sha) body.sha = existing.sha;
+  // fileSha is fetched fresh before the first attempt. On a 409 conflict it is
+  // re-fetched automatically so the retry uses the revision actually on GitHub
+  // (handles the edge case where two saves overlap or the repo is touched externally).
+  let fileSha = (await ghGetFile(path))?.sha ?? null;
   for (let attempt = 1; attempt <= 3; attempt++) {
+    const body = { message, content: base64Content };
+    if (fileSha) body.sha = fileSha;
     let res;
     try {
       res = await fetch(API + path, {
@@ -915,7 +918,14 @@ async function ghPutFile(path, base64Content, message) {
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      if (res.status === 503 && attempt < 3) { await wait(attempt * 1500); continue; }
+      // 409 Conflict — SHA is stale; re-fetch and retry with the current one.
+      if (res.status === 409 && attempt < 3) {
+        fileSha = (await ghGetFile(path).catch(() => null))?.sha ?? null;
+        await wait(attempt * 1500);
+        continue;
+      }
+      // 502/503 — GitHub infrastructure hiccup; retry with same SHA.
+      if ((res.status === 502 || res.status === 503) && attempt < 3) { await wait(attempt * 1500); continue; }
       throw new Error(`PUT ${path} → ${res.status} ${err.message || ''}`);
     }
     return res.json();
@@ -1896,6 +1906,13 @@ wireFocalPicker();
 document.getElementById('f-thumbnail').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  // HEIC/HEIF are shot natively on iPhone but the canvas API can't decode them in
+  // most browsers — compressImage would silently produce a broken upload. Catch early.
+  if (/\.(heic|heif)$/i.test(file.name) || /^image\/hei[cf]/i.test(file.type)) {
+    showToast('Format HEIC/HEIF non supporté. Exporte en JPEG ou PNG depuis Photos.', 'error');
+    e.target.value = '';
+    return;
+  }
   editorThumb = { filename: null, url: URL.createObjectURL(file), file, focus: { x: 50, y: 50 } };
   updateFocalStage();
 });
@@ -1979,9 +1996,14 @@ function updateGalleryCount() {
 
 // Newly picked files are appended (not uploaded yet — filename stays null until Save)
 document.getElementById('f-gallery-add').addEventListener('change', (e) => {
-  Array.from(e.target.files).forEach((file) => {
-    editorGallery.push({ filename: null, url: URL.createObjectURL(file), file });
-  });
+  const files = Array.from(e.target.files);
+  const heic  = files.filter((f) => /\.(heic|heif)$/i.test(f.name) || /^image\/hei[cf]/i.test(f.type));
+  if (heic.length) {
+    showToast(`${heic.length} fichier(s) HEIC/HEIF ignoré(s) — exporte en JPEG ou PNG depuis Photos.`, 'error');
+  }
+  files
+    .filter((f) => !/\.(heic|heif)$/i.test(f.name) && !/^image\/hei[cf]/i.test(f.type))
+    .forEach((file) => { editorGallery.push({ filename: null, url: URL.createObjectURL(file), file }); });
   e.target.value = '';
   renderGalleryEditor();
 });
@@ -1992,6 +2014,12 @@ document.getElementById('f-gallery-add').addEventListener('change', (e) => {
    unchanged images are left alone — only items with a pending `.file` get uploaded. */
 
 document.getElementById('save-project-btn').addEventListener('click', async () => {
+  // Bail out immediately if the browser knows the device is offline — no point
+  // burning through 3 retry attempts (4.5s) just to confirm there's no connection.
+  if (!navigator.onLine) {
+    showToast('Pas de connexion internet. Reconnecte-toi avant de sauvegarder.', 'error');
+    return;
+  }
   const statusEl = document.getElementById('save-status');
   const title = document.getElementById('f-title').value.trim();
   const hasThumb = !!(editorThumb.filename || editorThumb.file);
