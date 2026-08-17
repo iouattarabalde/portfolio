@@ -505,14 +505,18 @@ body.same-doc-transition .site-nav {
   text-transform: uppercase;
   position: relative; /* positioning context for .filter-indicator below */
 }
-/* Slides + resizes to match whichever button is .active, instead of each button
-   independently toggling its own border/background — requested Aug 2026. A persistent
-   element (see the static markup in index.html and positionFilterIndicator() there)
-   rather than one rebuilt from scratch on every render, specifically so it has a
-   previous position to animate FROM. Placed first in the DOM so normal paint order
-   puts it behind the buttons (all plain flex items, no z-index needed) without
-   affecting their own flex layout — position:absolute already takes it out of flex
-   flow entirely, same technique .bottom-glow uses inside #project-info's own flex row. */
+/* Matches whichever button is .active, instead of each button independently toggling
+   its own border/background. A persistent element (see the static markup in index.html
+   and positionFilterIndicator() there) rather than one rebuilt from scratch on every
+   render. Placed first in the DOM so normal paint order puts it behind the buttons (all
+   plain flex items, no z-index needed) without affecting their own flex layout —
+   position:absolute already takes it out of flex flow entirely, same technique
+   .bottom-glow uses inside #project-info's own flex row.
+   Previously slid between button positions via a transform transition (Aug 2026); that
+   read as clunky and was replaced with a plain fade, Aug 2026 — width/height/transform
+   are now set instantly while the indicator is invisible (opacity 0, see
+   positionFilterIndicator() in index.html), and only opacity animates, so switching
+   filters reads as a soft cross-fade rather than a moving box. */
 .filter-indicator {
   position: absolute;
   top: 0;
@@ -522,14 +526,8 @@ body.same-doc-transition .site-nav {
   border: 1px solid var(--accent);
   border-radius: 8px; /* matches .category-filter button's own radius below */
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-  /* Overshoot easing instead of a flat ease, requested Aug 2026 — cubic-bezier's 2nd
-     value above 1 is what produces the overshoot (the curve crosses past 100% progress
-     before settling back), giving the slide a felt "snap" at the end instead of just
-     arriving. Duration bumped from 0.3s to 0.4s alongside it so the overshoot has room
-     to actually read instead of feeling rushed. */
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-              width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-              height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  opacity: 0;
+  transition: opacity 0.15s ease;
   pointer-events: none;
 }
 /* Quick press-pulse, requested Aug 2026 alongside the overshoot easing above — fires
@@ -561,7 +559,7 @@ body.same-doc-transition .site-nav {
 .category-filter button:hover { border-color: var(--accent); color: var(--accent); }
 .category-filter button.active {
   color: var(--accent);
-  border-color: transparent; /* the accent border/background now come from .filter-indicator sliding underneath instead of this button's own state, Aug 2026 */
+  border-color: transparent; /* the accent border/background now come from .filter-indicator fading in underneath instead of this button's own state, Aug 2026 */
 }
 /* On phones, 5 chips don't fit one line even shrunk, so scroll horizontally instead of
    wrapping to a second row (scrollbar hidden, swipe still works). Must come after the
@@ -819,7 +817,10 @@ body.same-doc-transition .site-nav {
 /* ---------- Responsive: work grid column counts ---------- */
 @media (max-width: 1000px) {
   .work-grid {
-    grid-template-columns: repeat(var(--wg-cols-m, 2), 1fr);
+    /* Was 2 by default (--wg-cols-m); switched to match the desktop density of 4,
+       requested Aug 2026. Still overridable per the admin's design tokens if a
+       different mobile column count is ever wanted, same as before. */
+    grid-template-columns: repeat(var(--wg-cols-m, 4), 1fr);
     gap: var(--wg-gap-m, var(--wg-gap, var(--grid-gap)));
   }
   .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, 10px); } /* near-square by default at this density */
@@ -988,6 +989,13 @@ body.same-doc-transition .site-nav {
   justify-content: center;
   z-index: 100;
   padding: clamp(20px, 6vw, 64px);
+  /* Only horizontal panning is a real gesture here (swiping between stills, see the
+     touchstart/touchend listeners in project.html) — pan-x stops the browser's default
+     vertical scroll/rubber-band from firing on an up/down touch and dragging the page
+     behind the overlay, reported Aug 2026. The swipe handler itself was already
+     horizontal-only; this is what actually blocks the vertical gesture at the source
+     instead of just ignoring it after the fact. */
+  touch-action: pan-x;
 }
 .lightbox.open { display: flex; }
 /* Groups the image and the palette strip below it so they get centered as one unit —
@@ -1001,6 +1009,12 @@ body.same-doc-transition .site-nav {
   flex-direction: column;
   align-items: center;
   max-width: 100%;
+  /* Deliberately NOT position:relative — .lightbox-nav (desktop) is position:absolute and
+     needs its containing block to stay .lightbox (the full-viewport overlay) so the arrows
+     anchor to the screen edges via clamp(...) regardless of the image's own width. Giving
+     this element a position would silently hijack that and pull the arrows in against the
+     image instead. On mobile, .lightbox-nav-row below switches the arrows to position:static
+     and moves them here in normal flow, so no containing-block trick is needed there either. */
 }
 .lightbox-content img {
   display: block;
@@ -1071,17 +1085,33 @@ body.same-doc-transition .site-nav {
 .lightbox-prev { left: clamp(10px, 3vw, 28px); }
 .lightbox-next { right: clamp(10px, 3vw, 28px); }
 
+/* Wraps prev/next on mobile only (see .lightbox-nav-row below) — hidden on desktop
+   since the arrows stay position:absolute at the screen edges there and this row would
+   otherwise just be an empty, layout-affecting box sitting between the palette and
+   nothing. display:contents on desktop makes it disappear from layout entirely while
+   leaving its two button children in place as direct .lightbox-content flex items,
+   which is what keeps their absolute positioning resolving against .lightbox as before. */
+.lightbox-nav-row { display: contents; }
+
 @media (max-width: 700px) {
-  /* Vertically centering the arrows put them directly over the photo on mobile,
-     reported Aug 2026 — the image's own max-height (see .lightbox-content img above)
-     keeps it well within the upper ~70% of the viewport, so anchoring the arrows to
-     the BOTTOM instead reliably lands them in the empty backdrop space below the
-     image and its palette strip, regardless of any given still's aspect ratio (which
-     is why this is bottom-anchored rather than tied to the image's own variable
-     rendered height). */
+  /* Vertically centering the arrows put them directly over the photo on mobile
+     (Aug 2026); anchoring them to the bottom of the viewport instead fixed that but
+     landed them too far below the image and palette (reported Aug 2026) since the
+     gap between the content block and the screen edge varies with each still's own
+     aspect ratio. Pulling them into a normal-flow row directly under the palette
+     strip — inside .lightbox-content itself, see the markup in project.html — solves
+     both: they sit right against the content regardless of image height, and never
+     overlap the photo since they're below it in flow rather than floating over it. */
+  .lightbox-nav-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 14px;
+    width: 100%;
+  }
   .lightbox-nav {
+    position: static;
     top: auto;
-    bottom: 28px;
     transform: none;
   }
 }
