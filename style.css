@@ -479,6 +479,16 @@ body.same-doc-transition .site-nav {
 
   padding: clamp(var(--sect-y-m, 28px), 6vw, var(--sect-y, 56px)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)) 18px;
 }
+/* Groups the heading with the grid-density toggle so the icons sit right beside
+   "Projects"/"Projets" itself, requested Aug 2026, rather than off on the far side
+   next to the category filter chips. align-items:center (not baseline, unlike the
+   parent .section-head) since these are an icon button pair and a heading, not two
+   lines of text that need baseline alignment. */
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .section-head h2 {
   font-size: calc(24px * clamp(0.5, var(--title-scale, 1), 1.6));
 }
@@ -587,27 +597,27 @@ body.same-doc-transition .site-nav {
    of a single density fixed for everyone. Hidden entirely above 1000px, since the
    work grid itself only has a mobile/desktop split at that breakpoint (see
    .work-grid below) — there's nothing for this to toggle on a desktop-width screen.
-   Styled as a compact two-button pill, deliberately smaller than the category-filter
-   chips beside it so it doesn't compete with the actual content filters for
-   attention. */
+   Sits beside the section heading (.section-title-row), not the category-filter
+   chips, so icon buttons rather than text ("2"/"4") keep it visually calm next to
+   the title instead of reading as another line of copy. */
 .grid-density-toggle {
   display: none;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: calc(0.1em * var(--tracking, 1));
+  gap: 4px;
 }
 @media (max-width: 1000px) {
   .grid-density-toggle {
     display: flex;
-    gap: 4px;
   }
 }
 .grid-density-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 6px;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   color: var(--fg-dim);
   cursor: pointer;
   transition: border-color 0.2s, color 0.2s;
