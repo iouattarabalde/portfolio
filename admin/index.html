@@ -865,9 +865,14 @@ let editorThumb = { filename: null, url: null, file: null, focus: { x: 50, y: 50
 // file doesn't exist yet, since "not found" is a perfectly normal case here (e.g.
 // checking whether a project's still image is new or being replaced).
 async function ghGetFile(path) {
-  const res = await fetch(API + path, {
-    headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
-  });
+  let res;
+  try {
+    res = await fetch(API + path, {
+      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
+    });
+  } catch (networkErr) {
+    throw new Error(`Erreur réseau (GET ${path}) : vérifier la connexion ou désactiver les extensions de navigateur. Détail : ${networkErr.message}`);
+  }
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
   return res.json();
