@@ -565,6 +565,10 @@
       <label>Photo</label>
       <img id="s-photo-preview" src="" alt="" style="width:96px; height:96px; object-fit:cover; border:1px solid var(--line); background:var(--bg); display:block; margin-bottom:10px;">
       <input type="file" id="s-photo" accept="image/*">
+      <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+        <button class="btn btn-primary" id="save-photo-btn" disabled>Enregistrer la photo</button>
+        <span class="save-status" id="photo-status"></span>
+      </div>
     </div>
     <div class="string-row" style="margin-bottom:16px;">
       <span class="string-label">Bio courte</span>
@@ -1100,8 +1104,53 @@ async function loadDesignIntoForm() {
 document.getElementById('s-photo').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  if (/\.(heic|heif)$/i.test(file.name) || /^image\/hei[cf]/i.test(file.type)) {
+    showToast('Format HEIC/HEIF non supporté. Exporte en JPEG ou PNG depuis Photos.', 'error');
+    e.target.value = '';
+    return;
+  }
   newPhotoFile = file;
   document.getElementById('s-photo-preview').src = URL.createObjectURL(file);
+  document.getElementById('save-photo-btn').disabled = false;
+  document.getElementById('photo-status').textContent = '';
+});
+
+// Bouton dédié : upload uniquement la photo de contact, sans toucher
+// aux champs texte ni à strings.json. Le bouton s'active dès qu'un
+// fichier est sélectionné et se désactive une fois l'envoi réussi.
+document.getElementById('save-photo-btn').addEventListener('click', async () => {
+  if (!newPhotoFile) return;
+  const btn = document.getElementById('save-photo-btn');
+  const statusEl = document.getElementById('photo-status');
+  setBtnLoading(btn, true);
+  statusEl.textContent = 'Envoi…';
+  statusEl.className = 'save-status';
+  try {
+    const compressed = await compressImage(newPhotoFile, 800, 0.85);
+    const b64 = await blobToBase64(compressed);
+    await ghPutFile('assets/profile-photo.jpg', b64, 'Admin : photo de contact mise à jour');
+    currentPhotoFilename = 'profile-photo.jpg';
+    newPhotoFile = null;
+    // Ensure settings.json has photoFilename set — safe to call even if already correct.
+    const sf = await ghGetFile('data/settings.json').catch(() => null);
+    if (sf) {
+      const s = JSON.parse(decodeURIComponent(escape(atob(sf.content))));
+      if (s.photoFilename !== currentPhotoFilename) {
+        s.photoFilename = currentPhotoFilename;
+        await ghPutFile('data/settings.json', b64EncodeUnicode(JSON.stringify(s, null, 2)), 'Admin : photoFilename mis à jour');
+      }
+    }
+    btn.disabled = true;
+    statusEl.textContent = 'En ligne dans ~1 min.';
+    statusEl.className = 'save-status success';
+    showToast('Photo de contact enregistrée.');
+  } catch (e) {
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
+  } finally {
+    setBtnLoading(btn, false);
+  }
 });
 
 // Manifest for the "Textes généraux" editor: which data/strings.json key each row
