@@ -821,9 +821,15 @@ body.same-doc-transition .site-nav {
        requested Aug 2026. Still overridable per the admin's design tokens if a
        different mobile column count is ever wanted, same as before. */
     grid-template-columns: repeat(var(--wg-cols-m, 4), 1fr);
-    gap: var(--wg-gap-m, var(--wg-gap, var(--grid-gap)));
+    /* Gap and card padding tightened 75% (6px→1.5px, 10px→2.5px) to compensate for
+       the 2→4 column switch above, requested Aug 2026 — at 4-up, the old spacing ate
+       too much of each card's already-smaller width. No longer chained to the
+       desktop --wg-gap/--grid-gap tokens (was var(--wg-gap-m, var(--wg-gap,
+       var(--grid-gap)))) since mobile now needs its own tighter default independent
+       of whatever the desktop gap is set to. */
+    gap: var(--wg-gap-m, 1.5px);
   }
-  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, 10px); } /* near-square by default at this density */
+  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, 2.5px); } /* near-square by default at this density */
 }
 
 /* Phones in landscape still match max-width:1000px above, but there's enough horizontal
