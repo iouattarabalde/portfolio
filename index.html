@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=91">
+<link rel="stylesheet" href="style.css?v=92">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -151,6 +151,13 @@
           <path d="M18.5 6C20.2 7.7 21 9.8 21 12C21 14.2 20.2 16.3 18.5 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
       </button>
+      <!-- Museum-style wall label — sits inside reel-embed so it's composited with
+           the video; its own ::after grain layer (same --noise-svg as .grain-overlay)
+           gives it the same film-grain texture as the rest of the page. -->
+      <div class="reel-tag" aria-hidden="true">
+        <span class="reel-tag-name">Ismael OB</span>
+        <span class="reel-tag-title">Démo Reel</span>
+      </div>
     </div>
   </div>
 </header>
