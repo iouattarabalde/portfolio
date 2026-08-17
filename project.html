@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=87">
+<link rel="stylesheet" href="style.css?v=88">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -150,15 +150,22 @@
   <a class="project-back" href="index.html#work">← <span data-fr data-key="project.back"></span><span data-en data-key="project.back"></span></a>
 </section>
 
-<!-- Full-screen image viewer, opened by clicking any gallery thumbnail (see wireLightbox below) -->
+<!-- Full-screen image viewer, opened by clicking any gallery thumbnail (see wireLightbox below).
+     Prev/next live inside .lightbox-content (not as siblings) so that on mobile they can be
+     pulled into a row directly under the palette strip instead of floating near the bottom
+     of the viewport — see .lightbox-nav-row in style.css, Aug 2026. On desktop they're still
+     positioned absolute against .lightbox itself (unaffected by this nesting, since
+     .lightbox-content has no position of its own and therefore isn't a containing block). -->
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
   <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-fr data-key="lightbox.close"></span><span data-en data-key="lightbox.close"></span></button>
-  <button class="lightbox-nav lightbox-prev" id="lightbox-prev" type="button" aria-label="Previous image">←</button>
   <div class="lightbox-content">
     <img id="lightbox-img" src="" alt="">
     <div class="lightbox-palette" id="lightbox-palette" aria-hidden="true"></div>
+    <div class="lightbox-nav-row">
+      <button class="lightbox-nav lightbox-prev" id="lightbox-prev" type="button" aria-label="Previous image">←</button>
+      <button class="lightbox-nav lightbox-next" id="lightbox-next" type="button" aria-label="Next image">→</button>
+    </div>
   </div>
-  <button class="lightbox-nav lightbox-next" id="lightbox-next" type="button" aria-label="Next image">→</button>
 </div>
 
 <script>
@@ -320,7 +327,10 @@
   // gesture to be predominantly horizontal (deltaX bigger than deltaY) so an incidental
   // vertical touch doesn't get misread as a swipe, and a minimum distance so a simple
   // tap never triggers navigation. Right-to-left swipe (deltaX negative) advances to
-  // the next image, matching the standard mobile gallery convention.
+  // the next image, matching the standard mobile gallery convention. Vertical panning
+  // itself (which used to drag the page behind the overlay) is blocked at the CSS
+  // level via touch-action: pan-x on .lightbox, not here — that's what stops the
+  // background from moving on an up/down swipe, this handler only reads the gesture.
   let touchStartX = 0;
   let touchStartY = 0;
   lightbox.addEventListener('touchstart', (e) => {
