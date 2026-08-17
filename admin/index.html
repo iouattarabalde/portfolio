@@ -2195,7 +2195,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       // Existing thumbnails across all 16 projects were resized to match, Aug 2026.
       const compressed = await compressImage(editorThumb.file, 1200);
       const b64 = await blobToBase64(compressed);
-      const filename = `${slug}-cover.jpg`;
+      const filename = `${slug}/${slug}-cover.jpg`;
       await ghPutFile(`assets/${filename}`, b64, `Admin : vignette pour ${title}`);
       editorThumb.filename = filename;
     }
@@ -2214,7 +2214,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
           extractPalette(item.file)
         ]);
         const b64 = await blobToBase64(compressed);
-        const filename = `${slug}-${Date.now()}-${i}.jpg`;
+        const filename = `${slug}/${slug}-${Date.now()}-${i}.jpg`;
         await ghPutFile(`assets/${filename}`, b64, `Admin : still ${i + 1} pour ${title}`);
         item.filename = filename;
         item.palette = palette;
