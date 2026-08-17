@@ -528,7 +528,10 @@
   <div class="tab-panel" id="tab-projets">
   <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
     <h2 style="font-size:16px;">Projets</h2>
-    <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="clean-orphans-btn" title="Supprimer les fichiers images non référencés par aucun projet">🧹 Nettoyer</button>
+      <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
+    </div>
   </div>
   <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
     <p class="field-hint">Glisse un projet pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
@@ -854,6 +857,7 @@ let projectsSha = null;    // git blob sha of projects.json (not actually used f
 let editingIndex = null;   // index into projectsData.projects currently open in the editor, or null for a new project
 let editorGallery = [];    // draft gallery state while the editor is open: [{ filename, palette, url, file (optional new File) }] — palette is undefined until a new file is actually uploaded (computed at save time, see saveProject's upload loop), Aug 2026
 let editorThumb = { filename: null, url: null, file: null, focus: { x: 50, y: 50 } }; // draft thumbnail state, same shape as one gallery item, plus its focal point
+let originalGalleryFilenames = []; // filenames in the gallery when the editor was opened — used to detect removed stills so they can be deleted from assets/ on save
 
 /* ---------- GitHub API helpers ----------
    All three wrap the Contents API (docs.github.com/en/rest/repos/contents).
@@ -930,6 +934,80 @@ async function ghPutFile(path, base64Content, message) {
     }
     return res.json();
   }
+}
+
+// Deletes a file from the repo. Silently succeeds if the file is already gone (404).
+// Same retry pattern as ghPutFile — 502/503 retried, network errors caught explicitly.
+async function ghDeleteFile(path, message) {
+  let fileSha;
+  try {
+    const existing = await ghGetFile(path);
+    if (!existing) return; // already gone, nothing to do
+    fileSha = existing.sha;
+  } catch (e) {
+    return; // can't read it → skip rather than crashing the caller
+  }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    let res;
+    try {
+      res = await fetch(API + path, {
+        method: 'DELETE',
+        headers: {
+          Authorization: 'token ' + token,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message, sha: fileSha })
+      });
+    } catch (networkErr) {
+      if (attempt < 3) { await wait(attempt * 1500); continue; }
+      throw new Error(`Erreur réseau (DELETE ${path}). Détail : ${networkErr.message}`);
+    }
+    if (res.status === 404) return; // already gone — treat as success
+    if ((res.status === 502 || res.status === 503) && attempt < 3) { await wait(attempt * 1500); continue; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`DELETE ${path} → ${res.status} ${err.message || ''}`);
+    }
+    return; // 200/2xx — success
+  }
+}
+
+// Scans the full assets/ tree via the Git Trees API (bypasses the 1 000-file Contents
+// API listing cap) and returns filenames that exist in the repo but aren't referenced
+// by any project in projects.json. Only looks at .jpg files — favicon.svg etc. are skipped.
+async function scanOrphans() {
+  // Walk: ref → commit → tree (recursive) — one extra hop but avoids needing to know
+  // the tree sha ahead of time; works even if the branch was just force-pushed.
+  const commitRes = await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/git/refs/heads/main`,
+    { headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' } }
+  );
+  if (!commitRes.ok) throw new Error(`Impossible de lire la ref main → ${commitRes.status}`);
+  const ref = await commitRes.json();
+
+  const treeRes = await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${ref.object.sha}?recursive=1`,
+    { headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' } }
+  );
+  if (!treeRes.ok) throw new Error(`Impossible de lire le tree → ${treeRes.status}`);
+  const tree = await treeRes.json();
+
+  // All .jpg filenames present in assets/
+  const inRepo = new Set(
+    tree.tree
+      .filter((f) => f.type === 'blob' && f.path.startsWith('assets/') && f.path.endsWith('.jpg'))
+      .map((f) => f.path.replace('assets/', ''))
+  );
+
+  // All filenames referenced by at least one project
+  const referenced = new Set();
+  for (const p of projectsData.projects) {
+    if (p.thumbnail) referenced.add(p.thumbnail);
+    for (const g of p.gallery) { if (g.filename) referenced.add(g.filename); }
+  }
+
+  return [...inRepo].filter((fn) => !referenced.has(fn));
 }
 
 // Encodes a JS string to base64 safely for non-ASCII characters (accented French text
@@ -1822,6 +1900,9 @@ function openEditor(index) {
   editorGallery = project
     ? project.gallery.map((g) => ({ filename: g.filename, palette: g.palette, url: `../assets/${g.filename}`, file: null }))
     : [];
+  // Snapshot the filenames that exist when the editor opens so we can diff on save
+  // and delete any stills the user removed (they won't be in editorGallery anymore).
+  originalGalleryFilenames = editorGallery.map((g) => g.filename).filter(Boolean);
   renderGalleryEditor();
 
   document.getElementById('f-thumbnail').value = '';
@@ -2109,6 +2190,18 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
     statusEl.textContent = 'Enregistrement de projects.json…';
     await saveProjectsJson(statusEl, editingIndex !== null ? 'Projet mis à jour. En ligne dans ~1 min.' : 'Nouveau projet ajouté. En ligne dans ~1 min.');
 
+    // Delete stills that were in the gallery when the editor opened but aren't anymore.
+    // Runs after the JSON is committed so a failed delete never leaves the project in
+    // a broken state (the worst outcome is an orphaned file, not a missing reference).
+    const keptFilenames = new Set(editorGallery.map((g) => g.filename).filter(Boolean));
+    const removedStills = originalGalleryFilenames.filter((fn) => !keptFilenames.has(fn));
+    if (removedStills.length) {
+      statusEl.textContent = `Nettoyage de ${removedStills.length} still(s) retiré(s)…`;
+      for (const fn of removedStills) {
+        await ghDeleteFile(`assets/${fn}`, `Admin : still retiré — ${title}`).catch(() => {});
+      }
+    }
+
     editorEl.classList.remove('open');
     renderDashboard();
   } catch (e) {
@@ -2124,23 +2217,35 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
 // assets/ (orphaned but harmless) rather than deleted, to keep this simple and safe.
 document.getElementById('delete-project-btn').addEventListener('click', async () => {
   if (editingIndex === null) return;
-  if (!(await confirmDialog('Supprimer ce projet ? Les images restent dans le repo mais le projet disparaît du site.'))) return;
+  const project = projectsData.projects[editingIndex];
+  if (!(await confirmDialog(`Supprimer « ${project.title} » ? Le projet et toutes ses images (cover + stills) seront effacés du repo.`))) return;
   const statusEl = document.getElementById('save-status');
   const delBtn = document.getElementById('delete-project-btn');
   setBtnLoading(delBtn, true);
-  // Snapshot before mutating: if the write below fails, projectsData is restored to
-  // this rather than staying ahead of what's actually on GitHub. Without this, a
-  // failed delete's local removal could get silently completed by an unrelated later
-  // save (e.g. a reorder) that never knew the delete hadn't actually gone through. Aug 2026.
   const backup = projectsData.projects.slice();
   try {
     projectsData.projects.splice(editingIndex, 1);
     statusEl.textContent = 'Suppression…';
-    await saveProjectsJson(statusEl, 'Projet supprimé.');
+    await saveProjectsJson(statusEl, `Admin : suppression ${project.title}`);
+
+    // Delete cover + all stills. Runs after the JSON is committed — if a file delete
+    // fails it leaves an orphan in assets/ (harmless) rather than a dangling reference.
+    const filesToDelete = [
+      ...(project.thumbnail ? [`assets/${project.thumbnail}`] : []),
+      ...project.gallery.filter((g) => g.filename).map((g) => `assets/${g.filename}`)
+    ];
+    if (filesToDelete.length) {
+      statusEl.textContent = `Suppression de ${filesToDelete.length} fichier(s)…`;
+      for (const path of filesToDelete) {
+        await ghDeleteFile(path, `Admin : suppression ${project.title}`).catch(() => {});
+      }
+    }
+
     editorEl.classList.remove('open');
     renderDashboard();
+    showToast(`${project.title} supprimé — ${filesToDelete.length} fichier(s) effacé(s).`);
   } catch (e) {
-    projectsData.projects = backup; // the write never actually succeeded, undo the local removal
+    projectsData.projects = backup;
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
     showToast('Erreur : ' + e.message, 'error');
@@ -2149,6 +2254,34 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   }
 });
 
+
+document.getElementById('clean-orphans-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('clean-orphans-btn');
+  setBtnLoading(btn, true, 'Analyse…');
+  try {
+    const orphans = await scanOrphans();
+    if (!orphans.length) {
+      showToast('Aucun fichier orphelin trouvé. Assets propres ✓');
+      return;
+    }
+    const confirmed = await confirmDialog(
+      `${orphans.length} fichier(s) orphelin(s) trouvé(s) dans assets/ (non référencés par aucun projet).\n\nSupprimer ?`
+    );
+    if (!confirmed) return;
+    setBtnLoading(btn, true, `0 / ${orphans.length}…`);
+    let deleted = 0;
+    for (const fn of orphans) {
+      await ghDeleteFile(`assets/${fn}`, `Admin : nettoyage orphelin ${fn}`).catch(() => {});
+      deleted++;
+      setBtnLoading(btn, true, `${deleted} / ${orphans.length}…`);
+    }
+    showToast(`${deleted} fichier(s) orphelin(s) supprimé(s).`);
+  } catch (e) {
+    showToast('Erreur pendant le nettoyage : ' + e.message, 'error');
+  } finally {
+    setBtnLoading(btn, false);
+  }
+});
 
 const previewFrame = document.getElementById('design-preview');
 // Desktop / mobile preview: shrinking the iframe to a phone width makes the site's own
