@@ -1000,11 +1000,20 @@ async function scanOrphans() {
       .map((f) => f.path.replace('assets/', ''))
   );
 
-  // All filenames referenced by at least one project
+  // All filenames referenced by projects.json
   const referenced = new Set();
   for (const p of projectsData.projects) {
     if (p.thumbnail) referenced.add(p.thumbnail);
     for (const g of p.gallery) { if (g.filename) referenced.add(g.filename); }
+  }
+  // Also include assets referenced by settings.json (e.g. profile photo) — without
+  // this the orphan scanner would treat profile-photo.jpg as an orphan and delete it.
+  const settingsFile = await ghGetFile('data/settings.json').catch(() => null);
+  if (settingsFile) {
+    try {
+      const s = JSON.parse(decodeURIComponent(escape(atob(settingsFile.content))));
+      if (s.photoFilename) referenced.add(s.photoFilename);
+    } catch (e) { /* malformed settings.json — skip */ }
   }
 
   return [...inRepo].filter((fn) => !referenced.has(fn));
