@@ -592,20 +592,27 @@ body.same-doc-transition .site-nav {
   .category-filter button { flex-shrink: 0; }
 }
 
-/* Lets the visitor switch the work grid between 2-up and 4-up on their own phone
-   (see the markup in index.html and wireGridDensityToggle() in its script) instead
-   of a single density fixed for everyone. Hidden entirely above 1000px, since the
-   work grid itself only has a mobile/desktop split at that breakpoint (see
-   .work-grid below) — there's nothing for this to toggle on a desktop-width screen.
-   Sits beside the section heading (.section-title-row), not the category-filter
-   chips, so icon buttons rather than text ("2"/"4") keep it visually calm next to
-   the title instead of reading as another line of copy. */
+/* Lets the visitor switch the work grid density on their own screen (2/4-up on
+   mobile, 4/8-up on desktop — see the markup in index.html and
+   wireGridDensityToggle() in its script) instead of a single density fixed for
+   everyone. The two toggles are mutually exclusive by breakpoint: .is-mobile only
+   below 1000px, .is-desktop only above it — there's never a moment both (or
+   neither) are meaningful, since the work grid itself only has that one
+   mobile/desktop split (see .work-grid below). Sits beside the section heading
+   (.section-title-row), not the category-filter chips, so icon buttons rather
+   than text ("2"/"4"/"8") keep it visually calm next to the title instead of
+   reading as another line of copy. */
 .grid-density-toggle {
   display: none;
   gap: 4px;
 }
 @media (max-width: 1000px) {
-  .grid-density-toggle {
+  .grid-density-toggle.is-mobile {
+    display: flex;
+  }
+}
+@media (min-width: 1001px) {
+  .grid-density-toggle.is-desktop {
     display: flex;
   }
 }
@@ -635,6 +642,20 @@ body.same-doc-transition .site-nav {
   gap: var(--wg-gap, var(--grid-gap));
   background: var(--bg); /* seamless black gap between cards, ShotDeck-inspired, Aug 2026 */
   view-transition-name: work-grid; /* scopes the same-document crossfade on filter change (see the click handler in index.html) to just this container, instead of the browser treating the whole page as one transitioning root */
+}
+
+/* Desktop 8-up mode, added Aug 17 2026 — the desktop counterpart to body.grid-dense
+   below. --wg-cols/--wg-gap/--card-pad (no -m suffix) are already the "desktop tier"
+   variables, since they're what .work-grid and .work-card fall back to before the
+   max-width:1000px mobile block below overrides them with the -m versions — so this
+   reuses them directly rather than introducing a third variable tier. Gap/padding
+   tightened to 25% of the 4-up defaults (6px→1.5px, 14px→3.5px), same ratio the
+   mobile 4-up mode uses, so the denser layout doesn't eat too much of each smaller
+   card. */
+body.grid-dense-desktop {
+  --wg-cols: 8;
+  --wg-gap: 1.5px;
+  --card-pad: 3.5px;
 }
 
 .work-card {
