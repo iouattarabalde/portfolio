@@ -593,15 +593,16 @@ body.same-doc-transition .site-nav {
 }
 
 /* Lets the visitor switch the work grid density on their own screen (2/4-up on
-   mobile, 4/8-up on desktop — see the markup in index.html and
-   wireGridDensityToggle() in its script) instead of a single density fixed for
-   everyone. The two toggles are mutually exclusive by breakpoint: .is-mobile only
-   below 1000px, .is-desktop only above it — there's never a moment both (or
-   neither) are meaningful, since the work grid itself only has that one
-   mobile/desktop split (see .work-grid below). Sits beside the section heading
-   (.section-title-row), not the category-filter chips, so icon buttons rather
-   than text ("2"/"4"/"8") keep it visually calm next to the title instead of
-   reading as another line of copy. */
+   portrait mobile, 4/8-up on desktop and landscape mobile — see the markup in
+   index.html and wireGridDensityToggle() in its script) instead of a single
+   density fixed for everyone. Landscape phones show the desktop toggle, not the
+   portrait one: the work grid already treats landscape phones as desktop-width
+   for column count (see the max-width:1000px + orientation:landscape block below,
+   which reads --wg-cols, the desktop variable, not --wg-cols-m) — showing the
+   portrait toggle there let the visitor press buttons that quietly did nothing,
+   fixed Aug 17 2026. Sits beside the section heading (.section-title-row), not
+   the category-filter chips, so icon buttons rather than text ("2"/"4"/"8") keep
+   it visually calm next to the title instead of reading as another line of copy. */
 .grid-density-toggle {
   display: none;
   gap: 4px;
@@ -612,6 +613,16 @@ body.same-doc-transition .site-nav {
   }
 }
 @media (min-width: 1001px) {
+  .grid-density-toggle.is-desktop {
+    display: flex;
+  }
+}
+/* Same specificity as the two rules above, so this has to stay later in the file
+   to win the cascade for landscape phones specifically. */
+@media (max-width: 1000px) and (orientation: landscape) {
+  .grid-density-toggle.is-mobile {
+    display: none;
+  }
   .grid-density-toggle.is-desktop {
     display: flex;
   }
@@ -897,7 +908,10 @@ body.grid-dense-desktop {
     grid-template-columns: repeat(var(--wg-cols-m, 2), 1fr);
     gap: var(--wg-gap-m, var(--wg-gap, var(--grid-gap)));
   }
-  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, 10px); } /* near-square by default at this density */
+  /* padding falls through to --card-pad (not just a bare 10px), same as gap falls
+     through to --wg-gap above — matters in landscape, where the desktop toggle
+     (not this one) is what's actually driving the column count, see below. */
+  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, var(--card-pad, 10px)); } /* near-square by default at this density */
 }
 /* 4-up mode: tightened gap/padding 75% (6px→1.5px, 10px→2.5px) so the denser layout
    doesn't eat too much of each already-smaller card. Set on body (not .work-grid
@@ -910,8 +924,14 @@ body.grid-dense {
 }
 
 /* Phones in landscape still match max-width:1000px above, but there's enough horizontal
-   room to keep the desktop 4-column layout rather than dropping to the 2-column portrait
-   density. orientation:landscape wins here since it's the more specific/later rule. */
+   room to treat them as desktop-width instead of dropping to the portrait 2/4-up
+   density — hence reading --wg-cols (the desktop variable, toggled by
+   .grid-density-toggle.is-desktop, which is what's shown here instead of the
+   portrait toggle, see above) rather than --wg-cols-m. orientation:landscape wins
+   here since it's the more specific/later rule. Gap and padding don't need their
+   own override: they already fall through to --wg-gap/--card-pad above when the
+   -m versions are unset, which is the normal case in landscape since the portrait
+   toggle is hidden there and never sets them. */
 @media (max-width: 1000px) and (orientation: landscape) {
   .work-grid {
     grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
