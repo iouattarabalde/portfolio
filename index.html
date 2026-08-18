@@ -243,7 +243,21 @@
     const maxWidthFromHeight = available * (16 / 9);
     frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px'; // 280px floor so it never gets absurdly small
   }
-  window.addEventListener('load', sizeReel);
+  window.addEventListener('load', () => { sizeReel(); scrollToHashTarget(); });
+
+  // Fragment-scroll fix, Aug 2026: the browser's native anchor scroll (on initial
+  // navigation to index.html#work or #contact, e.g. from project.html's nav or "Back
+  // to Projects" link) fires before sizeReel(), the work-grid fetch, and the contact
+  // fetch finish resizing the page below the hero — so the native scroll lands on a
+  // layout that's about to shift, and the final position drifts with network timing.
+  // We re-run the scroll manually from every call site that can move #work or
+  // #contact, once each has settled. Idempotent and cheap, so calling it more than
+  // once (in case two finish close together) is harmless — the last call wins.
+  function scrollToHashTarget() {
+    if (!location.hash) return;
+    const target = document.querySelector(location.hash);
+    if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }
 
   // Hero reel parallax: subtly scales down as you scroll past it, requested Aug 2026.
   // Direct scroll-value-following via a CSS custom property — same technique the
@@ -520,6 +534,7 @@
       cachedProjects = data.projects;
       renderCategoryFilter();
       renderWorkGrid();
+      scrollToHashTarget(); // grid just changed #work's height, which can shift #contact below it
     })
     .catch((err) => console.error('Impossible de charger les données:', err));
 
@@ -544,6 +559,7 @@
       const igEl = document.getElementById('contact-instagram');
       igEl.textContent = '@' + s.instagramHandle;
       igEl.href = 'https://instagram.com/' + s.instagramHandle;
+      scrollToHashTarget(); // contact copy just landed, in case its length shifted anything
     })
     .catch((err) => console.error('Impossible de charger les coordonnées:', err));
 
