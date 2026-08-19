@@ -320,6 +320,11 @@ body.same-doc-transition .site-nav {
   border: 1px solid var(--line);
   background: var(--bg-raised);
   animation: hero-enter 0.8s ease-out;
+  /* Safety net for the rare case sizeReel()'s post-load correction (fonts swapping
+     in, nav height settling) differs from its synchronous first-paint value — smooths
+     that into a soft resize instead of a hard snap. The synchronous call in index.html
+     means this almost never actually runs visibly, but it's a cheap guarantee. Aug 2026. */
+  transition: max-width 0.3s ease;
   /* Subtle scroll-linked parallax, requested Aug 2026 — set by updateHeroParallax() in
      index.html, a direct scroll-value-following custom property (same technique the
      earlier nav-fade-on-scroll experiment used, before that was reverted for unrelated
@@ -396,6 +401,20 @@ body.same-doc-transition .site-nav {
 .reel-embed video {
   position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
   object-fit: cover;
+}
+
+/* Freeze-frame (poster) starts desaturated and eases into full color once the video
+   has enough data to actually play, requested Aug 2026 — filter applies to the poster
+   image too since it's rendered by the <video> element itself, not a separate <img>.
+   JS in index.html adds .is-ready on the video's 'loadeddata' event (or immediately if
+   the video already has a frame by the time the listener attaches, or on 'error' so a
+   failed load doesn't leave the poster stuck grayscale forever). */
+#reel-video {
+  filter: grayscale(1);
+  transition: filter 1.1s ease;
+}
+#reel-video.is-ready {
+  filter: grayscale(0);
 }
 
 /* Buttons floated over the reel: sound top-left (paired with the top-left bracket),
