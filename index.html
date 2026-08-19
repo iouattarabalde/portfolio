@@ -243,6 +243,15 @@
     const maxWidthFromHeight = available * (16 / 9);
     frame.style.maxWidth = Math.max(280, maxWidthFromHeight) + 'px'; // 280px floor so it never gets absurdly small
   }
+  // Called synchronously here (not just on 'load') so the frame is sized correctly
+  // from the very first paint. It previously only ran on window.load, which waits for
+  // every resource on the page — including the video itself (preload="auto") — to
+  // finish, so the reel visibly rendered at the CSS fallback size (max-width: 1400px)
+  // first and then snapped to its real computed size once 'load' finally fired. Safe
+  // to call this early: it only reads the nav's offsetHeight and the hero's computed
+  // padding, both already resolved once the elements exist in the DOM, and doesn't
+  // depend on video/image/font loading at all. Aug 2026.
+  sizeReel();
   window.addEventListener('load', () => { sizeReel(); scrollToHashTarget(); });
 
   // Fragment-scroll fix, Aug 2026: the browser's native anchor scroll (on initial
@@ -286,6 +295,27 @@
       }
     }, { passive: true });
     updateHeroParallax(); // sets the correct value immediately (e.g. reloading mid-scroll)
+  }
+
+  // Freeze-frame color reveal: the poster (and any video frame) renders desaturated
+  // via CSS until the reel has enough data to actually play, then eases into full
+  // color — see #reel-video / #reel-video.is-ready in style.css. 'loadeddata' is the
+  // right signal here (not 'canplay'/'canplaythrough'): it's the earliest point a real
+  // frame exists, matching "starts B&W, gains color as the video loads" rather than
+  // waiting for enough buffer to guarantee uninterrupted playback. readyState check
+  // covers the case the video already has a frame by the time this listener attaches
+  // (e.g. a fast cache hit) — 'loadeddata' wouldn't fire again for it. The 'error'
+  // fallback keeps a failed load from leaving the poster stuck grayscale forever.
+  // Aug 2026.
+  const reelVideoEl = document.getElementById('reel-video');
+  if (reelVideoEl) {
+    const revealReelColor = () => reelVideoEl.classList.add('is-ready');
+    if (reelVideoEl.readyState >= 2) { // HAVE_CURRENT_DATA — a frame is already available
+      revealReelColor();
+    } else {
+      reelVideoEl.addEventListener('loadeddata', revealReelColor, { once: true });
+      reelVideoEl.addEventListener('error', revealReelColor, { once: true });
+    }
   }
 
   // Mute/unmute button overlaid on the reel. Starts muted (required for autoplay to
