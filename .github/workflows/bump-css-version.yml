@@ -1,0 +1,36 @@
+name: Bump CSS cache-buster
+
+# Whenever style.css changes, auto-syncs the style.css?v=N cache-buster in
+# index.html and project.html so this manual step can't be forgotten.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'style.css'
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - run: python3 scripts/bump_css_version.py
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html project.html
+          if git diff --cached --quiet; then
+            echo "No version change to commit."
+          else
+            git commit -m "Auto-bump style.css cache-buster [skip ci]"
+            git push
+          fi
