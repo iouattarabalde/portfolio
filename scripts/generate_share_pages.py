@@ -27,7 +27,7 @@ import os
 import html
 from PIL import Image
 
-REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECTS_JSON = os.path.join(REPO_ROOT, "data", "projects.json")
 ASSETS_DIR = os.path.join(REPO_ROOT, "assets")
 OG_OUT_DIR = os.path.join(ASSETS_DIR, "og")
