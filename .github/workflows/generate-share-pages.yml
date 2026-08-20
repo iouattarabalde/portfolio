@@ -1,9 +1,9 @@
-name: Generate share pages
+name: Generate share pages and sitemap
 
-# Regenerates project/<slug>.html and assets/og/<slug>.jpg from data/projects.json
-# whenever a project is added/edited (admin saves) or a cover thumbnail changes.
-# assets/og/** is excluded from the trigger paths so the commit this workflow
-# makes doesn't re-trigger itself.
+# Regenerates project/<slug>.html + assets/og/<slug>.jpg (OG share cards) and
+# sitemap.xml from data/projects.json whenever a project is added/edited
+# (admin saves) or a cover thumbnail changes. assets/og/** is excluded from
+# the trigger paths so the commit this workflow makes doesn't re-trigger itself.
 on:
   push:
     branches: [main]
@@ -32,14 +32,16 @@ jobs:
 
       - run: python3 scripts/generate_share_pages.py
 
-      - name: Commit regenerated share pages
+      - run: python3 scripts/generate_sitemap.py
+
+      - name: Commit regenerated share pages and sitemap
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add assets/og project
+          git add assets/og project sitemap.xml
           if git diff --cached --quiet; then
-            echo "No share-page changes to commit."
+            echo "No changes to commit."
           else
-            git commit -m "Auto-regenerate share pages [skip ci]"
+            git commit -m "Auto-regenerate share pages + sitemap [skip ci]"
             git push
           fi
