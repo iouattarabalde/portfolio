@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<!--
+  colors.html — every gallery still across every project, filterable by color.
+  Reads data/projects.json client-side (same pattern as index.html/project.html) and
+  classifies each still's dominant hue live in the browser from its stored palette —
+  no new data field required, the 13-swatch palette already computed for the lightbox
+  (see project.html) is enough. See the script block below for the full method.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colors — Ismael OB</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<!-- Generic sharing card, same as project.html — a static host can't give this page
+     its own crawler-visible preview beyond the site-wide one. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ismael OB — Colorist">
+<meta property="og:description" content="Color grading for commercials, music videos, film and television. Based in Montreal, available remote.">
+<meta property="og:image" content="https://ismaelob.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=98">
+<!-- Same continuous accent-color cycle as index.html/project.html, own randomized
+     phase offset per page load. See index.html for the full story. -->
+<script>
+  (function () {
+    var CYCLE_MS = 60000;
+    var L = 0.65, C = 0.09;
+    var html = document.documentElement;
+    var startOffset = Math.random() * CYCLE_MS;
+
+    function oklchToHex(hueDeg) {
+      var h = hueDeg * Math.PI / 180;
+      var a = C * Math.cos(h);
+      var b = C * Math.sin(h);
+      var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+      var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+      var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+      var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+      var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+      var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+      var bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+      function toSrgb(c) {
+        c = Math.max(0, Math.min(1, c));
+        return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+      }
+      function hex2(c) {
+        var n = Math.round(toSrgb(c) * 255).toString(16);
+        return n.length === 1 ? '0' + n : n;
+      }
+      return '#' + hex2(r) + hex2(g) + hex2(bl);
+    }
+
+    var UPDATE_INTERVAL_MS = 120;
+    var lastUpdate = -Infinity;
+
+    function tick(now) {
+      if (now - lastUpdate >= UPDATE_INTERVAL_MS) {
+        var elapsed = (now + startOffset) % CYCLE_MS;
+        var hue = (elapsed / CYCLE_MS) * 360;
+        html.style.setProperty('--accent', oklchToHex(hue));
+        lastUpdate = now;
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  })();
+</script>
+<script src="i18n.js"></script>
+</head>
+<body class="colors-page">
+
+<div class="grain-overlay" aria-hidden="true"></div>
+
+<nav class="site-nav">
+  <div class="brand">
+    <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
+    <span class="nav-eyebrow"><span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span></span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html#work"><span data-fr data-key="nav.work"></span><span data-en data-key="nav.work"></span></a>
+    <a href="colors.html"><span data-fr data-key="nav.colors"></span><span data-en data-key="nav.colors"></span></a>
+    <a href="index.html#contact"><span data-fr data-key="nav.contact"></span><span data-en data-key="nav.contact"></span></a>
+    <button id="lang-toggle" type="button" aria-label="Toggle language">FR</button>
+  </div>
+</nav>
+
+<div class="colors-controls">
+  <div class="hue-slider-wrap" id="hue-slider-wrap">
+    <div class="hue-slider-track" id="hue-slider-track"></div>
+    <div class="hue-tick-row" id="hue-tick-row"></div>
+    <input type="range" id="hue-slider" min="0" max="345" step="1" value="0" aria-label="Filter stills by hue">
+  </div>
+  <button class="bw-swatch" id="bw-swatch" aria-label="Filter to black and white stills"></button>
+</div>
+
+<div class="colors-stage" id="colors-stage"></div>
+
+<script>
+  // ---------------------------------------------------------------
+  // colors.html script overview:
+  //   1. Language toggle (same pattern as every other page)
+  //   2. Classify every gallery still's dominant hue + saturation, live, from the
+  //      palette data/projects.json already stores per image (no new data needed)
+  //   3. Stratified sample -> floating field of drifting stills
+  //   4. Hue slider (continuous drag, snaps to the six vectorscope stops on release)
+  //      and the B&W swatch, mutually exclusive with each other
+  // ---------------------------------------------------------------
+
+  const btn = document.getElementById('lang-toggle');
+  const body = document.body;
+  const stored = localStorage.getItem('iob-lang');
+  if (stored === 'fr') body.classList.add('lang-fr');
+  function updateLangButton() {
+    btn.textContent = body.classList.contains('lang-fr') ? 'EN' : 'FR';
+  }
+  updateLangButton();
+  btn.addEventListener('click', () => {
+    body.classList.toggle('lang-fr');
+    localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
+    document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
+    updateLangButton();
+  });
+
+  const HUE_MAX = 345;
+  // Six vectorscope primaries/secondaries, same 60° spacing colorists already read off
+  // a scope — purple folded into magenta rather than kept as a separate 7th stop.
+  const NAMED_STOPS = [
+    { name: 'Red', h: 0 }, { name: 'Yellow', h: 60 }, { name: 'Green', h: 120 },
+    { name: 'Cyan', h: 180 }, { name: 'Blue', h: 240 }, { name: 'Magenta', h: 300 },
+  ];
+  const SNAP_THRESHOLD = 8;   // degrees — how close a released drag needs to land to snap
+  const HUE_TOLERANCE = 45;   // degrees of hue on either side that still register as "close"
+  const NEUTRAL_SAT = 0.10;   // swatch saturation below this counts toward the B&W side
+  const MIN_SECONDARY_DIST = 50; // degrees — secondary color must be genuinely different from primary
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+  function circDist(a, b) { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const k = (n) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    const toHex = (x) => Math.round(x * 255).toString(16).padStart(2, '0');
+    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+  }
+  function hexToHsl(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0, s = 0;
+    const d = max - min;
+    if (d !== 0) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      if (max === r) h = ((g - b) / d) % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+      if (h < 0) h += 360;
+    }
+    return { h, s };
+  }
+
+  // Each still's dominant hue is the most-saturated swatch in its palette (weighted
+  // by saturation, so a vivid accent wins over a large but dull area). A second color
+  // only counts if it's a genuinely different hue, not a near-duplicate of the first.
+  // "B&W-eligible" is a separate competition: total desaturated weight vs. total
+  // chromatic weight across all 13 swatches — a still can have a faint accent color
+  // (and so still respond a little to the hue slider) while still reading as black &
+  // white overall.
+  function classifyPalette(palette) {
+    const chromatic = [];
+    let neutralWeight = 0, chromaticWeight = 0;
+    (palette || []).forEach((hex) => {
+      const { h, s } = hexToHsl(hex);
+      if (s < NEUTRAL_SAT) {
+        neutralWeight += (NEUTRAL_SAT - s) + 0.05;
+      } else {
+        chromaticWeight += s;
+        chromatic.push({ h, s });
+      }
+    });
+    const nb = neutralWeight > chromaticWeight;
+    let h1 = null, h2 = null;
+    if (chromatic.length) {
+      chromatic.sort((a, b) => b.s - a.s);
+      h1 = chromatic[0].h;
+      for (let i = 1; i < chromatic.length; i++) {
+        if (circDist(chromatic[i].h, h1) >= MIN_SECONDARY_DIST) { h2 = chromatic[i].h; break; }
+      }
+    }
+    return { h1, h2, nb };
+  }
+
+  function hueStrength(hue, val) {
+    if (hue === null) return 0;
+    const d = circDist(hue, val);
+    if (d >= HUE_TOLERANCE) return 0;
+    return Math.pow(1 - d / HUE_TOLERANCE, 1.5);
+  }
+
+  // ---------- Build the gradient track from real hue math ----------
+  const trackEl = document.getElementById('hue-slider-track');
+  const STOPS = 24;
+  const stopList = [];
+  for (let i = 0; i < STOPS; i++) {
+    const h = (i / (STOPS - 1)) * HUE_MAX;
+    stopList.push(`hsl(${h.toFixed(1)} 68% 52%) ${(i / (STOPS - 1) * 100).toFixed(2)}%`);
+  }
+  trackEl.style.background = `linear-gradient(90deg, ${stopList.join(', ')})`;
+
+  const tickLayer = document.getElementById('hue-tick-row');
+  NAMED_STOPS.forEach((stop) => {
+    const t = document.createElement('div');
+    t.className = 'hue-tick';
+    t.style.left = (stop.h / HUE_MAX * 100) + '%';
+    tickLayer.appendChild(t);
+  });
+
+  Promise.all([loadI18n(), fetch('data/projects.json').then((r) => r.json())])
+    .then(([, data]) => {
+      applyStrings();
+
+      // Flatten every project's gallery into one list of stills with a live-computed
+      // hue signature — same order as the JSON, no filtering here, that happens per-frame.
+      const stills = [];
+      data.projects.forEach((p) => {
+        p.gallery.forEach((item, i) => {
+          const c = classifyPalette(item.palette);
+          stills.push({ p: p.id, t: p.title, f: item.filename, i, h1: c.h1, h2: c.h2, nb: c.nb });
+        });
+      });
+
+      // ---------- Stratified sample pool for the floating field ----------
+      // 30°-wide bins across the chromatic range guarantee every part of the spectrum
+      // has *something* to bring forward, since real coverage is wildly uneven —
+      // plus a reserved slice of pure black & white stills. Resampled fresh on every
+      // load, same "randomize per visit" spirit as the accent-color cycle above.
+      const POOL_SIZE = 140;
+      const NEUTRAL_RESERVE = 20;
+      const BIN_WIDTH = 30;
+      const MIN_PER_BIN = 9;
+
+      const chromatic = stills.filter((s) => s.h1 !== null);
+      const pureNeutral = stills.filter((s) => s.h1 === null);
+      const byBin = {};
+      chromatic.forEach((s) => {
+        const bin = Math.floor(s.h1 / BIN_WIDTH) * BIN_WIDTH;
+        (byBin[bin] = byBin[bin] || []).push(s);
+      });
+
+      const used = new Set();
+      let pool = [];
+      shuffle(pureNeutral).slice(0, NEUTRAL_RESERVE).forEach((s) => { pool.push(s); used.add(s.f); });
+      Object.keys(byBin).forEach((bin) => {
+        shuffle(byBin[bin]).slice(0, MIN_PER_BIN).forEach((s) => {
+          if (!used.has(s.f)) { pool.push(s); used.add(s.f); }
+        });
+      });
+      shuffle(stills).forEach((s) => {
+        if (pool.length >= POOL_SIZE || used.has(s.f)) return;
+        pool.push(s); used.add(s.f);
+      });
+
+      // ---------- Render the floating field ----------
+      const stage = document.getElementById('colors-stage');
+      const cards = [];
+      pool.forEach((s) => {
+        const item = document.createElement('div');
+        item.className = 'colors-float-item';
+        const size = Math.round(rand(70, 150));
+        const dur = rand(32, 68);
+        const delay = -rand(0, dur);
+        const wx = rand(20, 65) * (Math.random() < 0.5 ? -1 : 1);
+        const wy = rand(20, 65) * (Math.random() < 0.5 ? -1 : 1);
+        item.style.left = rand(2, 92) + '%';
+        item.style.top = rand(4, 86) + '%';
+        item.style.setProperty('--dur', dur + 's');
+        item.style.setProperty('--delay', delay + 's');
+        item.style.setProperty('--wx', wx);
+        item.style.setProperty('--wy', wy);
+
+        const card = document.createElement('a');
+        card.className = 'colors-float-card';
+        card.style.setProperty('--size', size + 'px');
+        card.href = `project.html?project=${encodeURIComponent(s.p)}&still=${s.i}`;
+        card.innerHTML = `<img src="assets/${s.f}" alt="${s.t} — still ${s.i + 1}" loading="lazy">`;
+        card._h1 = s.h1;
+        card._h2 = s.h2;
+        card._nb = s.nb;
+
+        item.appendChild(card);
+        stage.appendChild(item);
+        cards.push(card);
+      });
+
+      // ---------- Slider + B&W interaction ----------
+      const slider = document.getElementById('hue-slider');
+      const bwSwatch = document.getElementById('bw-swatch');
+      const sliderWrap = document.getElementById('hue-slider-wrap');
+      let engaged = false;
+      let bwActive = false;
+
+      let rafPending = false;
+      function scheduleRender() {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => { rafPending = false; render(); });
+      }
+
+      function render() {
+        const val = Number(slider.value);
+        slider.style.setProperty('--thumb-color', hslToHex(val, 68, 58));
+
+        cards.forEach((card) => {
+          let final = 0;
+          if (bwActive) {
+            final = card._nb ? 1 : 0;
+          } else if (engaged) {
+            const primS = hueStrength(card._h1, val);
+            const secS = card._h2 !== null ? hueStrength(card._h2, val) * 0.6 : 0;
+            final = Math.max(primS, secS);
+          }
+          card.style.setProperty('--s', final.toFixed(3));
+          card.classList.toggle('settled', final > 0.55);
+        });
+      }
+
+      slider.addEventListener('input', () => {
+        engaged = true;
+        if (bwActive) {
+          bwActive = false;
+          bwSwatch.classList.remove('active');
+          sliderWrap.classList.remove('inactive');
+        }
+        scheduleRender();
+      });
+      slider.addEventListener('change', () => {
+        const val = Number(slider.value);
+        let nearest = null, nearestDist = Infinity;
+        NAMED_STOPS.forEach((stop) => {
+          const dist = Math.abs(stop.h - val);
+          if (dist < nearestDist) { nearestDist = dist; nearest = stop.h; }
+        });
+        if (nearest !== null && nearestDist <= SNAP_THRESHOLD) {
+          slider.value = nearest;
+          render();
+        }
+      });
+      bwSwatch.addEventListener('click', () => {
+        bwActive = !bwActive;
+        bwSwatch.classList.toggle('active', bwActive);
+        if (bwActive) engaged = false;
+        sliderWrap.classList.toggle('inactive', bwActive);
+        scheduleRender();
+      });
+
+      render();
+    })
+    .catch((err) => {
+      console.error('Impossible de charger les projets:', err);
+    });
+
+  // Background color and grain level — editable in the admin (Design tab). Same
+  // pattern as index.html/project.html: silently no-ops if data/design.json doesn't
+  // exist yet.
+  fetch('data/design.json')
+    .then((r) => r.json())
+    .then((d) => {
+      const root = document.documentElement.style;
+      if (d.bg) root.setProperty('--bg', d.bg);
+      if (d.grainLevel != null) root.setProperty('--grain-level', d.grainLevel);
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>
