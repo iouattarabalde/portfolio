@@ -2,12 +2,12 @@
 """
 bump_css_version.py
 
-Auto-syncs the style.css?v=N cache-buster across index.html and project.html
-whenever style.css changes, so this manual step (documented as a reminder
-comment in index.html) can't be forgotten. Aug 2026.
+Auto-syncs the style.css?v=N cache-buster across index.html, project.html, and
+colors.html whenever style.css changes, so this manual step (documented as a
+reminder comment in index.html) can't be forgotten. Aug 2026.
 
-Takes the higher of the two files' current version numbers (self-healing if
-they'd ever drifted apart), adds 1, and writes that back into both files.
+Takes the highest of the files' current version numbers (self-healing if
+they'd ever drifted apart), adds 1, and writes that back into all of them.
 
 Run from the repo root:
     python3 scripts/bump_css_version.py
@@ -17,7 +17,7 @@ import re
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ["index.html", "project.html"]
+FILES = ["index.html", "project.html", "colors.html"]
 PATTERN = re.compile(r'(style\.css\?v=)(\d+)')
 
 
@@ -39,8 +39,8 @@ def main():
     old_max = max(versions.values())
     new_v = old_max + 1
 
-    if versions["index.html"] == versions["project.html"] == new_v - 1:
-        pass  # normal case, both already in sync one behind
+    if len(set(versions.values())) == 1 and old_max == new_v - 1:
+        pass  # normal case, all files already in sync one behind
 
     for name in FILES:
         new_text = PATTERN.sub(rf'\g<1>{new_v}', contents[name])
