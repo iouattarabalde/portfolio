@@ -43,7 +43,10 @@ def main():
     with open(PROJECTS_JSON, encoding="utf-8") as f:
         data = json.load(f)
 
-    entries = [url_entry(f"{BASE_URL}/", "weekly", "1.0")]
+    entries = [
+        url_entry(f"{BASE_URL}/", "weekly", "1.0"),
+        url_entry(f"{BASE_URL}/colors.html", "weekly", "0.6"),
+    ]
 
     for project in data["projects"]:
         loc = f"{BASE_URL}/project.html?project={project['id']}"
