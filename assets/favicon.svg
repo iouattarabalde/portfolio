@@ -1,6 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <!-- Favicon — dark tile with the olive accent monogram, matching the site tokens
-       (--bg #0C0C0C, --accent #8A9A5B in style.css). -->
+       (--bg #0C0C0C, --accent #8A9A5B in style.css). "OB" is traced as real vector
+       paths from the actual Space Grotesk Bold outlines (same weight as the wordmark),
+       not live <text> — browser favicon renderers don't load page webfonts, so a
+       font-family reference here would silently fall back and lose the typeface.
+       Regenerated Aug 2026 for this reason; see chat history for the extraction method
+       (fontTools SVGPathPen against the open-source Space Grotesk Bold TTF). -->
   <rect width="64" height="64" rx="10" fill="#0C0C0C"/>
-  <text x="32" y="43" text-anchor="middle" font-family="'Space Grotesk','Arial Black',sans-serif" font-size="30" font-weight="700" fill="#8A9A5B" letter-spacing="1">OB</text>
+  <g fill="#8A9A5B">
+    <path transform="translate(3.000,47.321) scale(0.044,-0.044)" d="M338 -14Q206 -14 128.0 58.5Q50 131 50 266V434Q50 569 128.0 641.5Q206 714 338 714Q470 714 548.0 641.5Q626 569 626 434V266Q626 131 548.0 58.5Q470 -14 338 -14ZM338 104Q412 104 453.0 147.0Q494 190 494 262V438Q494 510 453.0 553.0Q412 596 338 596Q265 596 223.5 553.0Q182 510 182 438V262Q182 190 223.5 147.0Q265 104 338 104Z"/>
+    <path transform="translate(31.934,47.321) scale(0.044,-0.044)" d="M46 0V116H138V584H46V700H406Q502 700 560.0 652.5Q618 605 618 523V513Q618 465 600.0 434.5Q582 404 557.5 387.5Q533 371 511 364V346Q533 340 559.0 323.5Q585 307 603.5 276.0Q622 245 622 195V185Q622 97 563.0 48.5Q504 0 410 0ZM270 412H392Q433 412 459.5 433.0Q486 454 486 491V501Q486 539 460.0 559.5Q434 580 392 580H270ZM270 120H394Q437 120 463.5 141.0Q490 162 490 201V211Q490 250 464.0 271.0Q438 292 394 292H270Z"/>
+  </g>
 </svg>
