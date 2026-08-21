@@ -1,11 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Favicon — dark tile with the olive accent monogram, matching the site tokens
-       (--bg #0C0C0C, --accent #8A9A5B in style.css). "OB" is traced as real vector
-       paths from the actual Space Grotesk Bold outlines (same weight as the wordmark),
-       not live <text> — browser favicon renderers don't load page webfonts, so a
-       font-family reference here would silently fall back and lose the typeface.
-       Regenerated Aug 2026 for this reason; see chat history for the extraction method
-       (fontTools SVGPathPen against the open-source Space Grotesk Bold TTF). -->
+  <!-- Favicon: dark tile with the olive accent monogram, matching the site's own bg
+       (hex 0C0C0C) and accent (hex 8A9A5B) tokens in style.css. "OB" is traced as real
+       vector paths from the actual Space Grotesk Bold outlines (same weight as the
+       wordmark), not live text — browser favicon renderers don't load page webfonts, so
+       a font family reference here would silently fall back and lose the typeface.
+       Note for future edits: XML comments cannot contain a literal double hyphen; an
+       earlier version of this file had one (from writing CSS variable names like
+       "hyphen-hyphen-accent") and it broke strict SVG parsing in some browsers, which is
+       why this file wasn't rendering as a tab icon at all. Regenerated Aug 2026; see
+       chat history for the extraction method (fontTools SVGPathPen against the
+       open-source Space Grotesk Bold TTF). -->
   <rect width="64" height="64" rx="10" fill="#0C0C0C"/>
   <g fill="#8A9A5B">
     <path transform="translate(3.000,47.321) scale(0.044,-0.044)" d="M338 -14Q206 -14 128.0 58.5Q50 131 50 266V434Q50 569 128.0 641.5Q206 714 338 714Q470 714 548.0 641.5Q626 569 626 434V266Q626 131 548.0 58.5Q470 -14 338 -14ZM338 104Q412 104 453.0 147.0Q494 190 494 262V438Q494 510 453.0 553.0Q412 596 338 596Q265 596 223.5 553.0Q182 510 182 438V262Q182 190 223.5 147.0Q265 104 338 104Z"/>
