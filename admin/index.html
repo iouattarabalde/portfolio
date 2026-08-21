@@ -264,6 +264,8 @@
   }
   .gallery-count.warn { color: #d9a757; }
   .gallery-count.ok { color: var(--accent); }
+  .gallery-count.error { color: #b5533f; }
+  .project-count-full { color: #b5533f; }
 
   .editor-footer {
     display: flex; justify-content: space-between; align-items: center;
@@ -533,6 +535,10 @@
       <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
     </div>
   </div>
+  <!-- Live count against the 32-project cap (8 of each type is the target — see
+       updateProjectCountSummary()), kept separate from the drag-hint row below since
+       it needs to update on every add/delete, not just re-render once. -->
+  <p class="field-hint" id="project-count-summary" style="margin: -12px 0 16px;"></p>
   <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
     <p class="field-hint">Glisse un projet pour changer l'ordre sur la page d'accueil. L'ordre s'enregistre automatiquement.</p>
     <button class="btn" id="undo-btn">Annuler le dernier changement</button>
@@ -741,7 +747,7 @@
       <div class="gallery-editor-grid" id="gallery-editor-grid"></div>
       <input type="file" id="f-gallery-add" accept="image/*" multiple>
       <p class="field-hint">Glisse les vignettes pour réordonner. Les nouvelles images sont compressées automatiquement avant l'envoi.</p>
-      <p class="field-error-msg" id="f-gallery-error">Ajoute au moins une image à la galerie.</p>
+      <p class="field-error-msg" id="f-gallery-error">Entre 9 et 30 images dans la galerie.</p>
     </div>
 
     <div class="editor-footer">
@@ -853,6 +859,17 @@ const OWNER = 'iouattarabalde';
 const REPO = 'portfolio';
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
 const TOKEN_KEY = 'iob_admin_token'; // localStorage key the GitHub token is saved under
+
+// Curation limits, Aug 2026 — every project's gallery should sit in this range (see
+// GALLERY_MIN/GALLERY_MAX below, enforced at save time); the site itself always shows
+// a max of 32 projects total (PROJECT_MAX below, enforced on "+ Nouveau projet"), the
+// target being 8 of each project type. That per-type "8 each" balance is *not* a hard
+// rule here on purpose — types are admin-editable (see currentTypeCodes), so a rigid
+// per-type cap would fight a future 5th type. Instead updateProjectCountSummary()
+// shows a live per-type breakdown so the 8-each balance can be kept by eye.
+const GALLERY_MIN = 9;
+const GALLERY_MAX = 30;
+const PROJECT_MAX = 32;
 
 let token = localStorage.getItem(TOKEN_KEY) || '';
 let projectsData = null;   // { projects: [...] } — the full, in-memory contents of data/projects.json
@@ -1351,6 +1368,7 @@ async function loadStringsIntoForm() {
   typesDraft = Object.assign({}, DEFAULT_TYPES, data.types || {});
   currentTypeCodes = Object.keys(typesDraft);
   renderTypesEditor(typesDraft);
+  updateProjectCountSummary(); // re-run now that currentTypeCodes/acronyms are actually loaded
 }
 
 document.getElementById('save-settings-btn').addEventListener('click', async () => {
@@ -1673,7 +1691,31 @@ function sortProjects(entries, mode) {
   return entries; // 'custom' — leave in projectsData.projects order (the real, saved order)
 }
 
+// Live "X/32 projets · AD n · MV n · ..." line, and disables "+ Nouveau projet" at the
+// cap — see the PROJECT_MAX comment above for why the per-type split is informational
+// only rather than a second hard limit. Falls back to whatever type codes actually
+// appear in the data if currentTypeCodes hasn't loaded yet (loadStringsIntoForm()
+// resolves after the first renderDashboard() call on boot, not before).
+function updateProjectCountSummary() {
+  const el = document.getElementById('project-count-summary');
+  if (!el || !projectsData) return;
+  const total = projectsData.projects.length;
+  const counts = {};
+  projectsData.projects.forEach((p) => { counts[p.type] = (counts[p.type] || 0) + 1; });
+  const codes = currentTypeCodes.length ? currentTypeCodes : Object.keys(counts);
+  const breakdown = codes.map((code) => `${projectTypeAcronym(code, true)} ${counts[code] || 0}`).join(' · ');
+  el.textContent = `${total}/${PROJECT_MAX} projets` + (breakdown ? ' · ' + breakdown : '');
+  el.classList.toggle('project-count-full', total >= PROJECT_MAX);
+
+  const newBtn = document.getElementById('new-project-btn');
+  if (newBtn) {
+    newBtn.disabled = total >= PROJECT_MAX;
+    newBtn.title = total >= PROJECT_MAX ? `Maximum ${PROJECT_MAX} projets atteint.` : '';
+  }
+}
+
 function renderDashboard() {
+  updateProjectCountSummary();
   const list = document.getElementById('project-list');
   const query = document.getElementById('project-search').value.trim().toLowerCase();
   const filtering = query.length > 0;
@@ -1969,7 +2011,13 @@ function openEditor(index) {
   editorEl.classList.add('open');
 }
 
-document.getElementById('new-project-btn').addEventListener('click', () => openEditor(null));
+document.getElementById('new-project-btn').addEventListener('click', () => {
+  if (projectsData.projects.length >= PROJECT_MAX) {
+    showToast(`Maximum ${PROJECT_MAX} projets atteint. Supprime-en un avant d'en ajouter un nouveau.`, 'error');
+    return;
+  }
+  openEditor(null);
+});
 document.getElementById('cancel-btn').addEventListener('click', () => editorEl.classList.remove('open'));
 
 // Title: only shows the error on blur (not while actively typing — nothing to flag
@@ -2124,13 +2172,29 @@ function getDragAfterElementGrid(container, x, y, selector = '.gallery-editor-it
   return closest.element;
 }
 
-// Live count + multiple-of-3 check shown under the gallery grid (see style.css comment
-// on .project-gallery for why 3 columns is the site-wide convention).
+// Live count against the gallery limits, shown under the gallery grid (see style.css
+// comment on .project-gallery for why 3 columns is the site-wide convention — the
+// multiple-of-3 hint is still just a nudge, but min/max are hard requirements,
+// enforced for real in the Save handler below).
 function updateGalleryCount() {
   const el = document.getElementById('gallery-count');
   const n = editorGallery.length;
-  el.textContent = n + ' stills' + (n % 3 === 0 ? ' (multiple de 3 ✓)' : ' — vise un multiple de 3');
-  el.className = 'gallery-count ' + (n > 0 && n % 3 === 0 ? 'ok' : 'warn');
+  let msg, cls;
+  if (n < GALLERY_MIN) {
+    msg = `${n} stills — minimum ${GALLERY_MIN}`;
+    cls = 'error';
+  } else if (n > GALLERY_MAX) {
+    msg = `${n} stills — maximum ${GALLERY_MAX}`;
+    cls = 'error';
+  } else if (n % 3 !== 0) {
+    msg = `${n} stills — vise un multiple de 3`;
+    cls = 'warn';
+  } else {
+    msg = `${n} stills (multiple de 3 ✓)`;
+    cls = 'ok';
+  }
+  el.textContent = msg;
+  el.className = 'gallery-count ' + cls;
 }
 
 // Newly picked files are appended (not uploaded yet — filename stays null until Save)
@@ -2162,13 +2226,17 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
   const statusEl = document.getElementById('save-status');
   const title = document.getElementById('f-title').value.trim();
   const hasThumb = !!(editorThumb.filename || editorThumb.file);
-  const hasGallery = !!editorGallery.length;
+  const galleryCount = editorGallery.length;
+  const galleryValid = galleryCount >= GALLERY_MIN && galleryCount <= GALLERY_MAX;
 
   setFieldError('f-title-wrap', !title);
   setFieldError('f-thumbnail-wrap', !hasThumb);
-  setFieldError('f-gallery-wrap', !hasGallery);
+  setFieldError('f-gallery-wrap', !galleryValid);
+  document.getElementById('f-gallery-error').textContent = galleryCount < GALLERY_MIN
+    ? `Minimum ${GALLERY_MIN} images dans la galerie (actuellement ${galleryCount}).`
+    : `Maximum ${GALLERY_MAX} images dans la galerie (actuellement ${galleryCount}).`;
 
-  if (!title || !hasThumb || !hasGallery) {
+  if (!title || !hasThumb || !galleryValid) {
     const firstInvalid = document.querySelector('.field.field-invalid');
     if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
     showToast('Corrige les champs en rouge avant d\'enregistrer.', 'error');
