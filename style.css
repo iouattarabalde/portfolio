@@ -487,128 +487,49 @@ body.same-doc-transition .site-nav {
   );
 }
 
-.section-head {
-  display: flex;
-  flex-wrap: wrap; /* lets the grid-density toggle (mobile/tablet only) drop to its own
-    line instead of squeezing against the category-filter chips on narrower desktops-in-
-    between widths (700–1000px) where both are visible at once */
-  align-items: baseline;
-  justify-content: space-between;
-  row-gap: 8px;
-
-  padding: clamp(var(--sect-y-m, 28px), 6vw, var(--sect-y, 56px)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)) 18px;
-}
-/* Groups the heading with the grid-density toggle so the icons sit right beside
-   "Projects"/"Projets" itself, requested Aug 2026, rather than off on the far side
-   next to the category filter chips. align-items:center (not baseline, unlike the
-   parent .section-head) since these are an icon button pair and a heading, not two
-   lines of text that need baseline alignment. */
-.section-title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.section-head h2 {
-  font-size: calc(24px * clamp(0.5, var(--title-scale, 1), 1.6));
-}
-
-/* On narrow screens the row above has no room to keep heading and category list side
-   by side — they were wrapping onto the same line with almost no gap. Stack them
-   instead, with breathing room between. */
-@media (max-width: 700px) {
-  .section-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-}
-
-/* Category filter bar: bordered chip buttons (not plain inline text) so the fact that
-   these are clickable filters, not decorative copy, reads at a glance — click one to
-   show only that type, click it again (or "All") to clear the filter. Rebuilt in JS
+/* Filter bar: a single right-aligned row of plain-text buttons separated by "/",
+   replacing the earlier bordered-chip design (Aug 2026 redesign) — no visible "Work"/
+   "Projets" heading anymore either, since the filter row itself now reads as the
+   section's only header (the h2 above it is still in the DOM as .sr-only, so the
+   section keeps a real heading for accessibility/SEO). Rebuilt in JS
    (renderCategoryFilter) from PROJECT_TYPES, so it can never drift out of sync with the
    types actually used in data/projects.json. */
-.category-filter {
+.work-filter {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  padding: 16px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: calc(0.1em * var(--tracking, 1));
   text-transform: uppercase;
-  position: relative; /* positioning context for .filter-indicator below */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
-/* Matches whichever button is .active, instead of each button independently toggling
-   its own border/background. A persistent element (see the static markup in index.html
-   and positionFilterIndicator() there) rather than one rebuilt from scratch on every
-   render. Placed first in the DOM so normal paint order puts it behind the buttons (all
-   plain flex items, no z-index needed) without affecting their own flex layout —
-   position:absolute already takes it out of flex flow entirely, same technique
-   .bottom-glow uses inside #project-info's own flex row.
-   Previously slid between button positions via a transform transition (Aug 2026); that
-   read as clunky and was replaced with a plain fade, Aug 2026 — width/height/transform
-   are now set instantly while the indicator is invisible (opacity 0, see
-   positionFilterIndicator() in index.html), and only opacity animates, so switching
-   filters reads as a soft cross-fade rather than a moving box. */
-.filter-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 0;
-  border: 1px solid var(--accent);
-  border-radius: 8px; /* matches .category-filter button's own radius below */
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  pointer-events: none;
-}
-/* Quick press-pulse, requested Aug 2026 alongside the overshoot easing above — fires
-   the instant a filter button is clicked (see pulseFilterIndicator() in index.html),
-   overlapping the start of the slide rather than strictly preceding it, for tactile
-   click feedback distinct from the travel animation itself. Uses the separate scale
-   property, not the transform shorthand, so it composes with the JS-driven
-   transform:translate(...) positioning above instead of overriding it — same
-   composing technique used elsewhere in this file (hero parallax, contact photo
-   drift) for the same reason. */
-@keyframes filter-indicator-press {
-  0% { scale: 1; }
-  40% { scale: 0.9; }
-  100% { scale: 1; }
-}
-.filter-indicator.pressed {
-  animation: filter-indicator-press 0.25s ease-out;
-}
-.category-filter button {
-  position: relative; /* stacks above .filter-indicator in normal paint order (indicator is DOM-first) without needing z-index */
+.work-filter::-webkit-scrollbar { display: none; }
+.work-filter button {
   background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 8px; /* small radius, ShotDeck-inspired, Aug 2026 */
-  padding: 7px 14px;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
   color: var(--fg-dim);
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  white-space: nowrap;
+  transition: color 0.2s ease;
 }
-.category-filter button:hover { border-color: var(--accent); color: var(--accent); }
-.category-filter button.active {
+.work-filter button:hover,
+.work-filter button.active {
   color: var(--accent);
-  border-color: transparent; /* the accent border/background now come from .filter-indicator fading in underneath instead of this button's own state, Aug 2026 */
 }
-/* On phones, 5 chips don't fit one line even shrunk, so scroll horizontally instead of
-   wrapping to a second row (scrollbar hidden, swipe still works). Must come after the
-   base .category-filter rule above to win the cascade — a media query alone doesn't
-   out-rank a later same-specificity rule. flex-shrink:0 keeps buttons from squishing. */
-@media (max-width: 700px) {
-  .category-filter {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    margin: 0 calc(-1 * clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)));
-    padding: 0 clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px)) 4px;
-  }
-  .category-filter::-webkit-scrollbar { display: none; }
-  .category-filter button { flex-shrink: 0; }
+.filter-sep {
+  color: var(--line);
 }
 
 .work-grid {
@@ -682,8 +603,7 @@ body.same-doc-transition .site-nav {
 }
 .work-card:hover .thumb { transform: scale(var(--zoom, 1.04)); }
 
-/* Dark gradient scrim, hidden by default so the image reads clean (Shotdeck-style),
-   fades in on hover to make room for the caption text underneath it. */
+/* Dark gradient scrim behind the caption text. */
 .work-card::after {
   content: "";
   position: absolute; inset: 0;
@@ -691,24 +611,40 @@ body.same-doc-transition .site-nav {
   opacity: 0;
   transition: opacity 0.25s ease;
 }
-.work-card:hover::after { opacity: var(--scrim, 1); }
 
 .work-card-meta {
   position: relative;
   z-index: 1;
   opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.25s ease;
 }
-.work-card:hover .work-card-meta { opacity: 1; transform: translateY(0); }
 
-/* Touch devices can't hover, so the hover-reveal above would never trigger — captions
-   used to be shown permanently here as a fallback, but the images read cleaner without
-   any text over them, so touch devices just never see the caption or its gradient scrim. */
+/* Hover-capable devices (desktop/trackpad): no per-card caption at all — the shared
+   #work-info-bar below the grid shows whichever card is hovered instead (Aug 2026
+   redesign). Hovering any card also dims every other card in the grid, drawing the eye
+   to the one you're looking at; the hovered card itself is excluded from that dim so it
+   reads at full opacity while the rest recede. Pure CSS (:hover on the grid, an
+   adjacent-card selector for the dim) — no JS state needed for this part. */
+@media (hover: hover) {
+  .work-grid:hover .work-card {
+    opacity: 0.82;
+    transition: opacity 0.3s ease;
+  }
+  .work-grid:hover .work-card:hover {
+    opacity: 1;
+  }
+}
+
+/* Touch devices can't hover, so the reveal-on-hover pattern above would never trigger —
+   the caption and its gradient scrim are shown permanently instead (reverts an earlier
+   "no caption on touch at all" decision — the new shared bottom bar isn't available on
+   touch, so cards need their own always-visible caption again there). */
 @media (hover: none) {
-  .work-card::after,
+  .work-card::after {
+    opacity: var(--scrim, 1);
+  }
   .work-card-meta {
-    display: none;
+    opacity: 1;
   }
 }
 
@@ -744,23 +680,92 @@ body.same-doc-transition .site-nav {
   color: var(--fg);
 }
 
+/* Shared "now showing" bar under the grid, desktop/hover-capable only — populated by
+   #work-grid's mouseover/mouseout delegation in index.html. Hidden entirely on touch
+   (see the media query below) since cards show their own caption there instead. */
+.work-info-bar {
+  display: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 60px;
+  padding: 0 clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  border-top: 1px solid var(--line);
+  background: rgba(12, 12, 12, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+@media (hover: hover) {
+  .work-info-bar { display: flex; }
+}
+.work-info-bar.visible { opacity: 1; }
+.info-bar-main {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+}
+.info-bar-type {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.info-bar-title {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+}
+.info-bar-credit {
+  color: var(--fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.info-bar-index {
+  color: var(--fg-faint);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ---------- Contact ---------- */
 .contact {
   padding: clamp(calc(var(--sect-y-m, 28px) * 1.7), 8vw, calc(var(--sect-y, 56px) * 1.7)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
   border-top: 1px solid var(--line);
 }
 
-/* Photo on the left (wide), heading + bio + contact info stacked on the right —
-   info sits below the bio to fill out the column instead of leaving it mostly empty. */
+/* Heading + links on the left, photo on the right (Aug 2026 redesign — was the mirror
+   of this, photo left/text right; swapped per the new design, along with dropping the
+   bio paragraph that used to sit between the heading and the contact links). wrap lets
+   the two sides drop to their own line at in-between widths before the 700px stack
+   below kicks in. */
 .contact-columns {
   display: flex;
-  gap: clamp(32px, 5vw, 64px);
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(32px, 6vw, 72px);
+}
+
+.contact-right {
+  flex: 1;
+  min-width: 320px;
 }
 
 .contact-photo-frame {
-  flex: 0 0 clamp(200px, 34vw, var(--photo-w, 440px));
-  width: clamp(200px, 34vw, var(--photo-w, 440px));
+  flex: 0 0 clamp(260px, 32vw, var(--photo-w, 420px));
+  width: clamp(260px, 32vw, var(--photo-w, 420px));
+  max-width: 100%;
+  margin-inline: auto;
   aspect-ratio: 4 / 5;
   border: 1px solid var(--line);
   background: var(--bg-raised); /* shows while the image loads */
@@ -773,79 +778,72 @@ body.same-doc-transition .site-nav {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Continuous, ambient pan/zoom — moved here from the work-grid/gallery thumbnails,
-     Aug 2026, per explicit request. Deliberately not hover-gated (touch devices have
-     no real hover state, and there's only ever one of these on the page anyway, no
-     grid-density reason to keep it interaction-only) — uses the shared thumb-drift
-     keyframe defined earlier in this file. No stagger needed here, unlike the grid
-     version: with a single photo there's nothing else on the page for it to look
-     out of sync with. */
+  /* Continuous, ambient pan/zoom, requested Aug 2026 — deliberately not hover-gated
+     (touch devices have no real hover state, and there's only ever one of these on the
+     page anyway, no grid-density reason to keep it interaction-only) — uses the shared
+     thumb-drift keyframe defined earlier in this file. No stagger needed here, unlike
+     the grid version: with a single photo there's nothing else on the page for it to
+     look out of sync with. */
   animation: thumb-drift 22s ease-in-out infinite;
 }
 
-.contact-right {
-  flex: 1;
-  min-width: 0;
-  padding-top: 4px; /* optical alignment with the top of the photo */
-}
-
 @media (max-width: 700px) {
-  .contact-columns {
-    flex-direction: column;
-  }
   .contact-photo-frame {
-    flex: 0 0 auto; /* resets the row-direction flex-basis above, which was being reinterpreted as a HEIGHT once flex-direction flips to column here — without this, the frame rendered short and wide instead of the intended tall portrait, reported Aug 2026. auto lets width + aspect-ratio determine the size instead, same as they already do */
+    flex: 0 0 auto;
     width: 100%;
     max-width: var(--photo-w-m, 320px);
-    margin: 0 auto; /* centers the photo once the columns stack (auto cross-axis margins win over align-items) */
   }
 }
 
 .contact-title {
-  font-size: clamp(calc(26px * var(--title-scale-m, 1)), 4vw, calc(40px * var(--title-scale, 1)));
-  max-width: 16ch;
-  margin-bottom: 14px;
+  font-size: clamp(calc(32px * var(--title-scale-m, 1)), 5vw, calc(56px * var(--title-scale, 1)));
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  max-width: 14ch;
+  margin-bottom: 32px;
 }
 
-.contact-bio {
-  font-size: 14px;
-  color: var(--fg-dim);
-  max-width: var(--bio-w, 52ch);
-  line-height: var(--leading, 1.6);
-  margin-bottom: 40px;
+/* Email + Instagram as prominent underlined links with icons, replacing the old
+   dt/dl label grid — bioFr/bioEn are still saved by the admin but no longer rendered
+   here (design decision, Aug 2026). */
+.contact-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
 }
 
-/* Contact info: horizontal row filling the width of the right column, echoing the
-   original three-item layout but now paired with the heading/bio above it. */
-.contact-info {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 24px;
-  font-size: 13px;
+.contact-link-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-@media (max-width: 640px) {
-  .contact-info {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
-}
-
-.contact-info dt {
-  font-size: 11px;
-  letter-spacing: 0.1em;
+.contact-link-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--fg-dim);
-  margin-bottom: 6px;
 }
 
-.contact-info dd {
-  margin: 0;
-  font-size: 15px;
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-size: clamp(17px, 2vw, 22px);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
   overflow-wrap: break-word; /* safety net: long unbroken strings (emails) never overflow */
 }
+.contact-link:hover { color: var(--accent); }
 
-.contact-info a:hover { color: var(--accent); }
+.contact-meta {
+  margin: 32px 0 0;
+  font-size: 12px;
+  color: var(--fg-dim);
+  letter-spacing: 0.06em;
+}
 
 /* ---------- Responsive: work grid column counts ---------- */
 /* Fixed densities per breakpoint (no user toggle, Aug 18 2026): 2-up on portrait
@@ -901,7 +899,7 @@ body.same-doc-transition .site-nav {
 }
 .gallery-item:hover img { transform: scale(1.03); }
 
-@media (max-width: 900px) {
+@media (max-width: 700px) {
   .gallery-item { aspect-ratio: 1 / 1; } /* same squarer-on-mobile treatment as the work grid */
 }
 @media (max-width: 360px) {
@@ -1064,6 +1062,13 @@ body.same-doc-transition .site-nav {
   object-fit: contain; /* never crops the enlarged image, unlike the grid thumbnails */
   view-transition-name: lightbox-img; /* scopes the same-document View Transition (see openLightboxAt in project.html) to just this image crossfading between stills, instead of the browser treating the whole page as one transitioning root */
 }
+/* Touch devices don't need the same bottom margin as desktop (no flanking side arrows
+   to clear), so the image can use more of the viewport height there. */
+@media (hover: none) {
+  .lightbox-content img {
+    max-height: min(86vh, calc(100vh - 132px));
+  }
+}
 /* Color palette strip below the enlarged still, requested Aug 2026 (ShotDeck-style
    reference) — 13 swatches per image, extracted via median-cut color quantization
    and stored directly in data/projects.json per gallery entry (computed once, either
@@ -1197,12 +1202,6 @@ body.same-doc-transition .site-nav {
   .reel-frame::after {
     animation: none;
     opacity: var(--brackets-o, 0.35);
-  }
-  .filter-indicator {
-    transition: none;
-  }
-  .filter-indicator.pressed {
-    animation: none;
   }
 }
 

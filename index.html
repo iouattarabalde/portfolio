@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=99">
+<link rel="stylesheet" href="style.css?v=100">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -154,16 +154,22 @@
 
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
-  <div class="section-head">
-    <div class="section-title-row">
-      <h2><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
-    </div>
-    <div class="category-filter" id="category-filter">
-      <div class="filter-indicator" id="filter-indicator" aria-hidden="true"></div>
-    </div>
-  </div>
+  <h2 class="sr-only"><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
+  <div class="work-filter" id="category-filter"></div>
 
   <div class="work-grid" id="work-grid"></div>
+
+  <!-- Desktop-only (hover-capable devices): shows whichever card is currently
+       hovered, in place of the old always-rendered per-card caption. See
+       #work-grid's mouseover/mouseout delegation in the script below. -->
+  <div class="work-info-bar" id="work-info-bar" aria-hidden="true">
+    <div class="info-bar-main">
+      <span class="info-bar-type" id="info-bar-type"></span>
+      <span class="info-bar-title" id="info-bar-title"></span>
+      <span class="info-bar-credit" id="info-bar-credit"></span>
+    </div>
+    <span class="info-bar-index" id="info-bar-index"></span>
+  </div>
 </section>
 
 <section class="contact" id="contact">
@@ -171,32 +177,34 @@
     <div class="bottom-glow-gradient"></div>
   </div>
   <div class="contact-columns">
-    <div class="contact-photo-frame">
-      <img id="contact-photo" class="contact-photo" src="" alt="Ismael OB">
-    </div>
     <div class="contact-right">
       <h2 class="contact-title">
         <span data-fr data-key="contact.heading"></span>
         <span data-en data-key="contact.heading"></span>
       </h2>
-      <p class="contact-bio">
-        <span data-fr id="contact-bio-fr"></span>
-        <span data-en id="contact-bio-en"></span>
+      <div class="contact-links">
+        <div class="contact-link-group">
+          <span class="contact-link-label"><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></span>
+          <a id="contact-email" class="contact-link" href="#" target="_blank" rel="noopener">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" stroke="currentColor" stroke-width="1.6"/><path d="M3 7.5L12 13.5L21 7.5" stroke="currentColor" stroke-width="1.6"/></svg>
+            <span id="contact-email-text"></span>
+          </a>
+        </div>
+        <div class="contact-link-group">
+          <span class="contact-link-label">Instagram</span>
+          <a id="contact-instagram" class="contact-link" href="#" target="_blank" rel="noopener">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor"/></svg>
+            <span id="contact-instagram-text"></span>
+          </a>
+        </div>
+      </div>
+      <p class="contact-meta">
+        <span data-fr id="contact-location-fr"></span><span data-en id="contact-location-en"></span>
+        — <span data-fr id="contact-availability-fr"></span><span data-en id="contact-availability-en"></span>
       </p>
-      <dl class="contact-info">
-        <div>
-          <dt><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></dt>
-          <dd><a id="contact-email" href="#" target="_blank" rel="noopener"></a></dd>
-        </div>
-        <div>
-          <dt><span data-fr data-key="contact.location_label"></span><span data-en data-key="contact.location_label"></span></dt>
-          <dd><span data-fr id="contact-location-fr"></span><span data-en id="contact-location-en"></span><br><span data-fr id="contact-availability-fr"></span><span data-en id="contact-availability-en"></span></dd>
-        </div>
-        <div>
-          <dt>Instagram</dt>
-          <dd><a id="contact-instagram" href="#" target="_blank" rel="noopener"></a></dd>
-        </div>
-      </dl>
+    </div>
+    <div class="contact-photo-frame">
+      <img id="contact-photo" class="contact-photo" src="" alt="Ismael OB">
     </div>
   </div>
 </section>
@@ -422,6 +430,9 @@
   // which is why the fetched list is cached in a variable instead of only used once.
   // activeFilter holds a project type code (e.g. 'TV') to show only that category, or
   // null to show everything — set by clicking a button in the category filter bar.
+  // Each card carries its type/title/credit/index in data-* attributes so the shared
+  // #work-info-bar (desktop-only, see below) can read them straight off whichever card
+  // is hovered without needing its own copy of the project list.
   let cachedProjects = null;
   let activeFilter = null;
   function renderWorkGrid() {
@@ -429,16 +440,58 @@
     if (!grid || !cachedProjects) return;
     const isFr = body.classList.contains('lang-fr');
     const visible = activeFilter ? cachedProjects.filter((p) => p.type === activeFilter) : cachedProjects;
-    grid.innerHTML = visible.map((p) => `
-      <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}">
+    grid.innerHTML = visible.map((p, i) => {
+      const acronym = projectTypeAcronym(p.type, isFr);
+      const creditName = p.artist || p.client || '';
+      const credit = creditName ? `${creditName} · ${p.director || ''}` : (p.director || '');
+      return `
+      <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}"
+         data-index="${i + 1}" data-total="${visible.length}"
+         data-type="${acronym}" data-title="${p.title}" data-credit="${credit}">
         <img class="thumb" src="assets/${p.thumbnail}" alt="${p.title}" loading="lazy" style="object-position:${p.thumbnailFocus || '50% 50%'};">
         <div class="work-card-meta">
-          <p class="type">${projectTypeAcronym(p.type, isFr)}</p>
+          <p class="type">${acronym}</p>
           ${p.artist || p.client ? `<p class="artist">${p.artist || p.client}</p>` : ''}
           <p class="title">${p.title}</p>
         </div>
       </a>
-    `).join('');
+    `;
+    }).join('');
+  }
+
+  // Shared bottom info bar (desktop/hover-capable only — hidden entirely on touch via
+  // CSS, see .work-info-bar in style.css): replaces the old always-in-DOM per-card
+  // caption on non-touch devices, showing whichever card is currently hovered/focused
+  // instead. Wired once via event delegation on #work-grid, so it survives every
+  // re-render (filter change, language toggle) without needing to be rewired.
+  const workGridEl = document.getElementById('work-grid');
+  const workInfoBar = document.getElementById('work-info-bar');
+  function updateWorkInfoBar(card) {
+    if (!workInfoBar) return;
+    if (!card) { workInfoBar.classList.remove('visible'); return; }
+    document.getElementById('info-bar-type').textContent = card.dataset.type || '';
+    document.getElementById('info-bar-title').textContent = card.dataset.title || '';
+    document.getElementById('info-bar-credit').textContent = card.dataset.credit || '';
+    document.getElementById('info-bar-index').textContent = card.dataset.index.padStart(2, '0') + ' / ' + card.dataset.total;
+    workInfoBar.classList.add('visible');
+  }
+  if (workGridEl) {
+    workGridEl.addEventListener('mouseover', (e) => {
+      const card = e.target.closest('.work-card');
+      if (card) updateWorkInfoBar(card);
+    });
+    workGridEl.addEventListener('mouseout', (e) => {
+      const card = e.target.closest('.work-card');
+      if (card && !card.contains(e.relatedTarget)) updateWorkInfoBar(null);
+    });
+    workGridEl.addEventListener('focusin', (e) => {
+      const card = e.target.closest('.work-card');
+      if (card) updateWorkInfoBar(card);
+    });
+    workGridEl.addEventListener('focusout', (e) => {
+      const card = e.target.closest('.work-card');
+      if (card && !card.contains(e.relatedTarget)) updateWorkInfoBar(null);
+    });
   }
 
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
@@ -447,7 +500,6 @@
   let resizeTicking = false;
   function onResizeThrottled() {
     sizeReel();
-    positionFilterIndicator(); // button positions/widths shift on reflow — keep the indicator matching them
     resizeTicking = false;
   }
   window.addEventListener('resize', () => {
@@ -478,14 +530,11 @@
     });
   }
 
-  // Category filter bar: one button per entry in PROJECT_TYPES (from i18n.js), plus an
-  // "All"/"Tous" button to clear the filter. Rebuilt on language toggle since the labels
-  // are bilingual; clicking a button just sets activeFilter and re-renders the grid —
-  // it doesn't refetch anything, filtering happens against the already-cached project list.
-  // Only removes/recreates the <button> elements on each call, not #filter-indicator —
-  // that one's a persistent element (see the static markup above) specifically so it can
-  // fade between positions via CSS transition instead of being destroyed and recreated
-  // with no previous state to fade from, requested Aug 2026.
+  // Category filter bar: one entry per PROJECT_TYPES (from i18n.js), plus an "All"/"Tous"
+  // entry to clear the filter, rendered as a slash-separated list of plain text buttons
+  // (no chip/pill styling) — rebuilt on language toggle since the labels are bilingual.
+  // Clicking one just sets activeFilter and re-renders the grid; it doesn't refetch
+  // anything, filtering happens against the already-cached project list.
   function renderCategoryFilter() {
     const container = document.getElementById('category-filter');
     if (!container) return;
@@ -494,66 +543,19 @@
     const items = [{ code: null, label: allLabel }].concat(
       Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
     );
-    container.querySelectorAll('button').forEach((b) => b.remove());
-    items.forEach((item) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      if (activeFilter === item.code) btn.classList.add('active');
-      btn.dataset.filter = item.code || '';
-      btn.textContent = item.label;
+    container.innerHTML = items.map((item, i) => `
+      <button type="button" data-filter="${item.code || ''}" class="${activeFilter === item.code ? 'active' : ''}">${item.label}</button>
+      ${i < items.length - 1 ? '<span class="filter-sep" aria-hidden="true">/</span>' : ''}
+    `).join('');
+    container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeFilter = btn.dataset.filter || null;
-        pulseFilterIndicator(); // tactile click feedback, independent of the fade below
-        renderCategoryFilter(); // NOT wrapped in withViewTransition — keeps the indicator's own fade transition working exactly as before, unaffected by the grid's own crossfade below
+        renderCategoryFilter();
         withViewTransition(() => {
           renderWorkGrid();
         });
       });
-      container.appendChild(btn);
     });
-    positionFilterIndicator();
-  }
-
-  // Resizes/repositions #filter-indicator to exactly match the currently .active
-  // button's own box. Used to slide there via a CSS transform transition (clunky,
-  // per feedback Aug 2026); now it fades out, jumps to the new button's box instantly
-  // while invisible, then fades back in — the 150ms timeout below matches the
-  // .filter-indicator opacity transition duration in style.css exactly, so the fade-in
-  // starts the instant the reposition happens rather than racing it. First render (the
-  // indicator still at its unset 0x0 default) skips the fade entirely and just snaps
-  // into place, since there's no previous position to fade away from.
-  function positionFilterIndicator() {
-    const container = document.getElementById('category-filter');
-    const indicator = document.getElementById('filter-indicator');
-    const activeBtn = container && container.querySelector('button.active');
-    if (!indicator || !activeBtn) return;
-    const move = () => {
-      indicator.style.width = activeBtn.offsetWidth + 'px';
-      indicator.style.height = activeBtn.offsetHeight + 'px';
-      indicator.style.transform = `translate(${activeBtn.offsetLeft}px, ${activeBtn.offsetTop}px)`;
-      indicator.style.opacity = '1';
-    };
-    const isFirstRender = indicator.style.width === '' || indicator.style.width === '0px';
-    if (isFirstRender) {
-      move();
-      return;
-    }
-    indicator.style.opacity = '0';
-    window.setTimeout(move, 150);
-  }
-
-  // Quick scale-down/up "press" on the indicator, requested Aug 2026 — fired on
-  // every filter click, overlapping the start of the fade rather than strictly
-  // preceding it. Removing the class before re-adding it (with a forced reflow in
-  // between) is what lets this retrigger on rapid successive clicks — simply adding
-  // an already-present class again is a no-op to the browser and wouldn't restart the
-  // CSS animation.
-  function pulseFilterIndicator() {
-    const indicator = document.getElementById('filter-indicator');
-    if (!indicator) return;
-    indicator.classList.remove('pressed');
-    void indicator.offsetWidth; // forces the reflow needed to retrigger the animation
-    indicator.classList.add('pressed');
   }
 
   // i18n (all static bilingual copy + project type acronyms) and the project list are
@@ -572,26 +574,26 @@
     })
     .catch((err) => console.error('Impossible de charger les données:', err));
 
-  // Contact section: photo, bio, email, location, availability, Instagram — editable in
-  // the admin ("Coordonnées" panel) without touching this file, since they're pulled from
-  // data/settings.json rather than hardcoded here.
+  // Contact section: photo, email, location, availability, Instagram — editable in the
+  // admin ("Coordonnées" panel) without touching this file, since they're pulled from
+  // data/settings.json rather than hardcoded here. bioFr/bioEn are still saved by the
+  // admin but no longer rendered on the site (design decision, Aug 2026) — the fields
+  // stay in data/settings.json untouched, just unused here.
   fetch('data/settings.json')
     .then((r) => r.json())
     .then((s) => {
       if (s.photoFilename) {
         document.getElementById('contact-photo').src = 'assets/' + s.photoFilename;
       }
-      document.getElementById('contact-bio-fr').textContent = s.bioFr || '';
-      document.getElementById('contact-bio-en').textContent = s.bioEn || '';
       const emailEl = document.getElementById('contact-email');
-      emailEl.textContent = s.email;
+      document.getElementById('contact-email-text').textContent = s.email;
       emailEl.href = 'mailto:' + s.email;
       document.getElementById('contact-location-fr').textContent = s.locationFr;
       document.getElementById('contact-location-en').textContent = s.locationEn;
       document.getElementById('contact-availability-fr').textContent = s.availabilityFr;
       document.getElementById('contact-availability-en').textContent = s.availabilityEn;
       const igEl = document.getElementById('contact-instagram');
-      igEl.textContent = '@' + s.instagramHandle;
+      document.getElementById('contact-instagram-text').textContent = '@' + s.instagramHandle;
       igEl.href = 'https://instagram.com/' + s.instagramHandle;
       scrollToHashTarget(); // contact copy just landed, in case its length shifted anything
     })
