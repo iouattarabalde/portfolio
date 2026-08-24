@@ -163,12 +163,14 @@
        hovered, in place of the old always-rendered per-card caption. See
        #work-grid's mouseover/mouseout delegation in the script below. -->
   <div class="work-info-bar" id="work-info-bar" aria-hidden="true">
-    <div class="info-bar-main">
-      <span class="info-bar-type" id="info-bar-type"></span>
-      <span class="info-bar-title" id="info-bar-title"></span>
-      <span class="info-bar-credit" id="info-bar-credit"></span>
+    <div class="info-bar-content" id="info-bar-content">
+      <div class="info-bar-main">
+        <span class="info-bar-type" id="info-bar-type"></span>
+        <span class="info-bar-title" id="info-bar-title"></span>
+        <span class="info-bar-credit" id="info-bar-credit"></span>
+      </div>
+      <span class="info-bar-index" id="info-bar-index"></span>
     </div>
-    <span class="info-bar-index" id="info-bar-index"></span>
   </div>
 </section>
 
@@ -463,17 +465,19 @@
   // CSS, see .work-info-bar in style.css): replaces the old always-in-DOM per-card
   // caption on non-touch devices, showing whichever card is currently hovered/focused
   // instead. Wired once via event delegation on #work-grid, so it survives every
-  // re-render (filter change, language toggle) without needing to be rewired.
+  // re-render (filter change, language toggle) without needing to be rewired. The bar
+  // itself (background/border) always stays visible — only #info-bar-content fades in
+  // and out, so the black strip along the bottom edge never flickers away between cards.
   const workGridEl = document.getElementById('work-grid');
-  const workInfoBar = document.getElementById('work-info-bar');
+  const infoBarContent = document.getElementById('info-bar-content');
   function updateWorkInfoBar(card) {
-    if (!workInfoBar) return;
-    if (!card) { workInfoBar.classList.remove('visible'); return; }
+    if (!infoBarContent) return;
+    if (!card) { infoBarContent.classList.remove('visible'); return; }
     document.getElementById('info-bar-type').textContent = card.dataset.type || '';
     document.getElementById('info-bar-title').textContent = card.dataset.title || '';
     document.getElementById('info-bar-credit').textContent = card.dataset.credit || '';
     document.getElementById('info-bar-index').textContent = card.dataset.index.padStart(2, '0') + ' / ' + card.dataset.total;
-    workInfoBar.classList.add('visible');
+    infoBarContent.classList.add('visible');
   }
   if (workGridEl) {
     workGridEl.addEventListener('mouseover', (e) => {

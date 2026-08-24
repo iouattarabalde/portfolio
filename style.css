@@ -500,7 +500,6 @@ body.same-doc-transition .site-nav {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
-  border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   font-family: var(--mono);
   font-size: 11px;
@@ -682,15 +681,19 @@ body.same-doc-transition .site-nav {
 
 /* Shared "now showing" bar under the grid, desktop/hover-capable only — populated by
    #work-grid's mouseover/mouseout delegation in index.html. Hidden entirely on touch
-   (see the media query below) since cards show their own caption there instead. */
+   (see the media query below) since cards show their own caption there instead.
+   The bar itself (this element — background, border, height) is always visible once
+   on screen; only #info-bar-content fades in/out on hover, so the black strip along
+   the bottom edge doesn't flicker away between cards. Content is right-aligned rather
+   than spanning the full width, so it never sits over the browser's own bottom-left
+   link-preview overlay when hovering a card. */
 .work-info-bar {
   display: none;
   position: sticky;
   bottom: 0;
   z-index: 5;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-end;
   height: 60px;
   padding: 0 clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
   border-top: 1px solid var(--line);
@@ -699,13 +702,20 @@ body.same-doc-transition .site-nav {
   -webkit-backdrop-filter: blur(10px);
   font-size: 12px;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease;
 }
 @media (hover: hover) {
   .work-info-bar { display: flex; }
 }
-.work-info-bar.visible { opacity: 1; }
+.info-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  max-width: 100%;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.info-bar-content.visible { opacity: 1; }
 .info-bar-main {
   display: flex;
   align-items: baseline;
