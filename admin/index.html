@@ -26,6 +26,56 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=89">
+<!-- Same continuously-cycling accent as index.html/project.html (own randomized phase
+     offset) — brought into the admin Aug 2026 so the whole brand feels consistent
+     everywhere, not just on the public pages; previously kept fixed at style.css's
+     plain #8A9A5B on purpose, but that read as a bigger gap once the cycling accent
+     became the site's signature touch rather than an incidental homepage detail. See
+     index.html for the full implementation story (this is a verbatim copy). -->
+<script>
+  (function () {
+    var CYCLE_MS = 60000; // full 360° loop duration
+    var L = 0.65, C = 0.09; // oklch lightness/chroma — perceptually uniform brightness across every hue, unlike hsl()
+    var html = document.documentElement;
+    var startOffset = Math.random() * CYCLE_MS; // randomizes where in the loop this page load begins
+
+    function oklchToHex(hueDeg) {
+      var h = hueDeg * Math.PI / 180;
+      var a = C * Math.cos(h);
+      var b = C * Math.sin(h);
+      var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+      var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+      var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+      var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+      var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+      var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+      var bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+      function toSrgb(c) {
+        c = Math.max(0, Math.min(1, c));
+        return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+      }
+      function hex2(c) {
+        var n = Math.round(toSrgb(c) * 255).toString(16);
+        return n.length === 1 ? '0' + n : n;
+      }
+      return '#' + hex2(r) + hex2(g) + hex2(bl);
+    }
+
+    var UPDATE_INTERVAL_MS = 120; // ~8x/sec — imperceptibly different from every frame for a 60s cycle, but ~8x less work
+    var lastUpdate = -Infinity;
+
+    function tick(now) {
+      if (now - lastUpdate >= UPDATE_INTERVAL_MS) {
+        var elapsed = (now + startOffset) % CYCLE_MS;
+        var hue = (elapsed / CYCLE_MS) * 360;
+        html.style.setProperty('--accent', oklchToHex(hue));
+        lastUpdate = now;
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  })();
+</script>
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -345,20 +395,25 @@
   #boot-loader.show { display: flex; }
   #boot-loader .spinner { width: 22px; height: 22px; border-width: 2.5px; color: var(--accent); }
 
-  /* ---------- Confirm modal ----------
-     Replaces window.confirm() everywhere (delete project, undo, remove a type) with
-     something that matches the rest of the UI instead of the browser's grey system
-     dialog. See confirmDialog() in the script — it returns a Promise<boolean>, so
-     call sites just do `if (!(await confirmDialog(...))) return;`, same shape as the
-     old `if (!confirm(...)) return;`. */
-  #confirm-modal {
+  /* ---------- Confirm / prompt modals ----------
+     Replaces window.confirm() and window.prompt() everywhere (delete project, undo,
+     remove/add a project type) with something that matches the rest of the UI instead
+     of the browser's grey system dialogs. See confirmDialog()/promptDialog() in the
+     script — both return a Promise, so call sites read like
+     `if (!(await confirmDialog(...))) return;` / `const v = await promptDialog(...);`,
+     the same shape as the old confirm()/prompt() calls they replace. Share one panel
+     style (.confirm-panel) since they're visually identical shells, just with a text
+     input added for the prompt variant. */
+  #confirm-modal,
+  #prompt-modal {
     display: none;
     position: fixed; inset: 0; z-index: 400;
     background: rgba(12,12,12,0.75);
     align-items: center; justify-content: center;
     padding: 20px;
   }
-  #confirm-modal.open { display: flex; }
+  #confirm-modal.open,
+  #prompt-modal.open { display: flex; }
   .confirm-panel {
     max-width: 380px;
     width: 100%;
@@ -368,6 +423,12 @@
   }
   .confirm-panel p { font-size: 13.5px; line-height: 1.6; color: var(--fg); margin: 0 0 22px; }
   .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .prompt-input {
+    width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
+    color: var(--fg); font-family: var(--mono); font-size: 14px; padding: 11px;
+    margin: -8px 0 22px;
+  }
+  .prompt-input:focus { outline: none; border-color: var(--accent); }
 
   /* ---------- Inline field validation ----------
      Was: 3 checks only run on Save click, one at a time, reporting into the same
@@ -392,9 +453,14 @@
   }
   .field.field-invalid .field-error-msg { display: block; }
 
-  input[type="file"] {
-    font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
-  }
+  /* File inputs render as raw OS chrome (a native "Choose File"/"Parcourir" button with
+     its own font/size/border) no matter what's set on the element itself — the only
+     reliable cross-browser fix is to hide the real input (via the shared .sr-only from
+     ../style.css, not display:none, so it stays keyboard-focusable) and trigger it from
+     a <label for="..."> styled as an ordinary .btn instead; clicking or Enter-ing the
+     label opens the native file picker exactly as before, just without the mismatched
+     button chrome showing on screen. */
+  .file-trigger { display: inline-block; }
 
   /* Types de projet + Textes généraux editors, inside the "Textes du site" panel */
   .type-row {
@@ -477,10 +543,17 @@
   .design-slider-value { color: var(--accent); font-variant-numeric: tabular-nums; }
   .design-slider-row input[type="range"] { width: 100%; accent-color: var(--accent); }
   .design-bg-row { display: flex; align-items: center; gap: 10px; }
+  /* The native swatch renders with its own inset border/padding in every engine
+     (a small white or grey ring around the color itself) even with padding:0 set
+     above — this strips that inner chrome so the swatch fills its box edge-to-edge
+     and actually blends with the rest of the hand-styled UI around it. */
   .design-bg-row input[type="color"] {
     width: 40px; height: 40px; padding: 0; border: 1px solid var(--line);
     background: none; cursor: pointer; flex-shrink: 0;
   }
+  .design-bg-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  .design-bg-row input[type="color"]::-webkit-color-swatch { border: none; }
+  .design-bg-row input[type="color"]::-moz-color-swatch { border: none; }
   .design-bg-row input[type="text"] {
     width: 110px; background: var(--bg); border: 1px solid var(--line); color: var(--fg);
     font-family: var(--mono); font-size: 12px; padding: 9px 10px;
@@ -500,6 +573,19 @@
     <div class="confirm-actions">
       <button class="btn" id="confirm-cancel-btn">Annuler</button>
       <button class="btn btn-danger" id="confirm-ok-btn">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Styled replacement for window.prompt() — see promptDialog() in the script. Same
+     shell as #confirm-modal, plus a text input. -->
+<div id="prompt-modal">
+  <div class="confirm-panel">
+    <p id="prompt-message"></p>
+    <input type="text" id="prompt-input" class="prompt-input">
+    <div class="confirm-actions">
+      <button class="btn" id="prompt-cancel-btn">Annuler</button>
+      <button class="btn btn-primary" id="prompt-ok-btn">Ajouter</button>
     </div>
   </div>
 </div>
@@ -531,7 +617,7 @@
   <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
     <h2 style="font-size:16px;">Projets</h2>
     <div style="display:flex;gap:8px;">
-      <button class="btn" id="clean-orphans-btn" title="Supprimer les fichiers images non référencés par aucun projet">🧹 Nettoyer</button>
+      <button class="btn" id="clean-orphans-btn" title="Supprimer les fichiers images non référencés par aucun projet">Nettoyer</button>
       <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
     </div>
   </div>
@@ -570,7 +656,8 @@
     <div class="field">
       <label>Photo</label>
       <img id="s-photo-preview" src="" alt="" style="width:96px; height:96px; object-fit:cover; border:1px solid var(--line); background:var(--bg); display:block; margin-bottom:10px;">
-      <input type="file" id="s-photo" accept="image/*">
+      <input type="file" id="s-photo" accept="image/*" class="sr-only">
+      <label class="btn file-trigger" for="s-photo">Choisir une photo</label>
       <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
         <button class="btn btn-primary" id="save-photo-btn" disabled>Enregistrer la photo</button>
         <span class="save-status" id="photo-status"></span>
@@ -736,7 +823,8 @@
             </div>
           </div>
         </div>
-        <input type="file" id="f-thumbnail" accept="image/*">
+        <input type="file" id="f-thumbnail" accept="image/*" class="sr-only">
+        <label class="btn file-trigger" for="f-thumbnail">Choisir une image</label>
       </div>
       <p class="field-error-msg" id="f-thumbnail-error">Choisis une vignette.</p>
     </div>
@@ -745,7 +833,8 @@
       <label>Galerie</label>
       <p class="gallery-count" id="gallery-count">0 stills</p>
       <div class="gallery-editor-grid" id="gallery-editor-grid"></div>
-      <input type="file" id="f-gallery-add" accept="image/*" multiple>
+      <input type="file" id="f-gallery-add" accept="image/*" multiple class="sr-only">
+      <label class="btn file-trigger" for="f-gallery-add">Ajouter des images</label>
       <p class="field-hint">Glisse les vignettes pour réordonner. Les nouvelles images sont compressées automatiquement avant l'envoi.</p>
       <p class="field-error-msg" id="f-gallery-error">Entre 9 et 30 images dans la galerie.</p>
     </div>
@@ -841,6 +930,43 @@ function confirmDialog(message) {
     function onCancel() { cleanup(false); }
     function onBackdrop(e) { if (e.target === modal) cleanup(false); }
     function onKey(e) { if (e.key === 'Escape') cleanup(false); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+  });
+}
+
+// Styled replacement for window.prompt(). Returns a Promise<string|null> — null on
+// cancel/backdrop/Escape or an empty answer, same "falsy means don't proceed" contract
+// the one call site (add-type-btn) already expects from the old prompt() call it
+// replaces. Enter submits, mirroring prompt()'s own behavior.
+function promptDialog(message, placeholder) {
+  const modal = document.getElementById('prompt-modal');
+  const input = document.getElementById('prompt-input');
+  document.getElementById('prompt-message').textContent = message;
+  input.value = '';
+  input.placeholder = placeholder || '';
+  modal.classList.add('open');
+  requestAnimationFrame(() => input.focus());
+  return new Promise((resolve) => {
+    const okBtn = document.getElementById('prompt-ok-btn');
+    const cancelBtn = document.getElementById('prompt-cancel-btn');
+    function cleanup(result) {
+      modal.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+    function onOk() { cleanup(input.value.trim() || null); }
+    function onCancel() { cleanup(null); }
+    function onBackdrop(e) { if (e.target === modal) cleanup(null); }
+    function onKey(e) {
+      if (e.key === 'Escape') cleanup(null);
+      if (e.key === 'Enter') { e.preventDefault(); cleanup(input.value.trim() || null); }
+    }
     okBtn.addEventListener('click', onOk);
     cancelBtn.addEventListener('click', onCancel);
     modal.addEventListener('click', onBackdrop);
@@ -1314,13 +1440,13 @@ function renderTypesEditor(types) {
 // "+ Ajouter un type" — asks for a short code (e.g. "YT"), seeds it with placeholder
 // text in all 4 fields (defaults to the code itself, edited right below), and adds it
 // to both the types editor and the project editor's Type dropdown immediately.
-document.getElementById('add-type-btn').addEventListener('click', () => {
+document.getElementById('add-type-btn').addEventListener('click', async () => {
   syncTypesDraftFromForm();
-  const raw = prompt('Code du nouveau type (court, ex. YT pour YouTube) :');
+  const raw = await promptDialog('Code du nouveau type (court, ex. YT pour YouTube) :', 'YT');
   if (!raw) return;
   const code = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!code) { alert('Code invalide : utilise seulement des lettres et des chiffres.'); return; }
-  if (currentTypeCodes.includes(code)) { alert(`Le type "${code}" existe déjà.`); return; }
+  if (!code) { showToast('Code invalide : utilise seulement des lettres et des chiffres.', 'error'); return; }
+  if (currentTypeCodes.includes(code)) { showToast(`Le type "${code}" existe déjà.`, 'error'); return; }
   currentTypeCodes.push(code);
   typesDraft[code] = { frAcronym: code, enAcronym: code, frLabel: code, enLabel: code };
   renderTypesEditor(typesDraft);
@@ -1332,7 +1458,7 @@ document.getElementById('add-type-btn').addEventListener('click', () => {
 async function removeType(code) {
   const inUse = projectsData.projects.some((p) => p.type === code);
   if (inUse) {
-    alert(`Impossible de retirer "${code}" : au moins un projet l'utilise encore. Réassigne-le d'abord à un autre type (dans Projets → Modifier).`);
+    showToast(`Impossible de retirer "${code}" : au moins un projet l'utilise encore. Réassigne-le d'abord à un autre type (dans Projets → Modifier).`, 'error');
     return;
   }
   if (!(await confirmDialog(`Retirer le type "${code}" ? Cette action ne prend effet qu'après avoir cliqué "Enregistrer les textes du site".`))) return;

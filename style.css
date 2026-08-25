@@ -34,20 +34,19 @@
   --noise-svg: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='noise'/><feColorMatrix in='noise' type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
-/* Continuously cycling accent color on public pages (index.html/project.html) — Red ->
-   Yellow -> Green -> Cyan -> Blue -> Magenta -> Red, one full loop every 60s, random
-   starting point per page load. The actual color math and animation loop both live in
-   a small inline script in each page's <head>, driving --accent directly via
-   style.setProperty() every frame — the same mechanism the original static 3-color
-   picker used successfully, just re-run continuously via requestAnimationFrame instead
-   of once. A CSS-only version (an animated <color>-typed custom property via
-   @property + @keyframes) was tried twice here first and broke .wordmark span's color
-   both times in real testing, despite being spec-valid CSS each time — animating a
-   registered color-typed custom property through oklch() keyframe values proved too
-   inconsistently supported in practice to trust. See index.html for the full story and
-   the actual implementation. Not touched here in style.css at all anymore: admin/
-   index.html was never part of any of this and keeps the plain #8A9A5B above,
-   unaffected either way. */
+/* Continuously cycling accent color, on every page (index.html/project.html, and
+   admin/index.html since Aug 2026 too) — Red -> Yellow -> Green -> Cyan -> Blue ->
+   Magenta -> Red, one full loop every 60s, random starting point per page load. The
+   actual color math and animation loop both live in a small inline script in each
+   page's <head>, driving --accent directly via style.setProperty() every frame — the
+   same mechanism the original static 3-color picker used successfully, just re-run
+   continuously via requestAnimationFrame instead of once. A CSS-only version (an
+   animated <color>-typed custom property via @property + @keyframes) was tried twice
+   here first and broke .wordmark span's color both times in real testing, despite
+   being spec-valid CSS each time — animating a registered color-typed custom property
+   through oklch() keyframe values proved too inconsistently supported in practice to
+   trust. See index.html for the full story and the actual implementation. Not touched
+   here in style.css at all: the plain #8A9A5B above is only ever the pre-JS fallback. */
 
 * { box-sizing: border-box; }
 
