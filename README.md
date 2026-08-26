@@ -304,7 +304,7 @@ valeur-d-origine)` que plus rien ne définissait, donc le repli faisait toujours
 variables fantômes ont été retirées en août 2026 et leurs valeurs écrites directement : le
 rendu est identique (vérifié en comparant les styles calculés à 1440/900/680/390 px), mais
 le CSS est nettement plus direct à lire. Si un éditeur visuel plus ciblé redevient utile un
-jour, `git show a5c55b1` remet l'indirection en place.
+jour, `git show 0538c4d` remet l'indirection en place.
 
 ## Carte de partage et favicon
 
