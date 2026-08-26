@@ -33,77 +33,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=104">
-<!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
-     Magenta -> Red), one full loop every 60s, random starting point per page load —
-     requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
-
-     This is the SECOND implementation. The first tried to do this entirely in CSS: an
-     animated number (--accent-hue) fed live into oklch()'s hue argument, redesigned
-     once already into --accent itself being a @property-registered <color> animated
-     directly through literal color keyframes. Both versions were spec-valid CSS, and
-     both broke .wordmark span's color in real browser testing anyway (it rendered
-     solid white — --accent was becoming invalid and falling through to the inherited
-     page text color). Animating a color-typed custom property through @property
-     proved too inconsistently supported in practice to keep trusting, so this version
-     drops CSS animation entirely: a requestAnimationFrame loop computes the exact
-     oklch(65% 0.09 hue) -> sRGB hex color for the current moment in JS, roughly 8
-     times a second (throttled inside the rAF loop itself — see UPDATE_INTERVAL_MS
-     below; every single frame was ~8x more updates than perceptible for a 60s cycle,
-     and each one triggers a style recalc everywhere --accent is used),
-     and sets --accent directly via style.setProperty() — exactly the same mechanism
-     the original static 3-color picker used with zero issues, just re-run
-     continuously instead of once. The oklch->sRGB math and the 65%/0.09 L/C choice
-     are the same ones verified earlier for contrast (worst case 5.46:1 against --bg
-     across the full hue circle, comfortably clearing WCAG AA's 4.5:1).
-
-     Also runs in admin/index.html (same script, own copy) since Aug 2026 — originally
-     kept out of the admin so its accent stayed fixed at style.css's plain #8A9A5B
-     default, but brought in to match once the cycling accent became the site's whole
-     visual signature rather than an incidental homepage touch. -->
-<script>
-  (function () {
-    var CYCLE_MS = 60000; // full 360° loop duration
-    var L = 0.65, C = 0.09; // oklch lightness/chroma — perceptually uniform brightness across every hue, unlike hsl()
-    var html = document.documentElement;
-    var startOffset = Math.random() * CYCLE_MS; // randomizes where in the loop this page load begins
-
-    function oklchToHex(hueDeg) {
-      var h = hueDeg * Math.PI / 180;
-      var a = C * Math.cos(h);
-      var b = C * Math.sin(h);
-      var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-      var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-      var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-      var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
-      var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-      var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-      var bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
-      function toSrgb(c) {
-        c = Math.max(0, Math.min(1, c));
-        return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
-      }
-      function hex2(c) {
-        var n = Math.round(toSrgb(c) * 255).toString(16);
-        return n.length === 1 ? '0' + n : n;
-      }
-      return '#' + hex2(r) + hex2(g) + hex2(bl);
-    }
-
-    var UPDATE_INTERVAL_MS = 120; // ~8x/sec — imperceptibly different from every frame for a 60s cycle, but ~8x less work
-    var lastUpdate = -Infinity;
-
-    function tick(now) {
-      if (now - lastUpdate >= UPDATE_INTERVAL_MS) {
-        var elapsed = (now + startOffset) % CYCLE_MS;
-        var hue = (elapsed / CYCLE_MS) * 360;
-        html.style.setProperty('--accent', oklchToHex(hue));
-        lastUpdate = now;
-      }
-      requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  })();
-</script>
+<!-- Shared behaviours for every page: the cycling accent colour (self-starting, which
+     is why this loads here in <head> rather than at the end of <body>), plus esc(),
+     withViewTransition(), initLangToggle() and applyDesignSettings() used by the script
+     at the bottom of this file. See site.js for the full story on each. -->
+<script src="site.js"></script>
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -235,22 +169,13 @@
   //      Re-rendered on language change so those acronyms switch too.
   // ---------------------------------------------------------------
 
-  const btn = document.getElementById('lang-toggle');
   const body = document.body;
-  const stored = localStorage.getItem('iob-lang');
-  if (stored === 'fr') body.classList.add('lang-fr'); // English is the default; only opt into French if remembered
-  function updateLangButton() {
-    // Button always shows the language you'd switch TO, not the current one
-    btn.textContent = body.classList.contains('lang-fr') ? 'EN' : 'FR';
-  }
-  updateLangButton();
-  btn.addEventListener('click', () => {
-    body.classList.toggle('lang-fr');
-    localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
-    document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
-    updateLangButton();
-    renderCategoryFilter(); // re-render so filter labels switch language too
-    renderWorkGrid(); // re-render so card type tags (AD/PUB, MV/CLIP, etc.) switch language too
+  // Toggle itself lives in site.js; the callback re-renders the two things on this page
+  // built in JS, which would otherwise keep their old-language labels: the filter bar
+  // and the card type tags (AD/PUB, MV/CLIP...).
+  initLangToggle(() => {
+    renderCategoryFilter();
+    renderWorkGrid();
   });
 
   // Sizes the reel so it exactly fills the space below the sticky nav, fully visible
@@ -451,23 +376,6 @@
   let cachedProjects = null;
   let activeFilter = null;
 
-  // Escapes a value before it's interpolated into generated HTML below. Titles, client
-  // and crew names come from data/projects.json (written by the admin), so they're
-  // ordinary human text, not hostile input — but they're still not HTML. Four DP/director
-  // fields already contain "&" ("Sandra Coppola & Juliette Gosselin" and friends), and a
-  // straight double quote in any title would end the attribute early and corrupt the rest
-  // of the card's markup. Added Aug 2026 after an audit found every one of these
-  // interpolations raw. Duplicated in project.html for the same reason withViewTransition
-  // is — both belong in a shared script whenever the page JS gets consolidated.
-  function esc(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   function renderWorkGrid() {
     const grid = document.getElementById('work-grid');
     if (!grid || !cachedProjects) return;
@@ -544,27 +452,6 @@
     }
   });
 
-  // Runs updateFn as a same-document View Transition when supported, otherwise just
-  // runs it directly — used for the work-grid filter crossfade below, and the same
-  // helper (duplicated) drives the lightbox's still-to-still crossfade in project.html.
-  // Temporarily adds .same-doc-transition to <body> for the duration; see the CSS rule
-  // of the same name in style.css for why (excludes the nav from its own
-  // view-transition-name, which otherwise renders it above everything else during the
-  // transition regardless of normal z-index — the bug that first showed up in the
-  // lightbox crossfade, generalized into this shared helper so it doesn't need
-  // re-solving for every new same-document transition). Aug 2026.
-  function withViewTransition(updateFn) {
-    if (!document.startViewTransition) {
-      updateFn();
-      return;
-    }
-    document.body.classList.add('same-doc-transition');
-    const transition = document.startViewTransition(updateFn);
-    transition.finished.finally(() => {
-      document.body.classList.remove('same-doc-transition');
-    });
-  }
-
   // Category filter bar: one entry per PROJECT_TYPES (from i18n.js), plus an "All"/"Tous"
   // entry to clear the filter, rendered as a slash-separated list of plain text buttons
   // (no chip/pill styling) — rebuilt on language toggle since the labels are bilingual.
@@ -634,22 +521,8 @@
     })
     .catch((err) => console.error('Impossible de charger les coordonnées:', err));
 
-  // Halo/grain/background settings — editable in the admin (Design tab, sliders +
-  // color picker). Independent fetch, applied on top of the CSS defaults in :root
-  // (which already match this file's own defaults exactly), so a missing or
-  // not-yet-created data/design.json just silently keeps the CSS defaults — never
-  // breaks the page. Aug 2026.
-  fetch('data/design.json')
-    .then((r) => r.json())
-    .then((d) => {
-      const root = document.documentElement.style;
-      if (d.haloIntensity != null) root.setProperty('--halo-intensity', d.haloIntensity);
-      if (d.haloSize != null) root.setProperty('--halo-size', d.haloSize);
-      if (d.haloFalloff != null) root.setProperty('--halo-falloff', d.haloFalloff);
-      if (d.grainLevel != null) root.setProperty('--grain-level', d.grainLevel);
-      if (d.bg) root.setProperty('--bg', d.bg);
-    })
-    .catch(() => {}); // file may not exist yet (first use, before any admin save) — fine, CSS defaults already match
+  // Halo/grain/background settings, editable in the admin's Design tab — see site.js.
+  applyDesignSettings();
 </script>
 </body>
 </html>

@@ -19,7 +19,6 @@ const DEFAULT_STRINGS = {
 
   'contact.heading': { fr: 'Disponible pour vos prochains projets.', en: 'Available for your next project.' },
   'contact.email_label': { fr: 'Courriel', en: 'Email' },
-  'contact.location_label': { fr: 'Localisation', en: 'Location' },
 
   'project.back': { fr: 'Retour aux travaux', en: 'Back to work' },
   'project.type_label': { fr: 'Type', en: 'Type' },

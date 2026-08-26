@@ -82,8 +82,8 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--mono);
-  font-size: var(--body-size, 15px);
-  line-height: var(--leading, 1.6);
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: clip; /* the halo layer around the hero deliberately bleeds past its own
                         element — this is the one safe place to stop that from ever
@@ -169,7 +169,7 @@ body.lang-fr [data-fr] { display: inline; }
 .eyebrow {
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: calc(0.18em * var(--tracking, 1));
+  letter-spacing: calc(0.18em * 1);
   text-transform: uppercase;
   color: var(--accent);
 }
@@ -189,7 +189,7 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--nav-pad, 20px) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  padding: 20px clamp(20px, 4vw, 48px);
   background: rgba(12, 12, 12, 0.45);
   backdrop-filter: blur(10px); /* blurs whatever scrolls underneath the sticky nav — kept throughout the whole opacity-fade experiment below, liked independently of it */
   -webkit-backdrop-filter: blur(10px);
@@ -234,7 +234,7 @@ body.same-doc-transition .site-nav {
 .nav-eyebrow {
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: calc(0.14em * var(--tracking, 1));
+  letter-spacing: calc(0.14em * 1);
   text-transform: uppercase;
   color: var(--fg-dim);
   padding-left: 16px;
@@ -251,7 +251,7 @@ body.same-doc-transition .site-nav {
   align-items: center;
   gap: clamp(16px, 3vw, 36px);
   font-size: 12px;
-  letter-spacing: calc(0.1em * var(--tracking, 1));
+  letter-spacing: calc(0.1em * 1);
   text-transform: uppercase;
 }
 
@@ -299,7 +299,7 @@ body.same-doc-transition .site-nav {
   justify-content: center;
   min-height: calc(100vh - 73px); /* fallback for browsers without dvh support — dropped by any browser that understands the next line */
   min-height: calc(100dvh - 73px);
-  padding: 20px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  padding: 20px clamp(20px, 4vw, 48px);
 }
 
 /* Entrance animation on load, requested Aug 2026 — pure CSS, plays once when the page
@@ -349,14 +349,13 @@ body.same-doc-transition .site-nav {
 
 /* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle.
    Scale+fade in slightly after the frame itself (0.4s delay), like they're snapping into
-   focus once the frame has settled — requested Aug 2026. Animates TO var(--brackets-o,
-   0.35), the same admin-configurable value the static opacity already used, so the
+   focus once the frame has settled — requested Aug 2026. Animates TO 0.35, the same admin-configurable value the static opacity already used, so the
    Design tab's grain/halo sliders still control the resting state correctly once the
    entrance finishes; backwards fill-mode shows the (invisible) from-state during the
    delay instead of flashing full brackets before the delayed start. */
 @keyframes bracket-enter {
   from { opacity: 0; scale: 1.4; }
-  to { opacity: var(--brackets-o, 0.35); scale: 1; }
+  to { opacity: 0.35; scale: 1; }
 }
 .reel-frame::before,
 .reel-frame::after {
@@ -365,7 +364,7 @@ body.same-doc-transition .site-nav {
   width: 18px;
   height: 18px;
   border: 1px solid var(--accent);
-  opacity: var(--brackets-o, 0.35); /* dimmed once the bias-light halo was added, Aug 2026 */
+  opacity: 0.35; /* dimmed once the bias-light halo was added, Aug 2026 */
   animation: bracket-enter 0.5s ease-out 0.4s backwards;
 }
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
@@ -498,11 +497,11 @@ body.same-doc-transition .site-nav {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding: 16px clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  padding: 16px clamp(20px, 4vw, 48px);
   border-bottom: 1px solid var(--line);
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: calc(0.1em * var(--tracking, 1));
+  letter-spacing: calc(0.1em * 1);
   text-transform: uppercase;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -532,8 +531,8 @@ body.same-doc-transition .site-nav {
 
 .work-grid {
   display: grid;
-  grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
-  gap: var(--wg-gap, var(--grid-gap));
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--grid-gap);
   background: var(--bg); /* seamless black gap between cards, ShotDeck-inspired, Aug 2026 */
   view-transition-name: work-grid; /* scopes the same-document crossfade on filter change (see the click handler in index.html) to just this container, instead of the browser treating the whole page as one transitioning root */
 }
@@ -541,12 +540,12 @@ body.same-doc-transition .site-nav {
 .work-card {
   position: relative;
   background: var(--bg);
-  aspect-ratio: var(--card-ratio, 16 / 9);
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-end; /* pins the caption to the bottom of the card */
-  padding: var(--card-pad, 14px);
+  padding: 14px;
 }
 
 /* Entrance animation for grid/gallery cards, requested Aug 2026 — replaces the earlier
@@ -597,9 +596,9 @@ body.same-doc-transition .site-nav {
   height: 100%;
   background: var(--bg-raised); /* shows while the image loads */
   object-fit: cover; /* was background-size:cover on a div — now an <img> so loading="lazy" actually works, Aug 2026 */
-  transition: transform var(--zoom-dur, 0.5s) ease;
+  transition: transform 0.5s ease;
 }
-.work-card:hover .thumb { transform: scale(var(--zoom, 1.04)); }
+.work-card:hover .thumb { transform: scale(1.04); }
 
 /* Dark gradient scrim behind the caption text. */
 .work-card::after {
@@ -639,7 +638,7 @@ body.same-doc-transition .site-nav {
    touch, so cards need their own always-visible caption again there). */
 @media (hover: none) {
   .work-card::after {
-    opacity: var(--scrim, 1);
+    opacity: 1;
   }
   .work-card-meta {
     opacity: 1;
@@ -656,7 +655,7 @@ body.same-doc-transition .site-nav {
 
 .work-card .artist {
   font-family: var(--display);
-  font-size: var(--card-title, 14px);
+  font-size: 14px;
   font-weight: 700;
   color: var(--fg);
   margin-bottom: 2px;
@@ -664,7 +663,7 @@ body.same-doc-transition .site-nav {
 
 .work-card .title {
   font-family: var(--display);
-  font-size: calc(var(--card-title, 14px) - 2px);
+  font-size: calc(14px - 2px);
   font-weight: 500;
   color: var(--fg-dim);
   margin-bottom: 2px;
@@ -673,7 +672,7 @@ body.same-doc-transition .site-nav {
    .artist paragraph simply isn't rendered) — use that to give the title back its full
    prominence when it's the only name on the card, instead of always reading as secondary. */
 .work-card .type + .title {
-  font-size: var(--card-title, 14px);
+  font-size: 14px;
   font-weight: 700;
   color: var(--fg);
 }
@@ -694,7 +693,7 @@ body.same-doc-transition .site-nav {
   align-items: center;
   justify-content: flex-end;
   height: 60px;
-  padding: 0 clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  padding: 0 clamp(20px, 4vw, 48px);
   border-top: 1px solid var(--line);
   background: rgba(12, 12, 12, 0.92);
   backdrop-filter: blur(10px);
@@ -748,7 +747,7 @@ body.same-doc-transition .site-nav {
 
 /* ---------- Contact ---------- */
 .contact {
-  padding: clamp(calc(var(--sect-y-m, 28px) * 1.7), 8vw, calc(var(--sect-y, 56px) * 1.7)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  padding: clamp(calc(28px * 1.7), 8vw, calc(56px * 1.7)) clamp(20px, 4vw, 48px);
   border-top: 1px solid var(--line);
 }
 
@@ -771,8 +770,8 @@ body.same-doc-transition .site-nav {
 }
 
 .contact-photo-frame {
-  flex: 0 0 clamp(260px, 32vw, var(--photo-w, 420px));
-  width: clamp(260px, 32vw, var(--photo-w, 420px));
+  flex: 0 0 clamp(260px, 32vw, 420px);
+  width: clamp(260px, 32vw, 420px);
   max-width: 100%;
   margin-inline: auto;
   aspect-ratio: 4 / 5;
@@ -800,12 +799,12 @@ body.same-doc-transition .site-nav {
   .contact-photo-frame {
     flex: 0 0 auto;
     width: 100%;
-    max-width: var(--photo-w-m, 320px);
+    max-width: 320px;
   }
 }
 
 .contact-title {
-  font-size: clamp(calc(32px * var(--title-scale-m, 1)), 5vw, calc(56px * var(--title-scale, 1)));
+  font-size: clamp(calc(32px * 1), 5vw, calc(56px * 1));
   line-height: 1.05;
   letter-spacing: -0.02em;
   max-width: 14ch;
@@ -859,21 +858,20 @@ body.same-doc-transition .site-nav {
    mobile, 4-up on landscape mobile and desktop. */
 @media (max-width: 1000px) {
   .work-grid {
-    grid-template-columns: repeat(var(--wg-cols-m, 2), 1fr);
-    gap: var(--wg-gap-m, var(--wg-gap, var(--grid-gap)));
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--grid-gap);
   }
-  .work-card { aspect-ratio: var(--card-ratio-m, 1 / 1); padding: var(--card-pad-m, var(--card-pad, 10px)); } /* near-square by default at this density */
+  .work-card { aspect-ratio: 1 / 1; padding: 10px; } /* near-square by default at this density */
 }
 
 /* Phones in landscape still match max-width:1000px above, but there's enough horizontal
-   room to treat them as desktop-width instead of dropping to the portrait 2-up
-   density — hence reading --wg-cols (the desktop variable, 4 by default) rather
-   than --wg-cols-m. orientation:landscape wins here since it's the more specific/
-   later rule. Gap and padding fall through to --wg-gap/--card-pad above since the
-   -m versions are never set in landscape. */
+   room to treat them as desktop-width instead of dropping to the portrait 2-up density —
+   hence the 4 columns here rather than the 2 set just above. orientation:landscape wins
+   since it's the more specific/later rule; gap and card padding simply aren't restated,
+   so they keep the desktop values from the base rules. */
 @media (max-width: 1000px) and (orientation: landscape) {
   .work-grid {
-    grid-template-columns: repeat(var(--wg-cols, 4), 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -882,8 +880,8 @@ body.same-doc-transition .site-nav {
    data/projects.json, so this same CSS applies no matter which project is loaded). */
 .project-gallery {
   display: grid;
-  grid-template-columns: repeat(var(--gal-cols, 3), 1fr);
-  gap: var(--gal-gap, var(--grid-gap));
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--grid-gap);
   background: var(--bg); /* seamless black gap, ShotDeck-inspired, Aug 2026 */
   border-bottom: 1px solid var(--bg);
 }
@@ -912,7 +910,7 @@ body.same-doc-transition .site-nav {
   .gallery-item { aspect-ratio: 1 / 1; } /* same squarer-on-mobile treatment as the work grid */
 }
 @media (max-width: 360px) {
-  .project-gallery { grid-template-columns: repeat(var(--gal-cols-m, 2), 1fr); gap: var(--gal-gap-m, var(--gal-gap, var(--grid-gap))); }
+  .project-gallery { grid-template-columns: repeat(2, 1fr); gap: var(--grid-gap); }
 }
 
 /* Two-column layout: credits/back-link on the left, next-project card on the right
@@ -924,7 +922,7 @@ body.same-doc-transition .site-nav {
   justify-content: space-between;
   align-items: flex-start;
   gap: 48px;
-  padding: clamp(var(--sect-y-m, 28px), 6vw, calc(var(--sect-y, 56px) * 0.86)) clamp(var(--pad-x-m, 20px), 4vw, var(--pad-x, 48px));
+  padding: clamp(28px, 6vw, calc(56px * 0.86)) clamp(20px, 4vw, 48px);
   position: relative; /* positioning context for .bottom-glow, added Aug 2026 — absolutely-
                           positioned children of a flex container aren't flex items
                           themselves, so this doesn't disturb the two-column layout above */
@@ -952,7 +950,7 @@ body.same-doc-transition .site-nav {
 }
 .project-back:hover { color: var(--accent); }
 
-.project-title { font-size: clamp(calc(22px * var(--title-scale-m, 1)), 3.5vw, calc(32px * var(--title-scale, 1))); max-width: 24ch; margin-bottom: 18px; }
+.project-title { font-size: clamp(calc(22px * 1), 3.5vw, calc(32px * 1)); max-width: 24ch; margin-bottom: 18px; }
 
 /* Type / Director / DP row under the title. Deliberately just these three fields —
    Client, Year, and Colorist were dropped since Colorist is always Ismael OB anyway. */
@@ -998,9 +996,9 @@ body.same-doc-transition .site-nav {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   background: var(--bg-raised); /* shows while the image loads */
-  transition: transform var(--zoom-dur, 0.5s) ease;
+  transition: transform 0.5s ease;
 }
-.next-project:hover .next-project-thumb { transform: scale(var(--zoom, 1.04)); }
+.next-project:hover .next-project-thumb { transform: scale(1.04); }
 .next-project-title {
   margin: 10px 0 0;
   font-size: 13px;
@@ -1165,15 +1163,15 @@ body.same-doc-transition .site-nav {
   }
 }
 
-/* ---------- Jetons de mise en page paramétrables ----------
-   Le CSS ci-dessus consomme des variables (--wg-cols, --card-ratio, --photo-w, --body-size,
-   etc.) plutôt que des valeurs en dur, chacune avec un repli identique au design d'origine
-   (ex. var(--wg-cols, 4)). Rien ne définit ces variables actuellement : l'admin avait un
-   panneau pour les éditer visuellement en direct, retiré parce que trop chargé pour l'usage
-   réel — ne restait que l'aperçu Desktop/Mobile. Le repli fait donc toujours foi. Si un
-   éditeur visuel léger redevient utile, l'indirection est déjà en place pour l'accueillir. */
+/* Jusqu'en août 2026, tout le CSS ci-dessus passait par une trentaine de variables
+   (--wg-cols, --card-ratio, --photo-w, --body-size...) systématiquement lues avec un
+   repli — ex. var(--wg-cols, 4) — alors que rien ne les définissait nulle part : c'était
+   le reliquat d'un éditeur visuel de l'admin retiré depuis. Le repli faisait donc
+   toujours foi, et l'indirection ne servait qu'à rendre chaque règle plus difficile à
+   lire. Les valeurs sont maintenant écrites directement. Si un éditeur visuel léger
+   redevient utile un jour, `git show` sur ce commit remet l'indirection en place. */
 @media (max-width: 700px) {
-  body { font-size: var(--body-size-m, var(--body-size, 15px)); }
+  body { font-size: 15px; }
 }
 
 /* Reduced motion: honors the OS-level accessibility setting for people sensitive to
@@ -1210,8 +1208,6 @@ body.same-doc-transition .site-nav {
   .reel-frame::before,
   .reel-frame::after {
     animation: none;
-    opacity: var(--brackets-o, 0.35);
+    opacity: 0.35;
   }
 }
-
-/* trigger: css-bump automation test, Aug 2026 */

@@ -26,56 +26,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css?v=104">
-<!-- Same continuously-cycling accent as index.html/project.html (own randomized phase
-     offset) — brought into the admin Aug 2026 so the whole brand feels consistent
-     everywhere, not just on the public pages; previously kept fixed at style.css's
-     plain #8A9A5B on purpose, but that read as a bigger gap once the cycling accent
-     became the site's signature touch rather than an incidental homepage detail. See
-     index.html for the full implementation story (this is a verbatim copy). -->
-<script>
-  (function () {
-    var CYCLE_MS = 60000; // full 360° loop duration
-    var L = 0.65, C = 0.09; // oklch lightness/chroma — perceptually uniform brightness across every hue, unlike hsl()
-    var html = document.documentElement;
-    var startOffset = Math.random() * CYCLE_MS; // randomizes where in the loop this page load begins
-
-    function oklchToHex(hueDeg) {
-      var h = hueDeg * Math.PI / 180;
-      var a = C * Math.cos(h);
-      var b = C * Math.sin(h);
-      var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-      var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-      var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-      var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
-      var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-      var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-      var bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
-      function toSrgb(c) {
-        c = Math.max(0, Math.min(1, c));
-        return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
-      }
-      function hex2(c) {
-        var n = Math.round(toSrgb(c) * 255).toString(16);
-        return n.length === 1 ? '0' + n : n;
-      }
-      return '#' + hex2(r) + hex2(g) + hex2(bl);
-    }
-
-    var UPDATE_INTERVAL_MS = 120; // ~8x/sec — imperceptibly different from every frame for a 60s cycle, but ~8x less work
-    var lastUpdate = -Infinity;
-
-    function tick(now) {
-      if (now - lastUpdate >= UPDATE_INTERVAL_MS) {
-        var elapsed = (now + startOffset) % CYCLE_MS;
-        var hue = (elapsed / CYCLE_MS) * 360;
-        html.style.setProperty('--accent', oklchToHex(hue));
-        lastUpdate = now;
-      }
-      requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  })();
-</script>
+<!-- Shared behaviours (../site.js): the cycling accent colour, self-starting with its
+     own randomised phase offset, plus esc(). The accent was originally kept out of the
+     admin so it stayed fixed at style.css's plain #8A9A5B, but that read as a bigger and
+     bigger gap once the cycle became the site's signature touch rather than an
+     incidental homepage detail. -->
+<script src="../site.js"></script>
 <script src="../i18n.js"></script>
 <style>
   /* Admin-only styles layered on top of ../style.css (shared fonts/colors/tokens come
@@ -1310,8 +1266,7 @@ const STRING_GROUPS = [
     { key: 'work.heading', label: 'Titre de la section Projets' },
     { key: 'work.filter_all', label: 'Bouton "Tous" du filtre de catégories' },
     { key: 'contact.heading', label: 'Titre de la section Contact' },
-    { key: 'contact.email_label', label: 'Étiquette "Courriel"' },
-    { key: 'contact.location_label', label: 'Étiquette "Localisation"' }
+    { key: 'contact.email_label', label: 'Étiquette "Courriel"' }
   ] },
   { title: 'Page projet', keys: [
     { key: 'project.back', label: 'Lien retour aux travaux' },
@@ -1326,10 +1281,6 @@ const STRING_GROUPS = [
     { key: 'lightbox.close', label: 'Bouton fermer la galerie' }
   ] }
 ];
-
-function escapeAttr(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 function stringInputId(key, lang) {
   return 'str-' + key.replace(/\./g, '-') + '-' + lang;
@@ -1347,8 +1298,8 @@ function renderStringsEditor(strings) {
       const frId = stringInputId(key, 'fr');
       const enId = stringInputId(key, 'en');
       const field = (id, value, placeholder) => multiline
-        ? `<textarea id="${id}" rows="2" placeholder="${placeholder}">${escapeAttr(value)}</textarea>`
-        : `<input type="text" id="${id}" value="${escapeAttr(value)}" placeholder="${placeholder}">`;
+        ? `<textarea id="${id}" rows="2" placeholder="${placeholder}">${esc(value)}</textarea>`
+        : `<input type="text" id="${id}" value="${esc(value)}" placeholder="${placeholder}">`;
       return `
         <div class="string-row">
           <span class="string-label">${label}</span>
@@ -1416,13 +1367,13 @@ function renderTypesEditor(types) {
     return `
       <div class="type-row">
         <span class="type-code">${code}</span>
-        <input type="text" id="${typeInputId(code, 'frAcronym')}" value="${escapeAttr(t.frAcronym)}" placeholder="Acronyme FR">
-        <input type="text" id="${typeInputId(code, 'enAcronym')}" value="${escapeAttr(t.enAcronym)}" placeholder="Acronym EN">
+        <input type="text" id="${typeInputId(code, 'frAcronym')}" value="${esc(t.frAcronym)}" placeholder="Acronyme FR">
+        <input type="text" id="${typeInputId(code, 'enAcronym')}" value="${esc(t.enAcronym)}" placeholder="Acronym EN">
       </div>
       <div class="type-row">
         <span></span>
-        <input type="text" id="${typeInputId(code, 'frLabel')}" value="${escapeAttr(t.frLabel)}" placeholder="Libellé FR">
-        <input type="text" id="${typeInputId(code, 'enLabel')}" value="${escapeAttr(t.enLabel)}" placeholder="Label EN">
+        <input type="text" id="${typeInputId(code, 'frLabel')}" value="${esc(t.frLabel)}" placeholder="Libellé FR">
+        <input type="text" id="${typeInputId(code, 'enLabel')}" value="${esc(t.enLabel)}" placeholder="Label EN">
       </div>
       <div style="display:flex; justify-content:flex-end; margin:-2px 0 20px;">
         <button type="button" class="btn btn-danger" data-remove-type="${code}" style="font-size:10px; padding:6px 10px;">Retirer « ${code} »</button>
@@ -1475,7 +1426,7 @@ function renderTypeSelectOptions(types) {
   const current = select.value; // preserve selection if the editor happens to be open
   select.innerHTML = currentTypeCodes.map((code) => {
     const t = types[code] || {};
-    return `<option value="${code}">${code} — ${escapeAttr(t.frLabel || code)}</option>`;
+    return `<option value="${code}">${code} — ${esc(t.frLabel || code)}</option>`;
   }).join('');
   if (currentTypeCodes.includes(current)) select.value = current;
 }
@@ -1878,10 +1829,10 @@ function renderDashboard() {
     if (!reorderable) el.style.cursor = 'default';
     el.dataset.index = i; // remembers this item's position in projectsData.projects for drag reordering
     el.innerHTML = isGrid ? `
-      <div class="card-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
+      <div class="card-thumb" style="background-image:url('../assets/${esc(p.thumbnail)}')"></div>
       <div class="card-info">
-        <div class="row-title">${p.title}</div>
-        <div class="row-meta">${projectTypeAcronym(p.type, true)} · ${p.gallery.length} stills</div>
+        <div class="row-title">${esc(p.title)}</div>
+        <div class="row-meta">${esc(projectTypeAcronym(p.type, true))} · ${p.gallery.length} stills</div>
       </div>
       <div class="card-actions">
         <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>
@@ -1890,10 +1841,10 @@ function renderDashboard() {
       </div>
     ` : `
       <span class="handle">${reorderable ? '⠿' : ''}</span>
-      <div class="row-thumb" style="background-image:url('../assets/${p.thumbnail}')"></div>
+      <div class="row-thumb" style="background-image:url('../assets/${esc(p.thumbnail)}')"></div>
       <div class="row-info">
-        <div class="row-title">${p.title}</div>
-        <div class="row-meta">${projectTypeAcronym(p.type, true)} · ${p.gallery.length} stills</div>
+        <div class="row-title">${esc(p.title)}</div>
+        <div class="row-meta">${esc(projectTypeAcronym(p.type, true))} · ${p.gallery.length} stills</div>
       </div>
       <div class="row-actions">
         <a class="btn" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Voir</a>

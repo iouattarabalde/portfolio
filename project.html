@@ -28,55 +28,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=104">
-<!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
-     page load — no persistence, so navigating between pages can land at a different
-     point in the loop each time. See index.html for the full story (this is the
-     second implementation — a CSS-only version broke .wordmark span's color twice
-     in real testing, replaced with this JS-driven requestAnimationFrame loop). -->
-<script>
-  (function () {
-    var CYCLE_MS = 60000; // full 360° loop duration
-    var L = 0.65, C = 0.09; // oklch lightness/chroma — perceptually uniform brightness across every hue, unlike hsl()
-    var html = document.documentElement;
-    var startOffset = Math.random() * CYCLE_MS; // randomizes where in the loop this page load begins
-
-    function oklchToHex(hueDeg) {
-      var h = hueDeg * Math.PI / 180;
-      var a = C * Math.cos(h);
-      var b = C * Math.sin(h);
-      var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-      var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-      var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-      var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
-      var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-      var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-      var bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
-      function toSrgb(c) {
-        c = Math.max(0, Math.min(1, c));
-        return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
-      }
-      function hex2(c) {
-        var n = Math.round(toSrgb(c) * 255).toString(16);
-        return n.length === 1 ? '0' + n : n;
-      }
-      return '#' + hex2(r) + hex2(g) + hex2(bl);
-    }
-
-    var UPDATE_INTERVAL_MS = 120; // ~8x/sec — imperceptibly different from every frame for a 60s cycle, but ~8x less work (see index.html for the full reasoning)
-    var lastUpdate = -Infinity;
-
-    function tick(now) {
-      if (now - lastUpdate >= UPDATE_INTERVAL_MS) {
-        var elapsed = (now + startOffset) % CYCLE_MS;
-        var hue = (elapsed / CYCLE_MS) * 360;
-        html.style.setProperty('--accent', oklchToHex(hue));
-        lastUpdate = now;
-      }
-      requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  })();
-</script>
+<!-- Shared behaviours for every page: the cycling accent colour (self-starting, own
+     randomised phase offset per load — so navigating between pages can land at a
+     different point in the loop each time), plus esc(), withViewTransition(),
+     initLangToggle() and applyDesignSettings() used below. See site.js. -->
+<script src="site.js"></script>
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -181,37 +137,10 @@
   //      data/projects.json in parallel, then render both
   // ---------------------------------------------------------------
 
-  const btn = document.getElementById('lang-toggle');
   const body = document.body;
-  const stored = localStorage.getItem('iob-lang');
-  if (stored === 'fr') body.classList.add('lang-fr');
-  function updateLangButton() {
-    btn.textContent = body.classList.contains('lang-fr') ? 'EN' : 'FR';
-  }
-  updateLangButton();
-  btn.addEventListener('click', () => {
-    body.classList.toggle('lang-fr');
-    localStorage.setItem('iob-lang', body.classList.contains('lang-fr') ? 'fr' : 'en');
-    document.documentElement.lang = body.classList.contains('lang-fr') ? 'fr' : 'en';
-    updateLangButton();
-    renderProjectType(); // re-run so the Type field switches acronym language too
-  });
-
-  // Escapes a value before it's interpolated into generated HTML below (the gallery grid
-  // and the lightbox palette strip). Project titles and filenames come from
-  // data/projects.json (written by the admin), so they're ordinary human text, not
-  // hostile input — but they're still not HTML, and a straight double quote in a title
-  // would end the alt attribute early and corrupt the rest of the markup. Added Aug 2026
-  // after an audit found these interpolations raw. Same helper as in index.html; both
-  // belong in a shared script whenever the page JS gets consolidated.
-  function esc(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
+  // Toggle itself lives in site.js; the callback re-runs the one thing on this page
+  // built in JS that would otherwise keep its old-language label.
+  initLangToggle(() => renderProjectType());
 
   // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails, opening each
   // at its own index. It's called again after the gallery is (re)rendered from JSON,
@@ -236,26 +165,6 @@
   lightboxImg.addEventListener('load', () => {
     lightboxPalette.style.width = lightboxImg.offsetWidth + 'px';
   });
-
-  // Runs updateFn as a same-document View Transition when supported, otherwise just
-  // runs it directly. Temporarily adds .same-doc-transition to <body> for the duration
-  // — see the CSS rule of the same name in style.css for why (excludes the nav from
-  // its own view-transition-name, which otherwise renders it above everything else
-  // during the transition regardless of normal z-index — the bug that first showed up
-  // right here, in this exact crossfade, now generalized into this shared helper so it
-  // doesn't need re-solving for every new same-document transition). Same helper
-  // (duplicated) also drives the work-grid filter crossfade in index.html. Aug 2026.
-  function withViewTransition(updateFn) {
-    if (!document.startViewTransition) {
-      updateFn();
-      return;
-    }
-    document.body.classList.add('same-doc-transition');
-    const transition = document.startViewTransition(updateFn);
-    transition.finished.finally(() => {
-      document.body.classList.remove('same-doc-transition');
-    });
-  }
 
   // Crossfades between stills when navigating an already-open lightbox, requested Aug
   // 2026 — the initial open (lightbox currently closed) skips this, there's nothing to
@@ -443,20 +352,9 @@
       document.getElementById('project-not-found').style.display = '';
     });
 
-  // Background color and grain level — editable in the admin (Design tab). No reel/
-  // halo on this page, but --bg still needs to match the rest of the site, and since
-  // .grain-overlay (Aug 2026) is a page-wide layer present on every page rather than
-  // scoped to specific reel/contact glows, --grain-level needs to reach here too now —
-  // previously this page had nothing grain-driven to feed, so only --bg was applied.
-  // Same pattern as index.html: silently no-ops if data/design.json doesn't exist yet.
-  fetch('data/design.json')
-    .then((r) => r.json())
-    .then((d) => {
-      const root = document.documentElement.style;
-      if (d.bg) root.setProperty('--bg', d.bg);
-      if (d.grainLevel != null) root.setProperty('--grain-level', d.grainLevel);
-    })
-    .catch(() => {});
+  // Background colour and grain level, editable in the admin's Design tab — see site.js.
+  // The halo variables it also sets are inert here (no reel on this page).
+  applyDesignSettings();
 </script>
 </body>
 </html>
