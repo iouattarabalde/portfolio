@@ -12,19 +12,19 @@ les cas qui sortent de l'admin.
 
 | Je veux… | Où | Note |
 |---|---|---|
-| Ajouter un nouveau projet | Admin → Projets → **+ Nouveau projet** | Nombre de stills = multiple de 3 |
+| Ajouter un nouveau projet | Admin → Projets → **+ Nouveau projet** | Entre 9 et 30 stills, idéalement un multiple de 3 |
 | Modifier titre / type / réalisation / DP d'un projet | Admin → Projets → cliquer le projet | |
 | Réordonner les projets sur la page d'accueil | Admin → Projets, glisser-déposer | Sauvegarde automatique |
-| Réordonner ou retirer des images dans un projet | Admin → ouvrir le projet, glisser-déposer | Retirer une image ne supprime pas le fichier, voir "fichiers orphelins" plus bas |
+| Réordonner ou retirer des images dans un projet | Admin → ouvrir le projet, glisser-déposer | Retirer une image ne supprime pas le fichier ; le bouton **Nettoyer** (Admin → Projets) efface ceux qui ne servent plus, voir "fichiers orphelins" plus bas |
 | Recadrer/repositionner une vignette (le sujet est mal centré sur la grille) | Admin → ouvrir le projet → clique/glisse sur la vignette | Ne coupe pas l'image, ça déplace juste le point de focus utilisé pour les deux formats du site (16:9 desktop, 1:1 mobile) |
 | Annuler ma dernière modif de projet | Admin → Projets → bouton **Annuler** | Ne touche pas aux images uploadées |
-| Changer courriel / localisation / dispo / Instagram / bio / photo de contact | Admin → Coordonnées | |
+| Changer courriel / localisation / dispo / Instagram / photo de contact | Admin → Coordonnées | La bio se modifie au même endroit mais n'est plus affichée sur le site (refonte Aug 2026) |
 | Changer un texte du site (nav, titres, étiquettes) | Admin → Textes du site | |
 | Ajouter ou retirer un type de projet (AD, MV, etc.) | Admin → Textes du site → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
 | Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | L'aperçu reflète aussi tes réglages non enregistrés (halo, grain, fond) |
 | Ajuster l'intensité/taille/étalement du halo du reel, le grain (texture appliquée sur tout le site), ou la couleur de fond | Admin → Design → curseurs en haut de l'onglet | Rien ne se publie tant que tu n'as pas cliqué Enregistrer ; Réinitialiser remet les valeurs par défaut dans l'aperçu (sans publier) |
 | Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
-| Remplacer le reel principal (vidéo hero) | **Pas dans l'admin** | Envoyer le fichier vidéo à Claude par le chat — nécessite un vrai réencodage |
+| Remplacer le reel principal (vidéo hero) | **Pas dans l'admin** | Envoyer le fichier vidéo à Claude par le chat — nécessite un vrai réencodage. Viser nettement moins que les ~89 MB actuels, voir "Vidéo du reel" |
 | Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
 | Changer polices / mise en page | Verrouillé, pas d'éditeur admin | Demander à Claude |
 | Ajouter un tout nouveau texte bilingue à un endroit du site qui n'en a pas encore | Touche 3 fichiers différents | Demander à Claude |
@@ -49,9 +49,11 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 - **Repo** (dépôt) : le dossier de projet complet sur GitHub, avec tout son historique.
 - **Déploiement** : le moment où GitHub Pages republie le site à partir du dernier commit.
   Automatique, prend en général moins d'une minute, parfois deux.
-- **Cache-buster** (`?v=76`) : le `?v=N` à la fin des liens vers `style.css`. Force les
+- **Cache-buster** (`?v=105`) : le `?v=N` à la fin des liens vers `style.css`. Force les
   navigateurs à retélécharger la feuille de style plutôt que de garder une vieille version
-  en mémoire. Concerne seulement le code, jamais l'admin.
+  en mémoire. Incrémenté automatiquement à chaque modification de `style.css`, sur les trois
+  pages qui la chargent (accueil, projet, admin) — voir "Automatisations" plus bas. Rien à
+  faire à la main.
 - **JSON** : le format des fichiers `data/*.json`. C'est le contenu du site (projets, textes,
   coordonnées) séparé du code qui l'affiche — l'admin lit et écrit ces fichiers pour vous.
 
@@ -61,18 +63,24 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 
 | Fichier / dossier | Rôle |
 |---|---|
-| `index.html` | Page principale : hero reel, filtre de catégories + grille de travaux (construits dynamiquement depuis `data/projects.json`), section contact |
+| `index.html` | Page principale : hero reel, filtre de catégories + grille de travaux (construits dynamiquement depuis `data/projects.json`), barre d'infos au survol, section contact |
 | `project.html` | Gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json` |
 | `data/projects.json` | Source de vérité pour tous les projets : titre, type, réalisation, DP, vignette, galerie ordonnée |
 | `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram |
 | `data/design.json` | Réglages visuels éditables depuis Admin → Design : intensité/taille/étalement du halo du reel, niveau de grain, couleur de fond. Absent = valeurs par défaut (identiques aux valeurs codées dans `style.css`) |
 | `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
 | `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin |
+| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()`, `initLangToggle()` et `applyDesignSettings()`. Chacun existait auparavant en deux ou trois copies recopiées à la main |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
-| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N` — bumper ce numéro sur les 3 pages qui la chargent à chaque édition, sinon certains navigateurs gardent l'ancienne feuille en cache) |
-| `video/reel.mp4` | Reel auto-hébergé |
+| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
+| `video/reel.mp4` | Reel auto-hébergé (~89 MB — voir "Vidéo du reel") |
 | `assets/` | Stills et vignettes des projets |
-| `.nojekyll`, `robots.txt`, `CNAME` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom) |
+| `assets/og/` | **Généré**, ne pas éditer à la main : une image de partage 1200×630 par projet |
+| `project/` | **Généré**, ne pas éditer à la main : une coquille HTML par projet, qui porte les balises Open Graph que les crawlers lisent puis redirige vers la vraie page |
+| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément du cache-buster |
+| `.github/workflows/` | Les deux automatisations elles-mêmes — voir "Automatisations" plus bas |
+| `sitemap.xml` | **Généré** à partir de `projects.json` |
+| `.nojekyll`, `robots.txt`, `CNAME`, `favicon.ico` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom, favicon de repli) |
 
 ## Navigation
 
@@ -84,7 +92,9 @@ plein écran (sur iPhone, le plein écran passe par le lecteur natif de Safari, 
 mécanisme disponible).
 
 Pas de page de formulaire distincte : le lien "Contact" pointe directement vers la
-section coordonnées de la page d'accueil (email, localisation, Instagram, photo, bio).
+section coordonnées de la page d'accueil (courriel et Instagram en liens cliquables,
+localisation + disponibilité sur une ligne, photo). La bio n'y est plus affichée depuis la
+refonte d'août 2026 — le champ reste modifiable dans l'admin, il ne sert simplement plus.
 Un ancien formulaire (`intake-form.html`) a été retiré : sans backend, il ne faisait que
 construire un lien `mailto:`, sans réel avantage sur un lien courriel direct.
 
@@ -92,12 +102,15 @@ construire un lien `mailto:`, sans réel avantage sur un lien courriel direct.
 
 Liste actuelle (éditable dans l'admin, sous "Textes du site → Types de projet") :
 
-| | EN | FR |
+| Code | Acronyme EN / FR | Libellé EN / FR |
 |---|---|---|
-| Advertising | AD | PUB |
-| Music Video | MV | CLIP |
-| Film | FILM | FILM |
-| TV | TV | Série |
+| `AD` | AD / PUB | Commercial / Publicité |
+| `MV` | MV / CLIP | Music Video / Vidéoclip |
+| `FILM` | FILM / FILM | Film / Film |
+| `TV` | TV / TV | TV / Série |
+
+(L'acronyme est ce qui s'affiche sur les vignettes ; le libellé est ce qui s'affiche dans
+le filtre de la page d'accueil.)
 
 Le code canonique est ce qui est stocké dans `data/projects.json` ; l'acronyme et le
 libellé affichés changent selon la langue active, via `data/strings.json` (section
@@ -107,11 +120,22 @@ cette même source, jamais besoin de la toucher séparément.
 Avant de retirer un type déjà utilisé par un projet existant, le réassigner d'abord
 (sinon son acronyme s'affiche tel quel, sans traduction, sur ce projet).
 
-## Filtre de catégories (page d'accueil)
+## Grille de travaux (page d'accueil)
 
-Sous le titre "Projects", la liste des catégories est cliquable : "All"/"Tous" affiche
-tout, chaque catégorie filtre la grille sur ce type. Généré en JS (`renderCategoryFilter`
-dans `index.html`) à partir des mêmes types de projet, pas de configuration séparée.
+**Filtre de catégories** : une ligne de catégories séparées par des `/`, alignée à droite
+juste au-dessus de la grille. "All"/"Tous" affiche tout, chaque catégorie filtre la grille
+sur ce type. Il n'y a plus de titre "Projects" visible au-dessus depuis la refonte d'août
+2026 — la ligne de filtres tient lieu d'en-tête à elle seule (le titre existe toujours dans
+le HTML, masqué, pour les lecteurs d'écran et les moteurs de recherche). Généré en JS
+(`renderCategoryFilter` dans `index.html`) à partir des mêmes types de projet, pas de
+configuration séparée.
+
+**Barre d'infos** (Aug 2026, ordinateur seulement) : survoler une vignette assombrit
+légèrement toutes les autres et affiche son type, son titre, ses crédits et sa position
+(`06 / 32`) dans une barre noire fixée en bas de la grille. Elle remplace la légende qui
+s'affichait auparavant sur la vignette elle-même. Sur tablette et téléphone, où il n'y a pas
+de survol possible, cette barre n'existe pas : chaque vignette porte sa propre légende en
+permanence, par-dessus un dégradé sombre.
 
 ## Pages projet
 
@@ -133,20 +157,26 @@ sans repasser par la grille. "Suivant" = l'entrée suivante dans l'ordre de `pro
 après le dernier. Disparaît si un seul projet existe au total. Rien à configurer dans
 l'admin — entièrement dérivé de `projects.json`, comme la grille elle-même.
 
-**Règles à respecter pour chaque projet** (encouragées par l'interface de l'admin, mais pas
-bloquées à l'enregistrement) :
-- Le nombre de stills doit toujours être un multiple de 3 (aligné sur la grille 3 colonnes) —
-  un avertissement coloré s'affiche sous la galerie si ce n'est pas le cas, mais ça n'empêche
-  pas de cliquer Enregistrer
-- La vignette de la page d'accueil doit être une image distincte, absente de la galerie —
-  simple convention portée par des champs d'upload séparés dans l'admin, rien ne vérifie
-  activement qu'elles diffèrent
+**Règles à respecter pour chaque projet** :
+- **Bloquant** : entre 9 et 30 stills dans la galerie. En dehors de cette plage, l'admin
+  refuse d'enregistrer et surligne le champ en rouge. Le site lui-même se limite à 32 projets
+  au total, refusés de la même façon sur "+ Nouveau projet"
+- **Simple avertissement** : le nombre de stills devrait aussi être un multiple de 3 (aligné
+  sur la grille 3 colonnes). Un message coloré s'affiche sous la galerie si ce n'est pas le
+  cas, mais l'enregistrement passe quand même
+- **Convention non vérifiée** : la vignette de la page d'accueil doit être une image
+  distincte, absente de la galerie — portée par des champs d'upload séparés dans l'admin,
+  mais rien ne vérifie activement qu'elles diffèrent
 
 **Note sur les fichiers orphelins** : retirer une image de la galerie d'un projet dans
-l'admin (ou supprimer un projet entier) ne supprime pas le fichier de `assets/`, seulement
-la référence dans `projects.json`. Ces fichiers orphelins sont inoffensifs mais s'accumulent
-avec le temps ; un ménage occasionnel (comparer `assets/` aux fichiers réellement référencés
-dans `projects.json`) permet de les retirer.
+l'admin ne supprime pas le fichier de `assets/`, seulement la référence dans `projects.json`.
+(Supprimer un projet entier, en revanche, efface bien ses images.) Ces fichiers orphelins
+sont invisibles sur le site mais s'accumulent : en août 2026 ils représentaient 669 fichiers
+et 122 MB, presque la moitié des images du repo, hérités des galeries ramenées à 30 stills.
+
+Le bouton **Nettoyer** (Admin → Projets) fait le ménage : il compare `assets/` aux fichiers
+réellement référencés dans `projects.json` et propose d'effacer le reste. À lancer de temps
+en temps, surtout après avoir beaucoup retiré d'images.
 
 ## Bilinguisme et textes éditables
 
@@ -218,6 +248,31 @@ Si un changement récent n'apparaît pas après une minute ou deux, ce n'est gé
 un problème de données, un nouveau commit (n'importe lequel) suffit à relancer un
 déploiement propre.
 
+## Automatisations
+
+Deux robots tournent sur GitHub à chaque `push` sur `main`. Ce sont eux qui produisent les
+commits signés **`github-actions[bot]`** dans l'historique — c'est normal, il n'y a rien à
+faire quand ils apparaissent.
+
+| Quand | Ce qui se passe |
+|---|---|
+| `data/projects.json` ou une image change (donc : à chaque sauvegarde de projet dans l'admin) | `projects.json` est d'abord validé (ids uniques, fichiers réellement présents) ; si c'est bon, les coquilles de partage `project/<slug>.html`, les images `assets/og/<slug>.jpg` et `sitemap.xml` sont régénérées et commitées |
+| `style.css` change | Le cache-buster `?v=N` est incrémenté sur `index.html`, `project.html` **et** `admin/index.html`, puis commité |
+
+Deux détails qui ont déjà causé des ennuis et sont maintenant réglés :
+
+- L'admin avait été oublié dans l'incrément du cache-buster et avait dérivé de 13 versions,
+  ce qui pouvait lui faire servir une vieille feuille de style pendant longtemps. Les trois
+  pages sont désormais incrémentées ensemble, et le script se resynchronise tout seul si
+  elles divergent à nouveau.
+- Les deux robots écrivent dans le même dépôt. Un `push` qui touchait à la fois `style.css`
+  et une image les lançait en parallèle et l'un des deux échouait. Ils sont maintenant mis
+  en file l'un derrière l'autre, et réessaient en cas de collision.
+
+La validation est un vrai garde-fou : si `projects.json` est cassé (deux projets avec le même
+id, une image référencée qui n'existe pas), le robot s'arrête avant de générer quoi que ce
+soit et le lien de partage des projets n'est pas régénéré à partir de données douteuses.
+
 ## Aperçu et réglages visuels (onglet Design de l'admin)
 
 L'admin est organisé en trois onglets (Projets, Textes du site, Design), onglet actif
@@ -243,11 +298,13 @@ pour donner un vrai surplus de densité — une opacité CSS seule plafonne à 1
 donné sur la moitié supérieure du curseur sans ce détour.
 
 Les propriétés de mise en page plus larges (colonnes de grille, ratio des vignettes,
-espacements, typographie, etc.) restent hors de portée de ce panneau : `style.css` garde
-l'infrastructure de l'ancien éditeur complet pour elles (`var(--nom, valeur-d-origine)` plutôt
-qu'une valeur en dur), mais rien ne les définit actuellement, donc leur repli fait toujours foi
-et le rendu de mise en page reste strictement identique à avant — c'est noté dans le CSS même,
-en cas de besoin futur d'un éditeur plus ciblé pour celles-ci aussi.
+espacements, typographie, etc.) restent hors de portée de ce panneau. `style.css` gardait
+pour elles l'infrastructure de l'ancien éditeur complet — une trentaine de `var(--nom,
+valeur-d-origine)` que plus rien ne définissait, donc le repli faisait toujours foi. Ces
+variables fantômes ont été retirées en août 2026 et leurs valeurs écrites directement : le
+rendu est identique (vérifié en comparant les styles calculés à 1440/900/680/390 px), mais
+le CSS est nettement plus direct à lire. Si un éditeur visuel plus ciblé redevient utile un
+jour, `git show a5c55b1` remet l'indirection en place.
 
 ## Carte de partage et favicon
 
@@ -260,23 +317,46 @@ reprend les tokens du site (fond `--bg`, monogramme `--accent`).
 
 ## Vidéo du reel
 
-`video/reel.mp4` (desktop, 1080p, ~3.5 Mbps, ~82 MB) et `video/reel-mobile.mp4` (mobile,
-même résolution 1080p, ~1.6 Mbps, ~39 MB) : deux fichiers servis via `<source media="...">`
-dans le tag `<video>` du hero (`index.html`). Le navigateur choisit une fois au chargement
-selon la largeur de viewport à ce moment (seuil 700px, cohérent avec le reste du site) —
-pas de changement à la volée si on redimensionne ou tourne l'écran. Les deux gardent la
-piste audio (le reel démarre muet par défaut sur les deux, comme l'exige l'autoplay
-navigateur; le bouton son active un vrai son sur mobile comme sur desktop).
+Un seul fichier, `video/reel.mp4` (1080p, ~3.5 Mbps, **~89 MB**), servi tel quel à tout le
+monde. Il a existé un temps une seconde version allégée pour mobile (`reel-mobile.mp4`,
+~1.6 Mbps) choisie via `<source media="...">`, retirée depuis au profit d'une source unique.
+Le reel démarre muet (l'autoplay l'exige dans tous les navigateurs) ; le bouton son active
+un vrai son sur mobile comme sur ordinateur.
 
-Retranscodés le 9 juillet 2026 à partir du vrai master (`Portfolio.mov`, H.264 1080p 16
-Mbps, fourni par Ismael) — remplace une première passe qui repartait par erreur d'une
-version déjà compressée du reel.
+Réencodé le 9 juillet 2026 à partir du vrai master (`Portfolio.mov`, H.264 1080p 16 Mbps,
+fourni par Ismael) — remplace une première passe qui repartait par erreur d'une version
+déjà compressée du reel.
 
-Pour retranscoder : découper la source en segments de ~50s (`ffmpeg -f segment
--segment_time 50`), encoder chaque segment séparément pour rester sous la limite de temps
-d'un appel d'outil, puis concaténer (`ffmpeg -f concat`). Toujours repartir du master
-d'origine si disponible plutôt que d'une version déjà compressée : réencoder à partir d'un
-fichier déjà compressé ne restitue pas le détail perdu, ça réduit seulement les artefacts.
+### ⚠️ Sa taille est un vrai problème
+
+89 MB pour un fichier que la page d'accueil charge à chaque visite, c'est trop, pour deux
+raisons concrètes :
+
+- **La bande passante.** GitHub Pages tolère environ 100 GB par mois. À 89 MB la visite,
+  ça fait de l'ordre de 1 100 visites de la page d'accueil avant de s'en approcher.
+- **La limite par fichier.** GitHub refuse tout fichier de plus de 100 MB. Il ne reste que
+  11 MB de marge : un réencodage un peu plus généreux serait purement et simplement rejeté
+  au moment de le pousser.
+
+Un premier correctif est déjà en place (août 2026) : le tag `<video>` est passé de
+`preload="auto"` à `preload="metadata"`. Auparavant le navigateur était invité à télécharger
+le fichier entier dès l'ouverture de la page, même pour quelqu'un qui ne regardait pas le
+reel ; maintenant il ne prend que l'en-tête et la vidéo se charge au fil de la lecture. Ça
+supprime le pire du gaspillage, mais quelqu'un qui regarde le reel en entier télécharge
+toujours 89 MB.
+
+**Le vrai correctif reste à faire : réencoder plus petit.** Pour une vidéo de fond muette
+qui tourne en boucle, viser ~1,5–2 Mbps (soit ~40 MB) plutôt que 3,5 : la perte est à peine
+visible dans ce contexte, et ça rend à la fois la marge sous la limite de 100 MB et le budget
+de bande passante.
+
+### Pour retranscoder
+
+Découper la source en segments de ~50s (`ffmpeg -f segment -segment_time 50`), encoder
+chaque segment séparément pour rester sous la limite de temps d'un appel d'outil, puis
+concaténer (`ffmpeg -f concat`). Toujours repartir du master d'origine si disponible plutôt
+que d'une version déjà compressée : réencoder à partir d'un fichier déjà compressé ne
+restitue pas le détail perdu, ça réduit seulement les artefacts.
 
 ## Historique
 
