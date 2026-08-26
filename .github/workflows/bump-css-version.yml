@@ -1,7 +1,9 @@
 name: Bump CSS cache-buster
 
 # Whenever style.css changes, auto-syncs the style.css?v=N cache-buster in
-# index.html and project.html so this manual step can't be forgotten.
+# index.html, project.html and admin/index.html so this manual step can't be
+# forgotten. (admin/index.html was added Aug 2026 — it links the same stylesheet
+# but had been left out, and had silently drifted 13 versions behind.)
 on:
   push:
     branches: [main]
@@ -10,6 +12,13 @@ on:
 
 permissions:
   contents: write
+
+# Serializes runs of this workflow so two quick pushes to style.css can't both
+# bump-and-push at once and collide. Not cancel-in-progress: every run must
+# actually finish, since skipping one would leave that CSS change unbumped.
+concurrency:
+  group: auto-commit-main
+  cancel-in-progress: false
 
 jobs:
   bump:
@@ -27,10 +36,24 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html project.html
+          git add index.html project.html admin/index.html
           if git diff --cached --quiet; then
             echo "No version change to commit."
           else
             git commit -m "Auto-bump style.css cache-buster [skip ci]"
-            git push
+            # Rebase-then-push, retried: the sibling workflow (generate-share-pages)
+            # commits to main too, and a push from a job that started before its commit
+            # landed is rejected non-fast-forward. The concurrency group above already
+            # serializes THIS workflow against itself and against that one, so this is
+            # the belt to that braces — it also covers a human pushing mid-run.
+            for attempt in 1 2 3; do
+              if git push; then
+                echo "Pushed on attempt $attempt."
+                exit 0
+              fi
+              echo "Push rejected, rebasing and retrying ($attempt/3)..."
+              git pull --rebase origin main
+            done
+            echo "Could not push after 3 attempts." >&2
+            exit 1
           fi

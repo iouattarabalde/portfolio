@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=103">
+<link rel="stylesheet" href="style.css?v=104">
 <!-- Continuously cycles the accent color (Red -> Yellow -> Green -> Cyan -> Blue ->
      Magenta -> Red), one full loop every 60s, random starting point per page load —
      requested Aug 2026, replaces the earlier random-pick-of-3-fixed-colors version.
@@ -122,7 +122,19 @@
   </div>
 </nav>
 
-<!-- Hero: self-hosted reel (video/reel.mp4), sized/muted via the script at the bottom -->
+<!-- Hero: self-hosted reel (video/reel.mp4), sized/muted via the script at the bottom.
+
+     preload="metadata", NOT "auto" — changed Aug 2026 after an audit. reel.mp4 is ~89MB;
+     preload="auto" invites the browser to fetch as much of that as it can the moment the
+     page loads, for every visitor, whether or not they ever watch it. Against GitHub
+     Pages' ~100GB/month soft bandwidth ceiling that's roughly 1,100 homepage visits
+     before the site risks being throttled. "metadata" fetches only the header, then the
+     autoplay attribute + the explicit play() call below start a normal progressive
+     download — playback still begins on its own, it just streams instead of racing to
+     buffer the whole file up front. The poster (assets/hero-poster.jpg) is what actually
+     fills the frame on first paint either way, so there's nothing visible to lose here.
+     fetchpriority="high" is dropped for the same reason: it was telling the browser to
+     prioritize that download over the project thumbnails people actually scroll to. -->
 <header class="hero">
   <h1 class="sr-only">
     <span data-fr>Ismael OB — Coloriste basé à Montréal</span>
@@ -130,7 +142,7 @@
   </h1>
   <div class="reel-frame">
     <div class="reel-embed">
-      <video id="reel-video" autoplay muted loop playsinline webkit-playsinline preload="auto" fetchpriority="high" poster="assets/hero-poster.jpg" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
+      <video id="reel-video" autoplay muted loop playsinline webkit-playsinline preload="metadata" poster="assets/hero-poster.jpg" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
         <source src="video/reel.mp4" type="video/mp4">
       </video>
       <button id="fullscreen-toggle" type="button" aria-label="Fullscreen">
@@ -260,7 +272,7 @@
   }
   // Called synchronously here (not just on 'load') so the frame is sized correctly
   // from the very first paint. It previously only ran on window.load, which waits for
-  // every resource on the page — including the video itself (preload="auto") — to
+  // every resource on the page — including the video itself, then still preload="auto" — to
   // finish, so the reel visibly rendered at the CSS fallback size (max-width: 1400px)
   // first and then snapped to its real computed size once 'load' finally fired. Safe
   // to call this early: it only reads the nav's offsetHeight and the hero's computed
@@ -438,6 +450,24 @@
   // is hovered without needing its own copy of the project list.
   let cachedProjects = null;
   let activeFilter = null;
+
+  // Escapes a value before it's interpolated into generated HTML below. Titles, client
+  // and crew names come from data/projects.json (written by the admin), so they're
+  // ordinary human text, not hostile input — but they're still not HTML. Four DP/director
+  // fields already contain "&" ("Sandra Coppola & Juliette Gosselin" and friends), and a
+  // straight double quote in any title would end the attribute early and corrupt the rest
+  // of the card's markup. Added Aug 2026 after an audit found every one of these
+  // interpolations raw. Duplicated in project.html for the same reason withViewTransition
+  // is — both belong in a shared script whenever the page JS gets consolidated.
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function renderWorkGrid() {
     const grid = document.getElementById('work-grid');
     if (!grid || !cachedProjects) return;
@@ -450,12 +480,12 @@
       return `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}"
          data-index="${i + 1}" data-total="${visible.length}"
-         data-type="${acronym}" data-title="${p.title}" data-credit="${credit}">
-        <img class="thumb" src="assets/${p.thumbnail}" alt="${p.title}" loading="lazy" style="object-position:${p.thumbnailFocus || '50% 50%'};">
+         data-type="${esc(acronym)}" data-title="${esc(p.title)}" data-credit="${esc(credit)}">
+        <img class="thumb" src="assets/${esc(p.thumbnail)}" alt="${esc(p.title)}" loading="lazy" style="object-position:${esc(p.thumbnailFocus || '50% 50%')};">
         <div class="work-card-meta">
-          <p class="type">${acronym}</p>
-          ${p.artist || p.client ? `<p class="artist">${p.artist || p.client}</p>` : ''}
-          <p class="title">${p.title}</p>
+          <p class="type">${esc(acronym)}</p>
+          ${p.artist || p.client ? `<p class="artist">${esc(p.artist || p.client)}</p>` : ''}
+          <p class="title">${esc(p.title)}</p>
         </div>
       </a>
     `;
@@ -549,7 +579,7 @@
       Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
     );
     container.innerHTML = items.map((item, i) => `
-      <button type="button" data-filter="${item.code || ''}" class="${activeFilter === item.code ? 'active' : ''}">${item.label}</button>
+      <button type="button" data-filter="${esc(item.code || '')}" class="${activeFilter === item.code ? 'active' : ''}">${esc(item.label)}</button>
       ${i < items.length - 1 ? '<span class="filter-sep" aria-hidden="true">/</span>' : ''}
     `).join('');
     container.querySelectorAll('button').forEach((btn) => {

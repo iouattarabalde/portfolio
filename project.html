@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=103">
+<link rel="stylesheet" href="style.css?v=104">
 <!-- Same continuous accent-color cycle as index.html, own randomized phase offset per
      page load — no persistence, so navigating between pages can land at a different
      point in the loop each time. See index.html for the full story (this is the
@@ -197,6 +197,22 @@
     renderProjectType(); // re-run so the Type field switches acronym language too
   });
 
+  // Escapes a value before it's interpolated into generated HTML below (the gallery grid
+  // and the lightbox palette strip). Project titles and filenames come from
+  // data/projects.json (written by the admin), so they're ordinary human text, not
+  // hostile input — but they're still not HTML, and a straight double quote in a title
+  // would end the alt attribute early and corrupt the rest of the markup. Added Aug 2026
+  // after an audit found these interpolations raw. Same helper as in index.html; both
+  // belong in a shared script whenever the page JS gets consolidated.
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   // Lightbox: wireLightbox() attaches click handlers to gallery thumbnails, opening each
   // at its own index. It's called again after the gallery is (re)rendered from JSON,
   // since those <button> elements don't exist yet when this script first runs.
@@ -261,7 +277,7 @@
     function applyImage() {
       lightboxImg.src = `assets/${item.filename}`;
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
-      lightboxPalette.innerHTML = (item.palette || []).map((hex) => `<div style="background:${hex}"></div>`).join('');
+      lightboxPalette.innerHTML = (item.palette || []).map((hex) => `<div style="background:${esc(hex)}"></div>`).join('');
       lightbox.classList.add('open');
       lightboxPrev.style.display = hasMultiple ? '' : 'none';
       lightboxNext.style.display = hasMultiple ? '' : 'none';
@@ -414,8 +430,8 @@
       // {filename, palette} since Aug 2026 (palette used by the lightbox, not the grid).
       const gallery = document.getElementById('project-gallery');
       gallery.innerHTML = project.gallery.map((item, i) => `
-        <button class="gallery-item" data-full="assets/${item.filename}">
-          <img src="assets/${item.filename}" alt="${project.title} — still ${i + 1}" loading="lazy">
+        <button class="gallery-item" data-full="assets/${esc(item.filename)}">
+          <img src="assets/${esc(item.filename)}" alt="${esc(project.title)} — still ${i + 1}" loading="lazy">
         </button>
       `).join('');
 

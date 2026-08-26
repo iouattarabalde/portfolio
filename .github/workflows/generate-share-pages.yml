@@ -15,6 +15,15 @@ on:
 permissions:
   contents: write
 
+# Shares one concurrency group with bump-css-version.yml: both workflows commit
+# and push to main, and a single push touching style.css *and* assets/ used to
+# start both at once, leaving one to fail non-fast-forward. Serializing them
+# means the second starts from a checkout that already contains the first's
+# commit. Not cancel-in-progress: a skipped run would leave share pages stale.
+concurrency:
+  group: auto-commit-main
+  cancel-in-progress: false
+
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -43,5 +52,18 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "Auto-regenerate share pages + sitemap [skip ci]"
-            git push
+            # Rebase-then-push, retried — see the matching block in
+            # bump-css-version.yml for the full reasoning. The concurrency group
+            # above should already prevent the collision; this also covers a
+            # human pushing to main mid-run.
+            for attempt in 1 2 3; do
+              if git push; then
+                echo "Pushed on attempt $attempt."
+                exit 0
+              fi
+              echo "Push rejected, rebasing and retrying ($attempt/3)..."
+              git pull --rebase origin main
+            done
+            echo "Could not push after 3 attempts." >&2
+            exit 1
           fi
