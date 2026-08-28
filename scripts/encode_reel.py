@@ -889,14 +889,19 @@ def publish_status():
         run(["git", "-C", str(REPO_ROOT), "add", "--", rel])
         run(["git", "-C", str(REPO_ROOT), "commit", "-m",
              "Reel pipeline status [skip ci]", "--", rel])
-        # --autostash so a working tree mid-encode (new mp4s sitting unstaged)
-        # never blocks the rebase.
-        run(["git", "-C", str(REPO_ROOT), "pull", "--rebase", "--autostash",
-             "origin", "main"])
+
         push = run(["git", "-C", str(REPO_ROOT), "push", "origin", "main"])
         if push.returncode != 0:
-            log(f"  (status push failed, continuing: "
-                f"{push.stderr.strip().splitlines()[-1] if push.stderr.strip() else '?'})")
+            # Only rebase when the push actually loses a race (the cache-buster
+            # workflow commits to main too). Rebasing unconditionally would mean
+            # --autostash shuffling ~115 MB of freshly encoded, still-unstaged
+            # video in and out of the stash on every single status update.
+            run(["git", "-C", str(REPO_ROOT), "pull", "--rebase", "--autostash",
+                 "origin", "main"])
+            push = run(["git", "-C", str(REPO_ROOT), "push", "origin", "main"])
+        if push.returncode != 0:
+            tail = push.stderr.strip().splitlines()
+            log(f"  (status push failed, continuing: {tail[-1] if tail else '?'})")
     except Exception as e:
         # Status publishing must never take the encode down with it.
         log(f"  (status publish skipped: {e})")
