@@ -9,8 +9,8 @@
   but api.github.com). It reads and writes data/projects.json, data/settings.json, and
   data/strings.json directly, and uploads images into assets/ the same way — so saving
   here commits straight to the repo and the live site updates itself within about a
-  minute via GitHub Pages. The hero video (video/reel.mp4) is NOT editable here — see
-  the script overview further down for why, and how to replace it instead.
+  minute via GitHub Pages. The hero video is NOT editable here — see the script
+  overview further down for why, and how to replace it instead.
 
   No build step, no npm install: Google Fonts are loaded from a CDN
   at runtime via plain script/link tags, same zero-tooling approach as the rest of
@@ -819,10 +819,16 @@
 //   6. Editor — the add/edit project form, including gallery drag-to-reorder
 //   7. Save/Delete — where an edited project actually gets written back to GitHub
 //
-// No hero video upload here — ffmpeg.wasm's single-thread build (the only one that
-// works without server headers GitHub Pages can't provide) can't run off the main
-// thread, so it freezes the tab on anything but small files. Replacing the hero reel
-// goes through Claude in chat instead, which compresses it with real ffmpeg.
+// No hero video upload here, for three reasons that stack:
+//   - ffmpeg.wasm's single-thread build (the only one that works without the COOP/COEP
+//     headers GitHub Pages can't provide) can't run off the main thread, so it freezes
+//     the tab on anything but small files.
+//   - Every write above goes through the GitHub Contents API, which is base64 and caps
+//     out near 100MB. A 4GB ProRes master can't pass through it at all.
+//   - The encode is ~20 min of CPU. It's a real compute job, not a browser task.
+// So it runs locally instead, where the master and the CPU already are: drop the file
+// in the reel dropbox folder and scripts/encode_reel.py handles it. See "Vidéo du reel"
+// in the README.
 // ---------------------------------------------------------------
 
 /* ---------- Toasts ----------

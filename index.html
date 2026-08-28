@@ -56,19 +56,36 @@
   </div>
 </nav>
 
-<!-- Hero: self-hosted reel (video/reel.mp4), sized/muted via the script at the bottom.
+<!-- Hero: self-hosted reel, sized/muted via the script at the bottom.
 
-     preload="metadata", NOT "auto" — changed Aug 2026 after an audit. reel.mp4 is ~89MB;
-     preload="auto" invites the browser to fetch as much of that as it can the moment the
-     page loads, for every visitor, whether or not they ever watch it. Against GitHub
-     Pages' ~100GB/month soft bandwidth ceiling that's roughly 1,100 homepage visits
-     before the site risks being throttled. "metadata" fetches only the header, then the
-     autoplay attribute + the explicit play() call below start a normal progressive
-     download — playback still begins on its own, it just streams instead of racing to
-     buffer the whole file up front. The poster (assets/hero-poster.jpg) is what actually
-     fills the frame on first paint either way, so there's nothing visible to lose here.
-     fetchpriority="high" is dropped for the same reason: it was telling the browser to
-     prioritize that download over the project thumbnails people actually scroll to. -->
+     TWO SOURCES, AV1 FIRST — Aug 2026. The browser takes the first <source> it can
+     decode, so ordering is the whole mechanism. The reel is grain-heavy footage, and
+     grain is what compresses worst: measured on the 2026 master, x264 wants ~7.3Mbps
+     (~166MB) to hold that texture, but GitHub hard-rejects any file over 100MB. The old
+     single H.264 shipped at 3.7Mbps — about half what the grain needed, which is why it
+     looked mushy. AV1 carries the same real grain for roughly a third of the bits, so
+     reel.av1.mp4 is what almost everyone actually gets. reel.mp4 stays purely as a
+     fallback for Safari <=16 / iOS <=16, which can't decode AV1.
+
+     The codecs="av01..." string is load-bearing: if it doesn't match the file, Safari
+     silently skips AV1 and drops to the fallback. scripts/encode_reel.py prints the
+     correct string for whatever it just encoded — paste it, don't guess it.
+
+     preload="metadata", NOT "auto" — changed Aug 2026 after an audit. preload="auto"
+     invites the browser to fetch as much of the reel as it can the moment the page
+     loads, for every visitor, whether or not they ever watch it. Against GitHub Pages'
+     ~100GB/month soft bandwidth ceiling that's a real throttling risk. "metadata"
+     fetches only the header, then the autoplay attribute + the explicit play() call
+     below start a normal progressive download — playback still begins on its own, it
+     just streams instead of racing to buffer the whole file up front. The poster
+     (assets/hero-poster.jpg) is what actually fills the frame on first paint either
+     way, so there's nothing visible to lose here. fetchpriority="high" is dropped for
+     the same reason: it was telling the browser to prioritize that download over the
+     project thumbnails people actually scroll to.
+
+     The poster is frame 0 of the cut, not an arbitrary still — it eases from grayscale
+     to colour on 'loadeddata' (see #reel-video / .is-ready in style.css), so it has to
+     be the exact frame playback starts on or the handoff visibly jumps. -->
 <header class="hero">
   <h1 class="sr-only">
     <span data-fr>Ismael OB — Coloriste basé à Montréal</span>
@@ -77,6 +94,7 @@
   <div class="reel-frame">
     <div class="reel-embed">
       <video id="reel-video" autoplay muted loop playsinline webkit-playsinline preload="metadata" poster="assets/hero-poster.jpg" title="Ismael OB - Demo Reel" disableRemotePlayback disablePictureInPicture>
+        <source src="video/reel.av1.mp4" type='video/mp4; codecs="av01.0.08M.10"'>
         <source src="video/reel.mp4" type="video/mp4">
       </video>
       <button id="fullscreen-toggle" type="button" aria-label="Fullscreen">

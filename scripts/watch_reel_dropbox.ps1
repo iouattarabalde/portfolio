@@ -1,0 +1,160 @@
+<#
+.SYNOPSIS
+    Drop-folder watcher for the hero reel. Run by a Scheduled Task every 5 min.
+
+.DESCRIPTION
+    Polls the drop folder for a new reel master and hands it to encode_reel.py.
+    Everything real happens there; this is just the trigger, the log, and the
+    Windows plumbing.
+
+    Polling rather than a long-running FileSystemWatcher, deliberately: a
+    scheduled poll survives reboots, sleep and Explorer restarts, can't leak a
+    hung process, and a 5-minute delay is irrelevant next to a ~25 minute
+    encode. encode_reel.py holds its own lock file, so ticks that land during a
+    run exit immediately instead of starting a second encode.
+
+    A run that reaches the review gate BLOCKS here until a CRF is picked (in the
+    browser page it opens, or via --pick), up to encode_reel.py's timeout. That
+    is intentional -- it keeps the lock held so no second master jumps the queue.
+
+.PARAMETER Setup
+    Registers the Scheduled Task and creates the drop folder, then exits.
+
+.PARAMETER Unregister
+    Removes the Scheduled Task.
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File scripts\watch_reel_dropbox.ps1 -Setup
+#>
+[CmdletBinding()]
+param(
+    [switch]$Setup,
+    [switch]$Unregister
+)
+
+$ErrorActionPreference = 'Stop'
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RepoRoot  = Split-Path -Parent $ScriptDir
+$Encoder   = Join-Path $ScriptDir 'encode_reel.py'
+$LogFile   = Join-Path $ScriptDir 'reel-encode.log'   # *.log is gitignored
+$TaskName  = 'IOB-ReelEncoder'
+
+# Keep in step with DROP_DIR in encode_reel.py; REEL_DROP_DIR overrides both.
+$DropDir = if ($env:REEL_DROP_DIR) { $env:REEL_DROP_DIR } else { 'E:\_reel-dropbox' }
+
+function Write-Log {
+    param([string]$Message, [string]$Level = 'INFO')
+    $line = '{0} [{1}] {2}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Level, $Message
+    Add-Content -LiteralPath $LogFile -Value $line -Encoding utf8
+    Write-Host $line
+}
+
+function Rotate-Log {
+    # A scheduled task that fails silently is worse than no task at all, so the
+    # log is the only real feedback channel. Keep it from growing without bound.
+    if (Test-Path $LogFile) {
+        $sizeMB = (Get-Item $LogFile).Length / 1MB
+        if ($sizeMB -gt 5) {
+            Move-Item -LiteralPath $LogFile -Destination "$LogFile.1" -Force
+        }
+    }
+}
+
+function Resolve-Python {
+    foreach ($candidate in @('python', 'python3', 'py')) {
+        $cmd = Get-Command $candidate -ErrorAction SilentlyContinue
+        if ($cmd) { return $cmd.Source }
+    }
+    throw 'No Python interpreter found on PATH.'
+}
+
+# ---------------------------------------------------------------------------
+# Setup / teardown
+# ---------------------------------------------------------------------------
+
+if ($Setup) {
+    if (-not (Test-Path $DropDir)) {
+        New-Item -ItemType Directory -Path $DropDir -Force | Out-Null
+        Write-Host "Created drop folder: $DropDir"
+    } else {
+        Write-Host "Drop folder already exists: $DropDir"
+    }
+
+    $psExe = (Get-Command powershell.exe).Source
+    # The \" escaping is required, not cosmetic: both paths contain spaces, and
+    # PowerShell 5.1 strips bare double quotes when handing arguments to a native
+    # exe -- schtasks then sees "Code\portfolio\..." as a separate argument and
+    # rejects it. Escaped quotes survive the handoff intact.
+    $cmd = '\"{0}\" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\"' -f $psExe, $MyInvocation.MyCommand.Path
+
+    # schtasks.exe rather than Register-ScheduledTask, for two concrete reasons
+    # found the hard way: the cmdlets need elevation to write a task at the root
+    # folder, and their "repeat forever" TimeSpan ([TimeSpan]::MaxValue) is
+    # accepted by New-ScheduledTaskTrigger but then REJECTED by Task Scheduler as
+    # out of range. /SC MINUTE /MO 5 expresses the same thing natively and
+    # registers fine as a normal user.
+    #
+    # No /RU or /RL: the task runs as the invoking user, only while logged on.
+    # That is deliberate -- the review gate opens a browser page, which needs a
+    # desktop session to open onto.
+    $out = schtasks /Create /SC MINUTE /MO 5 /TN $TaskName /TR $cmd /F 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host $out
+        throw "Could not register the scheduled task (exit $LASTEXITCODE)."
+    }
+
+    Write-Host ''
+    Write-Host "Registered scheduled task '$TaskName' (every 5 minutes)."
+    Write-Host "Drop a reel master into: $DropDir"
+    Write-Host "Log: $LogFile"
+    Write-Host ''
+    Write-Host "Remove it later with:  -Unregister"
+    exit 0
+}
+
+if ($Unregister) {
+    schtasks /Delete /TN $TaskName /F | Out-Null
+    Write-Host "Removed scheduled task '$TaskName'."
+    exit 0
+}
+
+# ---------------------------------------------------------------------------
+# Normal tick
+# ---------------------------------------------------------------------------
+
+Rotate-Log
+
+if (-not (Test-Path $DropDir)) {
+    Write-Log "Drop folder missing: $DropDir. Run with -Setup." 'ERROR'
+    exit 1
+}
+
+$exts = @('.mov', '.mp4', '.mxf', '.m4v', '.avi', '.mkv')
+$pending = Get-ChildItem -LiteralPath $DropDir -File -ErrorAction SilentlyContinue |
+    Where-Object { $exts -contains $_.Extension.ToLower() }
+
+if (-not $pending) { exit 0 }   # quiet tick, nothing to say
+
+try {
+    $python = Resolve-Python
+} catch {
+    Write-Log $_.Exception.Message 'ERROR'
+    exit 1
+}
+
+Write-Log ("Tick: {0} candidate file(s) in drop folder." -f $pending.Count)
+
+# encode_reel.py decides what's actually new (its own state file), waits for the
+# file to finish copying, and no-ops if another run holds the lock.
+& $python $Encoder --watch 2>&1 | ForEach-Object {
+    Add-Content -LiteralPath $LogFile -Value $_ -Encoding utf8
+    Write-Host $_
+}
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "encode_reel.py exited with code $LASTEXITCODE." 'ERROR'
+    exit $LASTEXITCODE
+}
+
+Write-Log 'Tick complete.'

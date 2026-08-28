@@ -24,7 +24,7 @@ les cas qui sortent de l'admin.
 | Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | L'aperçu reflète aussi tes réglages non enregistrés (halo, grain, fond) |
 | Ajuster l'intensité/taille/étalement du halo du reel, le grain (texture appliquée sur tout le site), ou la couleur de fond | Admin → Design → curseurs en haut de l'onglet | Rien ne se publie tant que tu n'as pas cliqué Enregistrer ; Réinitialiser remet les valeurs par défaut dans l'aperçu (sans publier) |
 | Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
-| Remplacer le reel principal (vidéo hero) | **Pas dans l'admin** | Envoyer le fichier vidéo à Claude par le chat — nécessite un vrai réencodage. Viser nettement moins que les ~89 MB actuels, voir "Vidéo du reel" |
+| Remplacer le reel principal (vidéo hero) | **Pas dans l'admin** | Déposer le master dans `E:\_reel-dropbox` — le pipeline s'occupe du reste et t'ouvre une page pour valider le grain. Voir "Vidéo du reel" |
 | Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
 | Changer polices / mise en page | Verrouillé, pas d'éditeur admin | Demander à Claude |
 | Ajouter un tout nouveau texte bilingue à un endroit du site qui n'en a pas encore | Touche 3 fichiers différents | Demander à Claude |
@@ -73,11 +73,12 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()`, `initLangToggle()` et `applyDesignSettings()`. Chacun existait auparavant en deux ou trois copies recopiées à la main |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
 | `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
-| `video/reel.mp4` | Reel auto-hébergé (~89 MB — voir "Vidéo du reel") |
+| `video/reel.av1.mp4` | Reel auto-hébergé, **source principale** (AV1 10 bits — voir "Vidéo du reel") |
+| `video/reel.mp4` | Même reel en H.264, filet de compatibilité pour Safari ≤16 / iOS ≤16 |
 | `assets/` | Stills et vignettes des projets |
 | `assets/og/` | **Généré**, ne pas éditer à la main : une image de partage 1200×630 par projet |
 | `project/` | **Généré**, ne pas éditer à la main : une coquille HTML par projet, qui porte les balises Open Graph que les crawlers lisent puis redirige vers la vraie page |
-| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément du cache-buster |
+| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément du cache-buster. Contient aussi le pipeline d'encodage du reel (`encode_reel.py` + `watch_reel_dropbox.ps1`), qui tourne en local et pas dans la CI |
 | `.github/workflows/` | Les deux automatisations elles-mêmes — voir "Automatisations" plus bas |
 | `sitemap.xml` | **Généré** à partir de `projects.json` |
 | `.nojekyll`, `robots.txt`, `CNAME`, `favicon.ico` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom, favicon de repli) |
@@ -226,13 +227,21 @@ Permet de :
 
 Pas de bouton "dupliquer" un projet — volontairement retiré, "+ Nouveau projet" suffit.
 
-**Le reel principal (`video/reel.mp4`) ne se change pas depuis l'admin.** Une tentative avec
-ffmpeg.wasm (compression dans le navigateur) a été faite puis retirée : sa seule variante
-compatible avec GitHub Pages (mono-thread, sans les en-têtes serveur COOP/COEP qu'on ne peut
-pas y configurer) ne peut pas tourner dans un thread séparé, donc elle gèle l'onglet le temps
-du traitement, sans limite fiable au-delà de quelques dizaines de MB. Pour remplacer le reel,
-envoyer le fichier vidéo à Claude par le chat, qui le compresse avec un vrai ffmpeg côté
-serveur et le publie directement.
+**Le reel principal ne se change pas depuis l'admin**, et ce n'est pas un oubli. Trois
+raisons qui se cumulent :
+
+- Une tentative avec ffmpeg.wasm (compression dans le navigateur) a été faite puis retirée :
+  sa seule variante compatible avec GitHub Pages (mono-thread, sans les en-têtes COOP/COEP
+  qu'on ne peut pas y configurer) ne peut pas tourner dans un thread séparé, donc elle gèle
+  l'onglet, sans limite fiable au-delà de quelques dizaines de MB.
+- L'admin écrit **tout** via l'API Contents de GitHub, qui passe en base64 et plafonne autour
+  de 100 MB. Un master ProRes de 4 Go ne peut tout simplement pas transiter par là.
+- L'encodage prend une vingtaine de minutes de CPU. C'est un vrai calcul, pas une tâche de
+  navigateur.
+
+Le remplacement se fait donc **en local, là où le master et le processeur sont déjà** :
+déposer le fichier dans le dossier de dépôt (voir "Vidéo du reel"). Le pipeline fait le reste
+et n'ouvre une page de validation que pour la seule décision qui demande un œil — le grain.
 
 ## Ajouter/modifier un projet
 
@@ -317,46 +326,106 @@ reprend les tokens du site (fond `--bg`, monogramme `--accent`).
 
 ## Vidéo du reel
 
-Un seul fichier, `video/reel.mp4` (1080p, ~3.5 Mbps, **~89 MB**), servi tel quel à tout le
-monde. Il a existé un temps une seconde version allégée pour mobile (`reel-mobile.mp4`,
-~1.6 Mbps) choisie via `<source media="...">`, retirée depuis au profit d'une source unique.
-Le reel démarre muet (l'autoplay l'exige dans tous les navigateurs) ; le bouton son active
-un vrai son sur mobile comme sur ordinateur.
+Deux fichiers, servis au même endroit — le navigateur prend le **premier `<source>` qu'il
+sait décoder** :
 
-Réencodé le 9 juillet 2026 à partir du vrai master (`Portfolio.mov`, H.264 1080p 16 Mbps,
-fourni par Ismael) — remplace une première passe qui repartait par erreur d'une version
-déjà compressée du reel.
+| Fichier | Codec | Pour qui |
+|---|---|---|
+| `video/reel.av1.mp4` | AV1 10 bits | Tout le monde ou presque (Chrome, Edge, Firefox, Safari 17+) |
+| `video/reel.mp4` | H.264 8 bits | Uniquement Safari ≤16 / iOS ≤16, qui ne décodent pas l'AV1 |
 
-### ⚠️ Sa taille est un vrai problème
+Le poster `assets/hero-poster.jpg` est **l'image 0 du montage**, pas une image au hasard :
+elle s'affiche en noir et blanc puis passe en couleur au chargement (`#reel-video.is-ready`
+dans `style.css`). Si ce n'était pas exactement l'image de départ, le passage du poster à la
+lecture ferait un saut visible.
 
-89 MB pour un fichier que la page d'accueil charge à chaque visite, c'est trop, pour deux
-raisons concrètes :
+Le reel démarre muet (l'autoplay l'exige dans tous les navigateurs) ; le bouton son active un
+vrai son sur mobile comme sur ordinateur. Le mix n'est jamais normalisé au réencodage — c'est
+un choix artistique, on le transporte tel quel.
 
-- **La bande passante.** GitHub Pages tolère environ 100 GB par mois. À 89 MB la visite,
-  ça fait de l'ordre de 1 100 visites de la page d'accueil avant de s'en approcher.
-- **La limite par fichier.** GitHub refuse tout fichier de plus de 100 MB. Il ne reste que
-  11 MB de marge : un réencodage un peu plus généreux serait purement et simplement rejeté
-  au moment de le pousser.
+### Pourquoi deux fichiers, et pourquoi de l'AV1
 
-Un premier correctif est déjà en place (août 2026) : le tag `<video>` est passé de
-`preload="auto"` à `preload="metadata"`. Auparavant le navigateur était invité à télécharger
-le fichier entier dès l'ouverture de la page, même pour quelqu'un qui ne regardait pas le
-reel ; maintenant il ne prend que l'en-tête et la vidéo se charge au fil de la lecture. Ça
-supprime le pire du gaspillage, mais quelqu'un qui regarde le reel en entier télécharge
-toujours 89 MB.
+Le reel est une image à fort grain, et le grain est exactement ce qui compresse le plus mal.
+Mesuré sur le master 2026 (échantillons à trois endroits du montage) :
 
-**Le vrai correctif reste à faire : réencoder plus petit.** Pour une vidéo de fond muette
-qui tourne en boucle, viser ~1,5–2 Mbps (soit ~40 MB) plutôt que 3,5 : la perte est à peine
-visible dans ce contexte, et ça rend à la fois la marge sous la limite de 100 MB et le budget
-de bande passante.
+| Encodeur | Réglage | Débit mesuré | Taille estimée |
+|---|---|---|---|
+| x264 | CRF 23, tune film | 7,3 Mbps | ~166 MB |
+| **AV1 10 bits** | **CRF 30** | **2,2 Mbps** | **~50 MB** |
+| AV1 10 bits | CRF 35 | 1,2 Mbps | ~27 MB |
 
-### Pour retranscoder
+GitHub refuse tout fichier de plus de 100 MB. Autrement dit : **en H.264 seul, il est
+physiquement impossible de garder ce grain.** L'ancien reel partait à 3,7 Mbps, soit environ
+la moitié de ce que le grain réclamait — c'est précisément pour ça qu'il bouillait.
 
-Découper la source en segments de ~50s (`ffmpeg -f segment -segment_time 50`), encoder
-chaque segment séparément pour rester sous la limite de temps d'un appel d'outil, puis
-concaténer (`ffmpeg -f concat`). Toujours repartir du master d'origine si disponible plutôt
-que d'une version déjà compressée : réencoder à partir d'un fichier déjà compressé ne
-restitue pas le détail perdu, ça réduit seulement les artefacts.
+L'AV1 transporte le *même grain réel* pour environ un tiers des bits. C'est la seule raison
+pour laquelle l'objectif de qualité tient sous la limite de GitHub. Le H.264 ne reste là que
+comme filet de compatibilité.
+
+La **synthèse de grain** (AV1 `film-grain`) a été testée et écartée : sur cette image elle ne
+faisait gagner à peu près rien (1153 contre 1174 kbps) et remplaçait le vrai grain par du
+grain synthétique. On encode le vrai grain, sans synthèse et sans débruitage.
+
+Effet secondaire agréable : la plupart des visiteurs téléchargent maintenant **moins** qu'avant
+(~60 MB au lieu de 89), ce qui double à peu près la marge sous le plafond de bande passante de
+GitHub Pages (~100 GB/mois).
+
+### Remplacer le reel
+
+**Déposer le master dans le dossier de dépôt, c'est tout.** Par défaut `E:\_reel-dropbox`
+(modifiable via la variable d'environnement `REEL_DROP_DIR`). Une tâche planifiée regarde
+toutes les 5 minutes.
+
+Ce qui se passe ensuite, sans rien faire :
+
+1. Le pipeline attend que le fichier ait fini de se copier (un master ProRes fait plusieurs Go)
+   et refuse les fichiers cloud non téléchargés.
+2. Il analyse le fichier et **calcule le CRF tout seul** : il encode des échantillons à deux
+   CRF, ajuste une courbe débit/CRF, et résout pour la taille visée. Un montage plus ou moins
+   granuleux obtient donc automatiquement un réglage différent — rien n'est codé en dur.
+3. Il encode un extrait court **de la section la plus granuleuse** à trois CRF, extrait des
+   images fixes, et **ouvre une page de comparaison à 100 %** dans le navigateur.
+4. Tu regardes, tu cliques sur un CRF. C'est la seule décision demandée.
+5. Il encode l'AV1 et le H.264 en entier, extrait le poster, vérifie tout, et dépose les trois
+   fichiers dans le dépôt.
+
+Il **ne commit pas et ne pousse pas** : tu relis, puis tu commit toi-même.
+
+Vérifications automatiques avant dépôt : taille sous 100 MB, atome `moov` en tête
+(`+faststart`, sans quoi la lecture progressive bloque), durée conforme à la source, balises
+colorimétriques bt709/tv conservées, piste audio présente. Si quoi que ce soit cloche, il
+refuse de déposer et laisse les fichiers dans son dossier de travail.
+
+En ligne de commande, si besoin :
+
+```bash
+python scripts/encode_reel.py --file "chemin/vers/master.mov"   # manuel
+python scripts/encode_reel.py --file X --dry-run                # analyse seule
+python scripts/encode_reel.py --file X --pick 29                # sauter la validation
+```
+
+Installation de la tâche planifiée (une seule fois) :
+
+```
+powershell -ExecutionPolicy Bypass -File scripts\watch_reel_dropbox.ps1 -Setup
+```
+
+Journal : `scripts/reel-encode.log`. **C'est le seul retour d'une tâche planifiée** — c'est là
+qu'il faut regarder si un encodage semble ne pas être parti.
+
+### Notes
+
+- ffmpeg n'est pas installé au niveau système ; le pipeline utilise celui fourni avec Shutter
+  Encoder (`C:\Program Files\Shutter Encoder\Library`). La variable `FFMPEG_BIN` permet de
+  pointer ailleurs.
+- Toujours repartir du master d'origine, jamais d'une version déjà compressée : réencoder
+  depuis un fichier compressé ne restitue pas le détail perdu, ça ne fait que lisser les
+  artefacts.
+- La chaîne `codecs="av01..."` dans `index.html` doit correspondre au fichier. Si elle est
+  fausse, Safari ignore l'AV1 sans rien dire et bascule sur le H.264. Le script affiche la
+  bonne chaîne à la fin de chaque encodage.
+- Chaque remplacement de reel laisse l'ancien fichier dans l'historique git pour toujours. Le
+  dépôt grossit donc à chaque mise à jour ; à surveiller sur la durée.
 
 ## Historique
 
