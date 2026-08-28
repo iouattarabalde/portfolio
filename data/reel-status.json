@@ -1,0 +1,27 @@
+{
+  "heartbeat": "2026-08-27T22:42:17-0400",
+  "job": {
+    "since": "2026-08-27T22:42:17-0400",
+    "state": "idle",
+    "detail": "Rien en attente"
+  },
+  "queue": [],
+  "current": {
+    "av1": {
+      "name": "reel.av1.mp4",
+      "mb": 54.7
+    },
+    "h264": {
+      "name": "reel.mp4",
+      "mb": 60.1
+    },
+    "poster": {
+      "name": "hero-poster.jpg",
+      "mb": 0.1
+    },
+    "width": 1920,
+    "height": 1080,
+    "duration": 191.62,
+    "fps": 24.0
+  }
+}
