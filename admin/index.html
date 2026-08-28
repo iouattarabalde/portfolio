@@ -567,6 +567,7 @@
     <button class="tab-btn" data-tab="projets">Projets</button>
     <button class="tab-btn" data-tab="textes">Textes du site</button>
     <button class="tab-btn" data-tab="design">Design</button>
+    <button class="tab-btn" data-tab="reel">Reel</button>
   </div>
 
   <div class="tab-panel" id="tab-projets">
@@ -721,6 +722,37 @@
   </div><!-- /design-preview-col -->
   </div><!-- /design-layout -->
   </div><!-- /tab-design -->
+
+  <!-- Onglet Reel : lecture seule. Le fichier ne transite PAS par ici -- l'admin
+       ecrit via l'API Contents de GitHub, qui plafonne autour de 100 Mo, et un
+       master ProRes fait plusieurs Go. Le transport passe donc par Google Drive
+       (dossier _to-web), que le poste principal surveille. Ce panneau lit
+       data/reel-status.json, que le pipeline publie a chaque changement d'etat. -->
+  <div class="tab-panel" id="tab-reel">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+      <h2 style="font-size:16px;">Reel</h2>
+      <button class="btn" id="reel-refresh-btn">Rafraîchir</button>
+    </div>
+
+    <div style="border:1px solid var(--line); background:var(--bg-raised); padding:20px; margin-bottom:16px;">
+      <h3 style="font-size:14px; margin:0 0 12px;">Déposer un nouveau reel</h3>
+      <p class="field-hint" style="margin:0 0 14px;">
+        Dépose le master dans <code>Google&nbsp;Drive → Color&nbsp;Grading → Demos → _to-web</code>.
+        Depuis n'importe quelle machine ou un téléphone&nbsp;: <a href="https://drive.google.com" target="_blank" rel="noopener">drive.google.com</a>, même dossier.
+        Aucune limite de taille, et l'envoi reprend tout seul s'il est interrompu.
+      </p>
+      <p class="field-hint" style="margin:0;">
+        Le fichier ne passe pas par cette page&nbsp;: l'admin écrit via l'API GitHub, qui
+        plafonne vers 100&nbsp;Mo, alors qu'un master ProRes pèse plusieurs Go.
+        <strong>C'est le poste principal qui encode</strong> — s'il est éteint, le fichier
+        attend sans rien casser et l'encodage démarre au prochain démarrage.
+      </p>
+    </div>
+
+    <div id="reel-status-card" style="border:1px solid var(--line); background:var(--bg-raised); padding:20px;">
+      <p class="field-hint" style="margin:0;">Chargement…</p>
+    </div>
+  </div><!-- /tab-reel -->
 </div>
 
 <!-- Add/edit project overlay. Filled in by openEditor(index) — index is null for a new
@@ -818,6 +850,7 @@
 //   5. Dashboard — project list with drag-to-reorder
 //   6. Editor — the add/edit project form, including gallery drag-to-reorder
 //   7. Save/Delete — where an edited project actually gets written back to GitHub
+//   8. Reel tab — READ-ONLY status of the hero-reel pipeline (data/reel-status.json)
 //
 // No hero video upload here, for three reasons that stack:
 //   - ffmpeg.wasm's single-thread build (the only one that works without the COOP/COEP
@@ -826,9 +859,16 @@
 //   - Every write above goes through the GitHub Contents API, which is base64 and caps
 //     out near 100MB. A 4GB ProRes master can't pass through it at all.
 //   - The encode is ~20 min of CPU. It's a real compute job, not a browser task.
-// So it runs locally instead, where the master and the CPU already are: drop the file
-// in the reel dropbox folder and scripts/encode_reel.py handles it. See "Vidéo du reel"
-// in the README.
+// So it runs locally instead, where the master and the CPU already are. The transport
+// is Google Drive: drop the master in Demos/_to-web from any machine (drive.google.com
+// works from a phone), and the desktop's scheduled task picks it up. No upload UI to
+// build, no size cap, and resumable uploads for free.
+//
+// The Reel tab here is the read-only half of that: scripts/encode_reel.py publishes
+// data/reel-status.json as it works, so you can tell from a laptop whether anything is
+// happening. Its heartbeat is the load-bearing part — without it, "nothing queued" and
+// "the desktop is asleep so your drop will never be touched" look identical.
+// See "Vidéo du reel" in the README.
 // ---------------------------------------------------------------
 
 /* ---------- Toasts ----------
@@ -2593,6 +2633,120 @@ document.getElementById('design-save-btn').addEventListener('click', async () =>
 });
 
 
+/* ---------- Onglet Reel (lecture seule) ----------
+   Lit data/reel-status.json, que scripts/encode_reel.py publie (et pousse) a chaque
+   changement d'etat. Rien ne s'ecrit d'ici : le fichier video ne transite pas par
+   l'admin, seul le poste principal encode.
+
+   Le heartbeat est la partie qui compte vraiment. Sans lui, "aucun travail en cours"
+   et "le poste est eteint, ton fichier ne sera jamais traite" s'affichent exactement
+   pareil -- et c'est precisement la question qu'on se pose depuis un portable. */
+const REEL_STATUS_PATH = 'data/reel-status.json';
+const REEL_STALE_MIN = 20;   // 4 ticks manques (la tache tourne toutes les 5 min)
+
+const REEL_STATE_LABELS = {
+  idle:            { text: 'Au repos',            color: 'var(--fg-dim)' },
+  waiting_settle:  { text: 'Copie en cours',      color: '#d8a657' },
+  probing:         { text: 'Analyse',             color: '#d8a657' },
+  awaiting_review: { text: 'Attend ton choix',    color: 'var(--accent)' },
+  encoding:        { text: 'Encodage',            color: '#d8a657' },
+  verifying:       { text: 'Vérification',        color: '#d8a657' },
+  done:            { text: 'Terminé',             color: '#89b482' },
+  failed:          { text: 'Échec',               color: '#ea6962' },
+};
+
+function reelAgo(iso) {
+  if (!iso) return null;
+  const then = new Date(iso);
+  if (isNaN(then)) return null;
+  const min = Math.floor((Date.now() - then.getTime()) / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h} h`;
+  return `il y a ${Math.floor(h / 24)} j`;
+}
+
+function reelMinutesSince(iso) {
+  const then = new Date(iso);
+  return isNaN(then) ? Infinity : (Date.now() - then.getTime()) / 60000;
+}
+
+async function loadReelStatus() {
+  const card = document.getElementById('reel-status-card');
+  card.innerHTML = '<p class="field-hint" style="margin:0;">Chargement…</p>';
+  let st;
+  try {
+    const file = await ghGetFile(REEL_STATUS_PATH);
+    if (!file) {
+      card.innerHTML = '<p class="field-hint" style="margin:0;">Aucun statut publié pour le moment. ' +
+        'Le pipeline en écrira un à sa prochaine exécution.</p>';
+      return;
+    }
+    st = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+  } catch (e) {
+    card.innerHTML = `<p class="field-hint" style="margin:0; color:#ea6962;">Impossible de lire le statut : ${esc(e.message)}</p>`;
+    return;
+  }
+
+  const job = st.job || {};
+  const meta = REEL_STATE_LABELS[job.state] || { text: job.state || 'inconnu', color: 'var(--fg-dim)' };
+  const stale = reelMinutesSince(st.heartbeat) > REEL_STALE_MIN;
+  const cur = st.current || {};
+  const queue = st.queue || [];
+
+  let html = '';
+
+  if (stale) {
+    html += `<div style="border:1px solid #ea6962; background:rgba(234,105,98,.08); padding:12px 14px; margin-bottom:16px;">
+      <strong style="color:#ea6962;">Le poste d'encodage ne répond pas.</strong>
+      <div class="field-hint" style="margin:4px 0 0;">Dernier signe de vie ${esc(reelAgo(st.heartbeat) || 'jamais')}.
+      Un fichier déposé maintenant attendra sans risque, mais rien ne sera encodé tant que le poste
+      n'est pas rallumé.</div>
+    </div>`;
+  }
+
+  html += `<div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+    <span style="width:9px; height:9px; border-radius:50%; background:${meta.color}; flex:none;"></span>
+    <strong style="font-size:14px;">${esc(meta.text)}</strong>
+    <span class="field-hint" style="margin:0;">${esc(reelAgo(job.since) || '')}</span>
+  </div>`;
+  if (job.detail) html += `<p class="field-hint" style="margin:0 0 4px;">${esc(job.detail)}</p>`;
+  if (job.source) html += `<p class="field-hint" style="margin:0 0 16px;">Fichier&nbsp;: <code>${esc(job.source)}</code></p>`;
+  else html += '<div style="height:16px;"></div>';
+
+  if (job.state === 'awaiting_review') {
+    html += `<div style="border:1px solid var(--accent); padding:12px 14px; margin-bottom:16px;">
+      <strong>Le comparatif de grain t'attend.</strong>
+      <div class="field-hint" style="margin:4px 0 0;">Il s'ouvre sur le poste principal
+      (<code>http://127.0.0.1:8765</code>) — il n'est pas accessible à distance. L'encodage
+      complet ne démarrera pas tant qu'un CRF n'est pas choisi.</div>
+    </div>`;
+  }
+
+  if (queue.length) {
+    html += `<p class="field-hint" style="margin:0 0 16px;">En file&nbsp;: ${queue.map(q => `<code>${esc(q)}</code>`).join(', ')}</p>`;
+  }
+
+  html += '<h3 style="font-size:14px; margin:0 0 10px; padding-top:14px; border-top:1px solid var(--line);">Reel en ligne</h3>';
+  if (cur.av1 || cur.h264) {
+    const dims = cur.width ? `${cur.width}×${cur.height}` : '—';
+    const dur = cur.duration ? `${Math.floor(cur.duration / 60)}:${String(Math.round(cur.duration % 60)).padStart(2, '0')}` : '—';
+    html += `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <tr><td style="padding:4px 0; color:var(--fg-dim);">AV1 (source principale)</td><td style="text-align:right;">${cur.av1 ? cur.av1.mb + ' Mo' : '—'}</td></tr>
+      <tr><td style="padding:4px 0; color:var(--fg-dim);">H.264 (repli Safari ≤16)</td><td style="text-align:right;">${cur.h264 ? cur.h264.mb + ' Mo' : '—'}</td></tr>
+      <tr><td style="padding:4px 0; color:var(--fg-dim);">Poster</td><td style="text-align:right;">${cur.poster ? Math.round(cur.poster.mb * 1024) + ' Ko' : '—'}</td></tr>
+      <tr><td style="padding:4px 0; color:var(--fg-dim);">Format</td><td style="text-align:right;">${esc(dims)} · ${esc(dur)} · ${cur.fps || '—'} fps</td></tr>
+    </table>`;
+  } else {
+    html += '<p class="field-hint" style="margin:0;">Pas encore de données.</p>';
+  }
+
+  card.innerHTML = html;
+}
+
+document.getElementById('reel-refresh-btn').addEventListener('click', loadReelStatus);
+
 /* ---------- Onglets ----------
    Un seul panneau visible à la fois; l'onglet actif survit au rechargement (localStorage).
    En arrivant sur Design, on repousse le design courant dans l'iframe : elle a été mise en
@@ -2603,6 +2757,9 @@ function showTab(name) {
   for (const b of document.querySelectorAll('.tab-btn')) b.classList.toggle('active', b.dataset.tab === name);
   for (const p of document.querySelectorAll('.tab-panel')) p.classList.toggle('active', p.id === 'tab-' + name);
   localStorage.setItem(TAB_KEY, name);
+  // Refetched on every visit, not cached: the whole point of the panel is telling
+  // you what the encoder is doing right now.
+  if (name === 'reel') loadReelStatus();
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 showTab(localStorage.getItem(TAB_KEY) || 'projets');

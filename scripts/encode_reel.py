@@ -74,12 +74,25 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Where a new master gets dropped. Deliberately a LOCAL disk, not the Google
-# Drive folder the masters are exported to: Drive materializes files
-# progressively, so a watcher pointed there can fire on a half-synced file.
-# is_file_settled() below guards against that anyway, and also rejects
-# unmaterialized cloud placeholders, so a Drive path will work if preferred.
-DROP_DIR = Path(os.environ.get("REEL_DROP_DIR", r"E:\_reel-dropbox"))
+# Where a new master gets dropped. Two folders are watched, in this order:
+#
+#   1. A local disk folder -- fastest, nothing can half-sync underneath it.
+#   2. A Google Drive folder -- this is the "from any machine" route. The masters
+#      are already exported to Drive, so dropping one from a laptop or phone via
+#      drive.google.com puts it here with no upload UI to build and no size cap.
+#
+# Drive materializes files progressively, so a watcher pointed there can see a
+# file long before its bytes exist. is_file_settled() handles exactly that: it
+# waits for the size to stop moving and refuses unmaterialized placeholders.
+DROP_DIRS = [
+    Path(os.environ.get("REEL_DROP_DIR", r"E:\_reel-dropbox")),
+    Path(os.environ.get("REEL_DRIVE_DIR",
+                        r"G:\My Drive\Color Grading\Demos\_to-web")),
+]
+
+# Published to the repo so admin/ can show status from any machine. Deliberately
+# tiny and free of local paths -- the repo is public, so only basenames go in it.
+STATUS_FILE = REPO_ROOT / "data" / "reel-status.json"
 
 VIDEO_EXTS = {".mov", ".mp4", ".mxf", ".m4v", ".avi", ".mkv"}
 
@@ -796,6 +809,118 @@ def av1_codec_string(path):
 # Drop-folder plumbing
 # --------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------
+# Published status -- what admin/ reads
+# --------------------------------------------------------------------------
+#
+# The encode runs on one desktop, but the admin page is opened from anywhere.
+# The only channel between them that costs nothing and needs no server is the
+# repo itself, so the pipeline publishes a small JSON and pushes just that file.
+#
+# Nothing here is secret, but the repo IS public: store basenames only, never
+# full local paths, and never the drop folders' locations.
+
+STATUS_STATES = (
+    "idle",            # nothing to do
+    "waiting_settle",  # file seen, still copying/syncing
+    "probing",         # sampling the file to solve the CRF
+    "awaiting_review", # grain A/B is up, waiting on a human
+    "encoding",        # full AV1 + H.264 pass
+    "verifying",       # size / faststart / colour checks
+    "done",
+    "failed",
+)
+
+
+def read_status():
+    if STATUS_FILE.exists():
+        try:
+            return json.loads(STATUS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def write_status(state=None, detail=None, source=None, queue=None,
+                 current=None, publish=False):
+    """
+    Merge-and-write. Every field is optional so callers can update just the one
+    thing that changed without having to restate the rest.
+    """
+    st = read_status()
+    st["heartbeat"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    job = st.setdefault("job", {})
+    if state is not None:
+        if state not in STATUS_STATES:
+            raise ValueError(f"unknown status state {state!r}")
+        if job.get("state") != state:
+            job["since"] = st["heartbeat"]
+        job["state"] = state
+    if detail is not None:
+        job["detail"] = detail
+    if source is not None:
+        job["source"] = Path(source).name   # basename only: public repo
+    if queue is not None:
+        st["queue"] = [Path(q).name for q in queue]
+    if current is not None:
+        st["current"] = current
+
+    STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    STATUS_FILE.write_text(json.dumps(st, indent=2) + chr(10), encoding="utf-8")
+    if publish:
+        publish_status()
+    return st
+
+
+def publish_status():
+    """
+    Commit and push ONLY data/reel-status.json.
+
+    Scoped to that one path on purpose. The encoded reel is never auto-committed
+    -- that stays a deliberate human action -- but the status file is useless
+    unless it actually reaches GitHub, since the whole point is reading it from
+    another machine. [skip ci] keeps it from waking the cache-buster workflow.
+    """
+    rel = str(STATUS_FILE.relative_to(REPO_ROOT)).replace("\\", "/")
+    try:
+        r = run(["git", "-C", str(REPO_ROOT), "status", "--porcelain", "--", rel])
+        if not r.stdout.strip():
+            return  # nothing changed, don't make an empty commit
+        run(["git", "-C", str(REPO_ROOT), "add", "--", rel])
+        run(["git", "-C", str(REPO_ROOT), "commit", "-m",
+             "Reel pipeline status [skip ci]", "--", rel])
+        # --autostash so a working tree mid-encode (new mp4s sitting unstaged)
+        # never blocks the rebase.
+        run(["git", "-C", str(REPO_ROOT), "pull", "--rebase", "--autostash",
+             "origin", "main"])
+        push = run(["git", "-C", str(REPO_ROOT), "push", "origin", "main"])
+        if push.returncode != 0:
+            log(f"  (status push failed, continuing: "
+                f"{push.stderr.strip().splitlines()[-1] if push.stderr.strip() else '?'})")
+    except Exception as e:
+        # Status publishing must never take the encode down with it.
+        log(f"  (status publish skipped: {e})")
+
+
+def describe_current():
+    """Facts about the reel as it now stands on disk, for the admin panel."""
+    out = {}
+    for key, path in (("av1", OUT_AV1), ("h264", OUT_H264), ("poster", OUT_POSTER)):
+        if path.exists():
+            out[key] = {"name": path.name,
+                        "mb": round(path.stat().st_size / (1024 * 1024), 1)}
+    if OUT_AV1.exists():
+        try:
+            v = probe(OUT_AV1)
+            out["width"] = v["width"]
+            out["height"] = v["height"]
+            out["duration"] = round(v["duration"], 2)
+            out["fps"] = round(v["fps"], 3)
+        except SystemExit:
+            pass
+    return out
+
+
 STATE_FILE = Path(__file__).resolve().parent / ".reel_state.json"
 LOCK_FILE = Path(tempfile.gettempdir()) / "encode_reel.lock"
 
@@ -864,20 +989,39 @@ def release_lock():
         pass
 
 
-def find_dropped():
-    if not DROP_DIR.exists():
-        log(f"Drop folder {DROP_DIR} does not exist. Create it, or set "
-            f"REEL_DROP_DIR.")
-        return None
+def scan_drops():
+    """
+    Every unprocessed master across all drop folders, oldest first.
+
+    Missing folders are skipped quietly rather than treated as an error: the
+    Drive folder in particular is only present when Drive is mounted, and a
+    laptop-less week shouldn't fill the log with complaints.
+    """
     state = load_state()
-    for f in sorted(DROP_DIR.iterdir(), key=lambda p: p.stat().st_mtime):
-        if not f.is_file() or f.suffix.lower() not in VIDEO_EXTS:
+    found = []
+    for d in DROP_DIRS:
+        if not d.exists():
             continue
-        key = f"{f.name}:{f.stat().st_size}"
-        if key in state["processed"]:
-            continue
-        return f
-    return None
+        for f in sorted(d.iterdir(), key=lambda x: x.stat().st_mtime):
+            if not f.is_file() or f.suffix.lower() not in VIDEO_EXTS:
+                continue
+            if f"{f.name}:{f.stat().st_size}" in state["processed"]:
+                continue
+            found.append(f)
+    return found
+
+
+def find_dropped():
+    pending = scan_drops()
+    if not pending:
+        if not any(d.exists() for d in DROP_DIRS):
+            log("No drop folder exists yet. Run watch_reel_dropbox.ps1 -Setup, "
+                "or set REEL_DROP_DIR / REEL_DRIVE_DIR.")
+        return None
+    # The first is what we work on; the rest are reported as queued so the admin
+    # panel can show that something is stacked up behind the current job.
+    write_status(queue=[f.name for f in pending[1:]])
+    return pending[0]
 
 
 # --------------------------------------------------------------------------
@@ -906,6 +1050,8 @@ def process(src, pick=None, dry_run=False):
         if pick is None:
             log("")
             log("Phase 1 -- solving CRF from the file itself")
+            write_status(state="probing", source=src,
+                         detail="Analyse du grain et calcul du CRF", publish=True)
             crf, worst, fit = solve_crf(src, info, needs_scale)
             if dry_run:
                 log(f"\nDry run: would encode at CRF {crf}. Stopping.")
@@ -913,16 +1059,24 @@ def process(src, pick=None, dry_run=False):
             log("")
             log(f"Phase 1 -- grain shootout at CRF {crf - 2}/{crf}/{crf + 2} "
                 f"on the grainiest section ({worst:.0f}s)")
+            write_status(detail=f"Comparatif de grain a CRF {crf-2}/{crf}/{crf+2}")
             shootout = run_shootout(src, info, needs_scale, crf, worst, work, fit)
             subtitle = (f"{src.name} &middot; {info['width']}x{info['height']} "
                         f"&middot; {info['duration']:.0f}s &middot; excerpt from "
                         f"{shootout['excerpt_start']:.0f}s (grainiest section)")
+            write_status(state="awaiting_review",
+                         detail=f"En attente de ton choix de CRF "
+                                f"(http://127.0.0.1:{REVIEW_PORT}/)", publish=True)
             pick = serve_review(work, shootout, subtitle)
             if pick is None:
+                write_status(state="idle", detail="Revue expiree sans choix",
+                             publish=True)
                 return
 
         log("")
         log(f"Phase 2 -- full encode at CRF {pick}")
+        write_status(state="encoding", source=src,
+                     detail=f"Encodage complet a CRF {pick} (~25 min)", publish=True)
         OUT_AV1.parent.mkdir(parents=True, exist_ok=True)
         OUT_POSTER.parent.mkdir(parents=True, exist_ok=True)
 
@@ -942,12 +1096,15 @@ def process(src, pick=None, dry_run=False):
 
         log("")
         log("Verifying outputs")
+        write_status(state="verifying",
+                     detail="Verification taille / faststart / couleur")
         problems = verify(tmp_av1, info) + verify(tmp_h264, info)
         if problems:
             keep_work = True
             log("")
             log("REFUSING to stage -- fix the above and re-run. "
                 f"Files left in {work}")
+            write_status(state="failed", detail="; ".join(problems), publish=True)
             return
 
         shutil.move(str(tmp_av1), str(OUT_AV1))
@@ -963,9 +1120,17 @@ def process(src, pick=None, dry_run=False):
         log(f"AV1 codec string for index.html: {av1_codec_string(OUT_AV1)}")
         log("")
         log("Not committed. Review the files, then commit and push yourself.")
+        write_status(state="done", current=describe_current(),
+                     detail=f"Encode a CRF {pick}. A relire puis commiter.",
+                     publish=True)
 
-    except BaseException:
+    except BaseException as e:
         keep_work = True    # crashed or interrupted -- leave the evidence
+        try:
+            write_status(state="failed", detail=f"{type(e).__name__}: {e}"[:300],
+                         publish=True)
+        except Exception:
+            pass
         raise
     finally:
         # Keep the work dir ONLY on failure. The earlier "keep if any *.mp4 is
@@ -998,10 +1163,20 @@ def main():
         if args.watch:
             src = find_dropped()
             if src is None:
-                log("Nothing new in the drop folder.")
+                # Still touch the status file: its heartbeat is how the admin
+                # panel tells "nothing queued" apart from "this desktop is
+                # asleep and your drop is going nowhere".
+                write_status(state="idle", detail="Rien en attente",
+                             queue=[], current=describe_current(), publish=True)
+                log("Nothing new in the drop folders.")
                 return
             log(f"Found {src.name}; waiting for it to finish copying ...")
+            write_status(state="waiting_settle", source=src,
+                         detail="Copie/synchronisation en cours", publish=True)
             if not is_file_settled(src):
+                write_status(state="idle",
+                             detail=f"{src.name} pas encore disponible "
+                                    f"(fichier cloud non telecharge)", publish=True)
                 return
             process(src, pick=args.pick)
             state = load_state()

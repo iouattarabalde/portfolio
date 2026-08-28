@@ -20,6 +20,10 @@ drafts/
 # Logs
 *.log
 
+# Python
+__pycache__/
+*.pyc
+
 # Reel encoding pipeline — local machine state, not shared
 scripts/.reel_state.json
 scripts/reel-encode.log*

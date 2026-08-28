@@ -24,7 +24,7 @@ les cas qui sortent de l'admin.
 | Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | L'aperçu reflète aussi tes réglages non enregistrés (halo, grain, fond) |
 | Ajuster l'intensité/taille/étalement du halo du reel, le grain (texture appliquée sur tout le site), ou la couleur de fond | Admin → Design → curseurs en haut de l'onglet | Rien ne se publie tant que tu n'as pas cliqué Enregistrer ; Réinitialiser remet les valeurs par défaut dans l'aperçu (sans publier) |
 | Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
-| Remplacer le reel principal (vidéo hero) | **Pas dans l'admin** | Déposer le master dans `E:\_reel-dropbox` — le pipeline s'occupe du reste et t'ouvre une page pour valider le grain. Voir "Vidéo du reel" |
+| Remplacer le reel principal (vidéo hero) | Déposer le fichier dans Drive → `Demos/_to-web` | Depuis n'importe quelle machine. Le pipeline s'occupe du reste et ouvre une page pour valider le grain sur le poste principal. Suivi dans Admin → onglet **Reel**. Voir "Vidéo du reel" |
 | Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
 | Changer polices / mise en page | Verrouillé, pas d'éditeur admin | Demander à Claude |
 | Ajouter un tout nouveau texte bilingue à un endroit du site qui n'en a pas encore | Touche 3 fichiers différents | Demander à Claude |
@@ -239,9 +239,15 @@ raisons qui se cumulent :
 - L'encodage prend une vingtaine de minutes de CPU. C'est un vrai calcul, pas une tâche de
   navigateur.
 
-Le remplacement se fait donc **en local, là où le master et le processeur sont déjà** :
-déposer le fichier dans le dossier de dépôt (voir "Vidéo du reel"). Le pipeline fait le reste
-et n'ouvre une page de validation que pour la seule décision qui demande un œil — le grain.
+Le remplacement se fait donc **en local, là où le master et le processeur sont déjà**. Le
+transport, lui, passe par Google Drive : déposer le master dans `Demos/_to-web` depuis
+n'importe quelle machine (drive.google.com marche depuis un téléphone), et le poste principal
+le récupère tout seul. Pas d'interface d'envoi à construire, pas de limite de taille, et la
+reprise sur coupure est gratuite.
+
+L'onglet **Reel** de l'admin est la moitié consultable de ce dispositif : il montre où en est
+le pipeline, ce qui est en file, et **si le poste d'encodage répond encore**. Voir
+"Vidéo du reel".
 
 ## Ajouter/modifier un projet
 
@@ -372,9 +378,19 @@ GitHub Pages (~100 GB/mois).
 
 ### Remplacer le reel
 
-**Déposer le master dans le dossier de dépôt, c'est tout.** Par défaut `E:\_reel-dropbox`
-(modifiable via la variable d'environnement `REEL_DROP_DIR`). Une tâche planifiée regarde
-toutes les 5 minutes.
+**Déposer le master dans un dossier de dépôt, c'est tout.** Deux dossiers sont surveillés,
+une tâche planifiée les regarde toutes les 5 minutes :
+
+| Dossier | Quand |
+|---|---|
+| `E:\_reel-dropbox` | Depuis le poste principal. Disque local, rien ne peut se synchroniser à moitié dessous. |
+| `Google Drive → Color Grading → Demos → _to-web` | **Depuis n'importe quelle machine**, y compris un téléphone, via [drive.google.com](https://drive.google.com). Aucune limite de taille, et l'envoi reprend tout seul s'il est coupé. |
+
+(Chemins modifiables via `REEL_DROP_DIR` et `REEL_DRIVE_DIR`.)
+
+**C'est le poste principal qui encode.** Un fichier déposé pendant qu'il est éteint attend
+sans rien casser ; l'encodage démarre au prochain démarrage. L'onglet **Reel** de l'admin dit
+lequel des deux est le cas — voir plus bas.
 
 Ce qui se passe ensuite, sans rien faire :
 
@@ -389,7 +405,28 @@ Ce qui se passe ensuite, sans rien faire :
 5. Il encode l'AV1 et le H.264 en entier, extrait le poster, vérifie tout, et dépose les trois
    fichiers dans le dépôt.
 
-Il **ne commit pas et ne pousse pas** : tu relis, puis tu commit toi-même.
+Il **ne commit pas et ne pousse pas** le reel : tu relis, puis tu commit toi-même. La seule
+chose qu'il publie tout seul est `data/reel-status.json`, un petit fichier d'état (voir juste
+en dessous) — sans quoi l'admin n'aurait rien à lire.
+
+### Suivre l'avancement depuis n'importe où — onglet « Reel » de l'admin
+
+`ismaelob.com/admin/` → onglet **Reel**. En lecture seule : le fichier vidéo ne transite pas
+par l'admin (l'API Contents de GitHub plafonne vers 100 Mo, un master ProRes fait plusieurs
+Go — c'est tout l'intérêt de passer par Drive). L'onglet affiche :
+
+- **Où en est le pipeline** : au repos, copie en cours, analyse, *attend ton choix de CRF*,
+  encodage, vérification, terminé, échec.
+- **La file d'attente**, si plusieurs masters sont déposés.
+- **Le reel actuellement en ligne** : tailles AV1 / H.264 / poster, format, durée.
+- **Un avertissement si le poste d'encodage ne répond plus.** C'est la partie qui compte le
+  plus : sans ça, « rien en attente » et « le poste est éteint, ton fichier ne sera jamais
+  traité » s'afficheraient exactement pareil — et c'est précisément la question qu'on se pose
+  quand on dépose un fichier depuis un portable.
+
+Le comparatif de grain, lui, s'ouvre sur le poste principal (`http://127.0.0.1:8765`) et
+n'est pas accessible à distance. L'admin signale qu'il attend, mais le choix se fait devant
+l'écran du poste — c'est un jugement sur du grain à 100 %, ça ne se délègue pas à un portable.
 
 Vérifications automatiques avant dépôt : taille sous 100 MB, atome `moov` en tête
 (`+faststart`, sans quoi la lecture progressive bloque), durée conforme à la source, balises
