@@ -1028,7 +1028,44 @@ body.same-doc-transition .site-nav {
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: clamp(20px, 6vw, 64px);
+  /* The enlarged still is sized to fill everything the overlay's own chrome doesn't
+     need, so both that chrome and the space reserved for it are declared here once and
+     derived from each other — before Aug 2026 the padding here and the image's
+     max-height were two independently hand-tuned sets of magic numbers, which is how
+     the arrows ended up sitting 8px inside the image's own edge (72px inner edge vs a
+     64px padding) while the image itself was capped at a conservative 70vh and left a
+     quarter of the screen unused. Changing an arrow's size or the palette's height now
+     moves the image's limits with it instead of silently breaking the clearance. */
+  --lb-arrow-size: 44px;
+  --lb-arrow-inset: clamp(8px, 1.2vw, 12px);
+  --lb-arrow-gap: 8px;
+  /* Horizontal reserve: exactly what it takes to clear a side arrow. */
+  --lb-side: calc(var(--lb-arrow-inset) + var(--lb-arrow-size) + var(--lb-arrow-gap));
+
+  --lb-close-top: 20px;
+  --lb-close-h: 34px; /* pinned on .lightbox-close below so this stays true across browsers */
+  --lb-close-gap: 12px;
+  /* Top reserve: exactly what it takes to clear the close button. */
+  --lb-top: calc(var(--lb-close-top) + var(--lb-close-h) + var(--lb-close-gap));
+  /* Nothing to clear at the bottom, so it's a plain breathing-room value rather than a
+     mirror of --lb-top. That asymmetry is deliberate: the palette strip below the image
+     is itself bottom weight, so a smaller bottom padding both buys the image height and
+     leaves the image's own center closer to the viewport's than symmetric padding did. */
+  --lb-bottom: 24px;
+
+  --lb-palette-h: 32px;
+  --lb-palette-gap: 14px;
+  --lb-navrow: 0px; /* desktop: the arrows are absolute, so they take no flow height */
+  /* Everything stacked below the image inside .lightbox-content. */
+  --lb-below: calc(var(--lb-palette-gap) + var(--lb-palette-h) + var(--lb-navrow));
+
+  /* Every asset is capped at 1920px wide by compressImage(file, maxWidth = 1920, ...)
+     in admin/index.html, so this is the point past which the lightbox would be scaling
+     a still beyond its own pixels and going soft — reachable on a 4K display now that
+     the height cap below is generous, not reachable under the old 70vh one. */
+  --lb-max-natural: 1920px;
+
+  padding: var(--lb-top) var(--lb-side) var(--lb-bottom);
   /* Only horizontal panning is a real gesture here (swiping between stills, see the
      touchstart/touchend listeners in project.html) — pan-x stops the browser's default
      vertical scroll/rubber-band from firing on an up/down touch and dragging the page
@@ -1058,23 +1095,20 @@ body.same-doc-transition .site-nav {
 }
 .lightbox-content img {
   display: block;
-  max-width: 100%;
+  /* min() rather than a plain 100%: the percentage alone would happily scale a still
+     past its own 1920px source on a wide enough screen. */
+  max-width: min(100%, var(--lb-max-natural));
   /* Viewport-relative rather than a percentage of .lightbox-content's own height —
      that height is content-driven (auto), not a definite value, and percentage
      resolution against an auto-height ancestor is exactly the kind of edge case that
      behaves inconsistently across browsers without being able to verify it live.
-     min() keeps this sane on short viewports too, always leaving room for the
-     palette strip + margin below and the lightbox's own padding above/below. */
-  max-height: min(70vh, calc(100vh - 180px));
+     Subtracting the same reserves the overlay pads by means the image takes all the
+     height the chrome leaves and no more: the palette strip (and, on mobile, the nav
+     row) below it always fit, and the top of the image always clears the close button.
+     100vh, not 100dvh, to match the position:fixed/inset:0 overlay this sits in. */
+  max-height: calc(100vh - var(--lb-top) - var(--lb-bottom) - var(--lb-below));
   object-fit: contain; /* never crops the enlarged image, unlike the grid thumbnails */
   view-transition-name: lightbox-img; /* scopes the same-document View Transition (see openLightboxAt in project.html) to just this image crossfading between stills, instead of the browser treating the whole page as one transitioning root */
-}
-/* Touch devices don't need the same bottom margin as desktop (no flanking side arrows
-   to clear), so the image can use more of the viewport height there. */
-@media (hover: none) {
-  .lightbox-content img {
-    max-height: min(86vh, calc(100vh - 132px));
-  }
 }
 /* Color palette strip below the enlarged still, requested Aug 2026 (ShotDeck-style
    reference) — 13 swatches per image, extracted via median-cut color quantization
@@ -1086,8 +1120,8 @@ body.same-doc-transition .site-nav {
    exactly (see project.html), not CSS alone. */
 .lightbox-palette {
   display: flex;
-  height: 32px;
-  margin-top: 14px;
+  height: var(--lb-palette-h);
+  margin-top: var(--lb-palette-gap);
   flex-shrink: 0;
 }
 .lightbox-palette > div {
@@ -1095,7 +1129,7 @@ body.same-doc-transition .site-nav {
 }
 .lightbox-close {
   position: absolute;
-  top: 20px;
+  top: var(--lb-close-top);
   right: clamp(20px, 4vw, 48px);
   font-family: var(--mono);
   font-size: 12px;
@@ -1104,7 +1138,13 @@ body.same-doc-transition .site-nav {
   color: var(--fg-dim);
   background: transparent;
   border: 1px solid var(--line);
-  padding: 8px 14px;
+  /* Explicit height instead of the vertical padding this used to have: --lb-top is
+     computed from it, and a button's height would otherwise depend on the UA's default
+     line-height for form controls, which differs between browsers. Same rendered size. */
+  height: var(--lb-close-h);
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
 }
 .lightbox-close:hover { color: var(--accent); border-color: var(--accent); }
@@ -1114,8 +1154,8 @@ body.same-doc-transition .site-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+  width: var(--lb-arrow-size);
+  height: var(--lb-arrow-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1129,8 +1169,13 @@ body.same-doc-transition .site-nav {
   z-index: 1; /* stays above the full-bleed image */
 }
 .lightbox-nav:hover { color: var(--accent); border-color: var(--accent); }
-.lightbox-prev { left: clamp(10px, 3vw, 28px); }
-.lightbox-next { right: clamp(10px, 3vw, 28px); }
+/* Closer to the screen edge than the clamp(10px, 3vw, 28px) used until Aug 2026: the
+   arrows now have to be fully outside the image rather than overlapping it, and paying
+   for that clearance out of the arrows' own inset keeps --lb-side at the 64px the
+   overlay was already padding by — so the stills that were width-limited (the 2.39:1
+   scope ones, which the height cap never touched) keep exactly the width they had. */
+.lightbox-prev { left: var(--lb-arrow-inset); }
+.lightbox-next { right: var(--lb-arrow-inset); }
 
 /* Wraps prev/next on mobile only (see .lightbox-nav-row below) — hidden on desktop
    since the arrows stay position:absolute at the screen edges there and this row would
@@ -1149,11 +1194,19 @@ body.same-doc-transition .site-nav {
      strip — inside .lightbox-content itself, see the markup in project.html — solves
      both: they sit right against the content regardless of image height, and never
      overlap the photo since they're below it in flow rather than floating over it. */
+  /* With the arrows in flow they stop needing side clearance and start needing height,
+     so the reserve simply moves — the image's max-height recomputes from these on its
+     own. Without the --lb-navrow half, nothing accounted for this row at all and it
+     could be pushed past the bottom of the overlay on a short phone. */
+  .lightbox {
+    --lb-side: 20px;
+    --lb-navrow: calc(var(--lb-palette-gap) + var(--lb-arrow-size));
+  }
   .lightbox-nav-row {
     display: flex;
     justify-content: center;
     gap: 16px;
-    margin-top: 14px;
+    margin-top: var(--lb-palette-gap);
     width: 100%;
   }
   .lightbox-nav {
