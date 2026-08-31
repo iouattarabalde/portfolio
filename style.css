@@ -1124,9 +1124,37 @@ body.same-doc-transition .site-nav {
   margin-top: var(--lb-palette-gap);
   flex-shrink: 0;
 }
+/* Each swatch rises from the strip's baseline on a short stagger rather than the whole
+   row appearing at once, requested Aug 2026 — on a colorist's site the palette is the
+   signature, and it was the one element on the page that simply blinked into place.
+   Same mechanism as card-enter above and chosen for the same reason: a @keyframes
+   animation starts on its own clock the moment it applies to an element, so running it
+   on swatches built by innerHTML needs no observer, no deferral, and has no painted
+   "before" state to race against. Re-runs for free on prev/next, since those rebuild
+   the swatches too. */
+@keyframes palette-enter {
+  from { opacity: 0; transform: scaleY(0.3); }
+  to { opacity: 1; transform: scaleY(1); }
+}
 .lightbox-palette > div {
   flex: 1;
+  transform-origin: bottom;
+  animation: palette-enter 0.4s ease-out backwards;
 }
+/* 13 swatches per image, so the stagger is written out to 12 and capped like the grid's
+   — the cap is what keeps a short palette (or a longer one later) from trailing off. */
+.lightbox-palette > div:nth-child(1) { animation-delay: 0ms; }
+.lightbox-palette > div:nth-child(2) { animation-delay: 20ms; }
+.lightbox-palette > div:nth-child(3) { animation-delay: 40ms; }
+.lightbox-palette > div:nth-child(4) { animation-delay: 60ms; }
+.lightbox-palette > div:nth-child(5) { animation-delay: 80ms; }
+.lightbox-palette > div:nth-child(6) { animation-delay: 100ms; }
+.lightbox-palette > div:nth-child(7) { animation-delay: 120ms; }
+.lightbox-palette > div:nth-child(8) { animation-delay: 140ms; }
+.lightbox-palette > div:nth-child(9) { animation-delay: 160ms; }
+.lightbox-palette > div:nth-child(10) { animation-delay: 180ms; }
+.lightbox-palette > div:nth-child(11) { animation-delay: 200ms; }
+.lightbox-palette > div:nth-child(n+12) { animation-delay: 220ms; }
 .lightbox-close {
   position: absolute;
   top: var(--lb-close-top);
@@ -1252,6 +1280,9 @@ body.same-doc-transition .site-nav {
     animation: none;
   }
   .contact-photo {
+    animation: none;
+  }
+  .lightbox-palette > div {
     animation: none;
   }
   .reel-frame {

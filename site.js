@@ -104,16 +104,28 @@ function esc(value) {
 // That bug first showed up in the lightbox crossfade and is solved here once for every
 // same-document transition rather than per feature.
 // Both .ready and .finished REJECT whenever the browser skips the animation rather than
-// running it — a hidden tab, prefers-reduced-motion, or simply a second click arriving
-// while the first transition is still going. The DOM update itself still happens in every
+// running it — a hidden tab, or simply a second click arriving while the first transition
+// is still going. (prefers-reduced-motion was listed here too until Aug 2026; it doesn't
+// belong, which is the whole reason for the check below.) The DOM update itself still happens in every
 // one of those cases, so there's nothing to recover from; but each rejection with no
 // handler attached logs "InvalidStateError: Transition was aborted because of invalid
 // state" to the console, and .ready is easy to miss because this function otherwise never
 // touches it. Both are swallowed explicitly. Catching before .finally() also guarantees
 // the cleanup still runs, which is the part that actually matters.
-function withViewTransition(updateFn) {
-  if (!document.startViewTransition) {
+// onDone, when given, runs once the transition has finished (or immediately when there
+// was no transition to run) — for cleanup that must not happen while the browser is
+// still animating, such as releasing a view-transition-name back to another element.
+function withViewTransition(updateFn, onDone) {
+  // The comment above already treated prefers-reduced-motion as a case where the browser
+  // skips the animation and only the DOM update lands. It isn't: nothing in the API
+  // consults that preference, so these transitions were in fact animating for users who
+  // asked them not to. Skipping here rather than per caller covers every same-document
+  // transition at once (work-grid filter, lightbox open/close/navigate), and matches how
+  // the rest of the site's motion is gated in style.css's prefers-reduced-motion block.
+  const stillMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!document.startViewTransition || stillMotion) {
     updateFn();
+    if (onDone) onDone();
     return;
   }
   document.body.classList.add('same-doc-transition');
@@ -123,6 +135,7 @@ function withViewTransition(updateFn) {
     .catch(() => {})
     .finally(() => {
       document.body.classList.remove('same-doc-transition');
+      if (onDone) onDone();
     });
 }
 

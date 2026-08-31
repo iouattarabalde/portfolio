@@ -166,15 +166,47 @@
     lightboxPalette.style.width = lightboxImg.offsetWidth + 'px';
   });
 
+  // The gallery tile showing whichever still is currently open — the shape the lightbox
+  // grows out of and collapses back into, and where focus returns to on close. Resolved
+  // by index every time rather than held as the element that was originally clicked:
+  // the arrows change which still is on screen, so the clicked tile stops being the one
+  // the image belongs to as soon as anyone navigates, and both the morph and the focus
+  // hand-off would end up pointing at an unrelated photo.
+  function currentThumb() {
+    return document.querySelectorAll('.gallery-item')[lightboxIndex] || null;
+  }
+
+  // Clears the shared view-transition-name off every tile. Belt and braces rather than
+  // clearing the one tile we know about: a name left behind anywhere means two rendered
+  // elements claiming it, which costs the transition entirely (silently — the DOM update
+  // still lands, so it just stops animating). The close below already gives its own name
+  // back, but that cleanup rides on a callback, and this file and site.js are both served
+  // without a cache-buster — so during a deploy a visitor can briefly hold a new
+  // project.html against a cached site.js whose withViewTransition takes no second
+  // argument and never runs it. Sweeping before each open makes that self-correcting.
+  function releaseThumbNames() {
+    document.querySelectorAll('.gallery-item img').forEach((im) => {
+      im.style.viewTransitionName = '';
+    });
+  }
+
   // Crossfades between stills when navigating an already-open lightbox, requested Aug
-  // 2026 — the initial open (lightbox currently closed) skips this, there's nothing to
-  // crossfade FROM yet. Uses the same-document View Transitions API rather than a
-  // manual opacity animation: the browser snapshots the current image, runs the DOM
-  // update, snapshots the new image, and crossfades between them natively. #lightbox-img
-  // has its own view-transition-name (see style.css) so only the image itself
-  // crossfades, not the whole page. Falls back to an instant swap — today's behavior —
-  // in browsers without support, handled inside withViewTransition() above; no separate
-  // fallback animation to maintain.
+  // 2026. Uses the same-document View Transitions API rather than a manual opacity
+  // animation: the browser snapshots the current image, runs the DOM update, snapshots
+  // the new image, and crossfades between them natively. #lightbox-img has its own
+  // view-transition-name (see style.css) so only the image itself crossfades, not the
+  // whole page. Falls back to an instant swap in browsers without support, handled
+  // inside withViewTransition(); no separate fallback animation to maintain.
+  //
+  // The initial open used to skip this on the grounds that there was nothing to
+  // crossfade FROM — but there is, and it's the tile that was just clicked. It even
+  // carries the same src as the enlarged still (see the gallery markup below), so the
+  // full-resolution file is already decoded and the morph costs no extra network work.
+  // Handing the shared view-transition-name from the tile to #lightbox-img *inside* the
+  // update callback is what makes this legal: the name has to be unique among rendered
+  // elements at each snapshot, and the two qualify at different moments — the lightbox
+  // is display:none (so not rendered, so not holding the name) when the old snapshot is
+  // taken, and the tile has already given it up by the time the new one is.
   function openLightboxAt(index) {
     if (!currentProject) return;
     const gallery = currentProject.gallery;
@@ -194,9 +226,21 @@
 
     if (isNavigating) {
       withViewTransition(applyImage);
-    } else {
-      applyImage();
+      return;
     }
+
+    const thumb = currentThumb();
+    const thumbImg = thumb && thumb.querySelector('img');
+    if (!thumbImg) { // gallery not rendered yet, or an index with no tile — open plainly
+      applyImage();
+      return;
+    }
+    releaseThumbNames();
+    thumbImg.style.viewTransitionName = 'lightbox-img';
+    withViewTransition(() => {
+      thumbImg.style.viewTransitionName = ''; // released before #lightbox-img claims it
+      applyImage();
+    });
   }
   function wireLightbox() {
     document.querySelectorAll('.gallery-item').forEach((item, idx) => {
@@ -208,13 +252,40 @@
     });
   }
   function closeLightbox() {
-    lightbox.classList.remove('open');
-    lightboxImg.src = '';
-    lightboxPalette.innerHTML = '';
+    const thumb = currentThumb();
+    const thumbImg = thumb && thumb.querySelector('img');
+
+    // Focus first, before any transition starts: focus() also scrolls its target
+    // minimally into view, so after arrowing deep into a long gallery the still has
+    // something on screen to collapse toward instead of flying off past the fold. It's
+    // a no-op when the tile is already visible, which is the common case.
     if (lightboxTrigger) {
-      lightboxTrigger.focus(); // return focus to the thumbnail that opened it
+      (thumb || lightboxTrigger).focus();
       lightboxTrigger = null;
     }
+
+    function teardown() {
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+      lightboxPalette.innerHTML = '';
+    }
+
+    if (!thumbImg) {
+      teardown();
+      return;
+    }
+
+    withViewTransition(
+      () => {
+        teardown(); // #lightbox-img stops being rendered here...
+        thumbImg.style.viewTransitionName = 'lightbox-img'; // ...so the tile can take the name
+      },
+      () => {
+        // Has to be given back: it would otherwise still be sitting on this tile the
+        // next time a different one is opened.
+        releaseThumbNames();
+      }
+    );
   }
   // Only the lightbox's own currently-visible buttons (prev/next are display:none
   // when the gallery has just one image) — used to keep Tab/Shift+Tab cycling inside
