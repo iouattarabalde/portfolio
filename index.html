@@ -32,11 +32,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=119">
+<link rel="stylesheet" href="style.css?v=123">
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, which
      is why this loads here in <head> rather than at the end of <body>), plus esc(),
-     withViewTransition(), initLangToggle() and applyDesignSettings() used by the script
-     at the bottom of this file. See site.js for the full story on each. -->
+     prefersReducedMotion(), observeReveals(), initLangToggle() and applyDesignSettings()
+     used by the script at the bottom of this file. (withViewTransition() lives there too
+     but is only used by project.html's lightbox now.) See site.js for the story on each. -->
 <script src="site.js"></script>
 <script src="i18n.js"></script>
 </head>
@@ -120,7 +121,7 @@
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
   <h2 class="sr-only"><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
-  <div class="work-filter" id="category-filter"></div>
+  <div class="work-filter" id="category-filter" data-reveal></div>
 
   <div class="work-grid" id="work-grid"></div>
 
@@ -152,7 +153,7 @@
          .contact-details are kept as separate blocks only so the availability line stays
          grouped with the links rather than with the bio. See style.css. -->
     <div class="contact-text">
-      <div class="contact-intro">
+      <div class="contact-intro" data-reveal>
         <h2 class="contact-title">
           <span data-fr data-key="contact.heading"></span>
           <span data-en data-key="contact.heading"></span>
@@ -161,7 +162,7 @@
           <span data-fr id="contact-bio-fr"></span><span data-en id="contact-bio-en"></span>
         </p>
       </div>
-      <div class="contact-details">
+      <div class="contact-details" data-reveal>
         <div class="contact-links">
           <div class="contact-link-group">
             <span class="contact-link-label"><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></span>
@@ -184,12 +185,12 @@
         </p>
       </div>
     </div>
-    <div class="contact-photo-frame">
+    <div class="contact-photo-frame" data-reveal>
       <img id="contact-photo" class="contact-photo" src="" alt="Ismael OB">
     </div>
   </div>
 
-  <div class="contact-footer">
+  <div class="contact-footer" data-reveal>
     <p class="contact-copyright">
       © <span id="contact-year"></span> Ismael OB —
       <span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span>
@@ -263,7 +264,7 @@
   }
   syncNavHeight(); // synchronous first pass, same reasoning as sizeReel() above
 
-  window.addEventListener('load', () => { sizeReel(); syncNavHeight(); scrollToHashTarget(); });
+  window.addEventListener('load', () => { sizeReel(); syncNavHeight(); refreshHeroParallax(); scrollToHashTarget(); });
 
   // Fragment-scroll fix, Aug 2026: the browser's native anchor scroll (on initial
   // navigation to index.html#work or #contact, e.g. from project.html's nav or "Back
@@ -279,34 +280,57 @@
     if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
   }
 
-  // Hero reel parallax: subtly scales down as you scroll past it, requested Aug 2026.
-  // Direct scroll-value-following via a CSS custom property — same technique the
-  // earlier nav-fade-on-scroll experiment used, before that was reverted for unrelated
-  // visual reasons, not technical ones (the pattern itself worked fine). Not an
-  // IntersectionObserver+CSS-transition combo like the removed .reveal, so none of
-  // that class of bug applies here: there's no "before" state that needs to be painted
-  // first, just a value continuously following the current scroll position every
-  // frame. rAF-throttled, matching the resize listener below. Skips registering the
-  // listener at all for prefers-reduced-motion, rather than relying only on the CSS
-  // override to make it inert.
+  // Hero reel parallax: the reel shrinks and fades as you scroll past it, requested Aug
+  // 2026, strengthened Sept 2026. Direct scroll-value-following via CSS custom
+  // properties — same technique the earlier nav-fade-on-scroll experiment used, before
+  // that was reverted for unrelated visual reasons, not technical ones (the pattern
+  // itself worked fine). There's no "before" state that needs to be painted first, just
+  // two values continuously following the current scroll position every frame.
+  // rAF-throttled, matching the resize listener below. Skips registering the listener at
+  // all for prefers-reduced-motion, rather than relying only on the CSS override to make
+  // it inert.
+  //
+  // The travel used to be a flat 5% scale over a hardcoded 600px of scroll. Both were
+  // wrong: 5% over a 900px-tall hero is small enough that nobody reads it as motion, and
+  // 600px is an arbitrary distance that completes at a completely different point on a
+  // 900px desktop hero than on a 740px phone one — the same scroll gesture produced
+  // different results per device. It's now a 10% scale plus a downward drift, measured
+  // against the hero's own height, so the effect finishes exactly as the hero leaves on
+  // every viewport. Both properties are compositor-only, and both are deliberately the
+  // independent transform properties rather than opacity or the transform shorthand,
+  // which hero-enter owns for the first 0.8s — see .reel-frame in style.css.
+  let refreshHeroParallax = () => {};
   const reelFrameEl = document.querySelector('.reel-frame');
-  if (reelFrameEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const HERO_PARALLAX_DISTANCE = 600; // px of scroll over which the effect completes
+  if (reelFrameEl && !prefersReducedMotion()) {
+    const heroEl = document.querySelector('.hero');
+    let parallaxDistance = 1;
     let parallaxTicking = false;
     function updateHeroParallax() {
-      const progress = Math.min(Math.max(window.scrollY / HERO_PARALLAX_DISTANCE, 0), 1);
-      const scale = 1 - progress * 0.05; // scales down to 95% by the time you've scrolled past
-      reelFrameEl.style.setProperty('--parallax-scale', scale.toFixed(4));
+      const progress = Math.min(Math.max(window.scrollY / parallaxDistance, 0), 1);
+      reelFrameEl.style.setProperty('--parallax-scale', (1 - progress * 0.10).toFixed(4));
+      reelFrameEl.style.setProperty('--parallax-shift', (progress * 48).toFixed(1) + 'px');
       parallaxTicking = false;
     }
+    // Re-measured rather than cached once: the hero is sized in dvh, so it changes with
+    // orientation and with a mobile browser's collapsing URL bar. Math.max keeps the
+    // division safe if this is ever called before the hero has a height.
+    refreshHeroParallax = () => {
+      parallaxDistance = Math.max(heroEl ? heroEl.offsetHeight : 0, 1);
+      updateHeroParallax();
+    };
     window.addEventListener('scroll', () => {
       if (!parallaxTicking) {
         requestAnimationFrame(updateHeroParallax);
         parallaxTicking = true;
       }
     }, { passive: true });
-    updateHeroParallax(); // sets the correct value immediately (e.g. reloading mid-scroll)
+    refreshHeroParallax(); // sets the correct value immediately (e.g. reloading mid-scroll)
   }
+
+  // Start watching everything that carries data-reveal in the page's own markup — the
+  // filter bar, and the four blocks of the contact section. The work grid's cards are
+  // built later by renderWorkGrid(), which calls observeReveals() on them itself.
+  observeReveals();
 
   // Freeze-frame color reveal: the poster (and any video frame) renders desaturated
   // via CSS until the reel has enough data to actually play, then eases into full
@@ -435,6 +459,12 @@
   let cachedProjects = null;
   let activeFilter = null;
 
+  // Every render — first load, language toggle, filter change — builds cards that opt
+  // into the shared scroll reveal, so they lift into place instead of appearing. There
+  // used to be a reveal:false path for the filter, because that ran as a View Transition
+  // whose crossfade would have layered on top of the per-card entrance; the filter no
+  // longer uses one, so there's nothing left to opt out of. See observeReveals() in
+  // site.js.
   function renderWorkGrid() {
     const grid = document.getElementById('work-grid');
     if (!grid || !cachedProjects) return;
@@ -446,6 +476,7 @@
       const credit = creditName ? `${creditName} · ${p.director || ''}` : (p.director || '');
       return `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}"
+         data-reveal
          data-index="${i + 1}" data-total="${visible.length}"
          data-type="${esc(acronym)}" data-title="${esc(p.title)}" data-credit="${esc(credit)}">
         <img class="thumb" src="assets/${esc(p.thumbnail)}" alt="${esc(p.title)}" loading="lazy" style="object-position:${esc(p.thumbnailFocus || '50% 50%')};">
@@ -457,6 +488,7 @@
       </a>
     `;
     }).join('');
+    observeReveals(grid);
   }
 
   // Shared bottom info bar (desktop/hover-capable only — hidden entirely on touch via
@@ -496,6 +528,46 @@
     });
   }
 
+  // Slides the info bar between the positions a filter change moves it between.
+  //
+  // The bar sits at the bottom of #work and sticks to the viewport only while the
+  // section runs past it, so filtering moves it a long way: 32 projects down to 8
+  // shortens the section from ~1750px to ~520px and the bar unsticks to the section's
+  // real bottom edge, a 685px jump in one frame at 1440x900.
+  //
+  // This is a FLIP — read where it is, apply the change, read where it landed, then put
+  // it back at the old offset and animate that away. It has to be done in JS: no
+  // property of the bar's own changed, it moved because the section above it got
+  // shorter, and layout isn't something CSS can transition. A same-document View
+  // Transition handled this for a while, since that API exists for exactly this problem,
+  // but it also crossfades every snapshot it takes — the cards, and the whole page root
+  // as #contact slid up underneath — and the crossfade is the one thing this shouldn't
+  // do. Web Animations rather than a class toggle so there's no state to clean up: the
+  // animation has no fill, so the bar is back to its own styles the moment it ends.
+  // Timing comes from the same :root tokens as the rest of the site's motion.
+  function withInfoBarSlide(applyChange) {
+    const bar = document.getElementById('work-info-bar');
+    // display:none on touch, where there is no bar on screen to move.
+    if (!bar || prefersReducedMotion() || getComputedStyle(bar).display === 'none') {
+      applyChange();
+      return;
+    }
+    const before = bar.getBoundingClientRect().top;
+    applyChange();
+    // getBoundingClientRect() forces the pending layout, so this reads the post-change
+    // position rather than a stale one.
+    const delta = before - bar.getBoundingClientRect().top;
+    if (!delta) return; // filtering to a list of the same height moves nothing
+    const rootStyles = getComputedStyle(document.documentElement);
+    bar.animate(
+      [{ transform: `translateY(${delta}px)` }, { transform: 'translateY(0)' }],
+      {
+        duration: parseFloat(rootStyles.getPropertyValue('--dur-bar-travel')) || 220,
+        easing: rootStyles.getPropertyValue('--ease-out-soft').trim() || 'ease-out'
+      }
+    );
+  }
+
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
   // without this, sizeReel ran once per resize event with no limit, unlike the scroll
   // handler which is deliberately throttled. Aug 2026.
@@ -503,6 +575,7 @@
   function onResizeThrottled() {
     sizeReel();
     syncNavHeight();
+    refreshHeroParallax(); // the hero's height is what the parallax measures against
     resizeTicking = false;
   }
   window.addEventListener('resize', () => {
@@ -549,9 +622,7 @@
       btn.addEventListener('click', () => {
         activeFilter = btn.dataset.filter || null;
         renderCategoryFilter();
-        withViewTransition(() => {
-          renderWorkGrid();
-        });
+        withInfoBarSlide(renderWorkGrid);
       });
     });
   }
@@ -559,9 +630,9 @@
   // Footer category links (Sept 2026): the same choices as the filter bar, but reached
   // from the bottom of the page, so they also have to scroll back up to #work — without
   // that, clicking one would silently re-render a grid the visitor can't see. No
-  // withViewTransition() here, unlike the filter bar: the grid is off-screen at the
-  // moment of the click, so the crossfade would play where nobody is looking and only
-  // risk fighting the scroll.
+  // withInfoBarSlide() here, unlike the filter bar: the bar is off-screen at the moment
+  // of the click, so sliding it would animate where nobody is looking and only risk
+  // fighting the scroll. The cards still reveal normally once the scroll arrives.
   function renderFooterNav() {
     const container = document.getElementById('contact-footer-nav');
     if (!container) return;
@@ -589,7 +660,7 @@
   // and back-to-top). style.css's prefers-reduced-motion block can't reach these —
   // scroll-behavior isn't what's in play, scrollIntoView/scrollTo take it as an argument.
   function scrollBehavior() {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    return prefersReducedMotion() ? 'auto' : 'smooth';
   }
 
   document.getElementById('contact-year').textContent = new Date().getFullYear();

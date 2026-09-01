@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=119">
+<link rel="stylesheet" href="style.css?v=123">
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, own
      randomised phase offset per load — so navigating between pages can land at a
      different point in the loop each time), plus esc(), withViewTransition(),
@@ -61,8 +61,8 @@
   </div>
   <div class="project-info-main">
     <a class="project-back" href="index.html#work">← <span data-fr data-key="project.back"></span><span data-en data-key="project.back"></span></a>
-    <h1 class="project-title" id="project-title"></h1>
-    <dl class="credits">
+    <h1 class="project-title" id="project-title" data-reveal></h1>
+    <dl class="credits" data-reveal>
       <div>
         <dt><span data-fr data-key="project.type_label"></span><span data-en data-key="project.type_label"></span></dt>
         <dd id="project-type">—</dd>
@@ -93,7 +93,7 @@
        here), wrapping back to the first project after the last one. Hidden entirely by
        JS if there's only one project total, since a link back to itself isn't useful.
        Populated + shown by JS below alongside the rest of project-info. -->
-  <a class="next-project" id="next-project" href="#" style="display:none;">
+  <a class="next-project" id="next-project" href="#" style="display:none;" data-reveal>
     <p class="next-project-label"><span data-fr data-key="project.next_label"></span><span data-en data-key="project.next_label"></span> →</p>
     <img class="next-project-thumb" id="next-project-thumb" alt="" loading="lazy">
     <p class="next-project-title" id="next-project-title"></p>
@@ -162,9 +162,19 @@
   // of ambiguous case that behaves inconsistently across browsers without live testing
   // to verify it). Runs on every image load, not just the first, since different stills
   // can have different aspect ratios and therefore different rendered widths.
-  lightboxImg.addEventListener('load', () => {
+  // Called from the image's load event AND synchronously from applyImage() whenever the
+  // file is already decoded — which is the usual case on open, since the tile the
+  // lightbox grows out of carries the very same src. With only the load handler (as it
+  // was until Sept 2026) the swatches started their entrance at the *previous* still's
+  // width and the whole strip snapped a frame or two later, landing right in the middle
+  // of the stagger. Same reasoning as sizeReel()'s synchronous first call in index.html.
+  // The completeness check matters: without a decoded frame there are no intrinsic
+  // dimensions yet, so offsetWidth would measure a collapsed box.
+  function sizePalette() {
+    if (!lightboxImg.complete || !lightboxImg.naturalWidth) return;
     lightboxPalette.style.width = lightboxImg.offsetWidth + 'px';
-  });
+  }
+  lightboxImg.addEventListener('load', sizePalette);
 
   // The gallery tile showing whichever still is currently open — the shape the lightbox
   // grows out of and collapses back into, and where focus returns to on close. Resolved
@@ -215,13 +225,44 @@
     const hasMultiple = gallery.length > 1;
     const isNavigating = lightbox.classList.contains('open');
 
+    // The palette does two quite different things depending on whether the lightbox is
+    // already open.
+    //
+    // Opening: build the swatches and let them rise from the strip's baseline on a
+    // stagger (.is-entering — see style.css). --i carries each swatch's place in the
+    // wave, replacing a hand-written nth-child ladder whose 12-step cap made the last
+    // two swatches of every 13-colour palette start together and stalled the wave one
+    // step short of the end.
+    //
+    // Navigating: write the new colours onto the swatches already on screen and leave
+    // the entrance off entirely. Rebuilding them (which this did until Sept 2026)
+    // replayed the full ~750ms wave on top of the browser's ~250ms image crossfade —
+    // two motions on two unrelated clocks, so the palette never settled while arrowing
+    // through a gallery. .lightbox-palette has no view-transition-name of its own, so it
+    // rides the root snapshot and the colour change crossfades in step with the image.
+    function applyPalette(colors) {
+      const swatches = lightboxPalette.children;
+      // Every palette is 13 swatches, so this is the path prev/next actually takes. The
+      // rebuild below covers opening, and any project whose palette length differs.
+      if (isNavigating && swatches.length === colors.length) {
+        lightboxPalette.classList.remove('is-entering');
+        colors.forEach((hex, i) => { swatches[i].style.background = hex; });
+        return;
+      }
+      lightboxPalette.innerHTML = colors
+        .map((hex, i) => `<div style="--i:${i};background:${esc(hex)}"></div>`)
+        .join('');
+      lightboxPalette.classList.toggle('is-entering', !isNavigating);
+    }
+
     function applyImage() {
       lightboxImg.src = `assets/${item.filename}`;
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
-      lightboxPalette.innerHTML = (item.palette || []).map((hex) => `<div style="background:${esc(hex)}"></div>`).join('');
+      applyPalette(item.palette || []);
       lightbox.classList.add('open');
       lightboxPrev.style.display = hasMultiple ? '' : 'none';
       lightboxNext.style.display = hasMultiple ? '' : 'none';
+      sizePalette(); // after .open: the overlay is display:none until then, so nothing has a measurable width before this point
     }
 
     if (isNavigating) {
@@ -268,6 +309,7 @@
       lightbox.classList.remove('open');
       lightboxImg.src = '';
       lightboxPalette.innerHTML = '';
+      lightboxPalette.classList.remove('is-entering'); // next open re-adds it; leaving it set on an empty strip is just untidy state
     }
 
     if (!thumbImg) {
@@ -410,12 +452,17 @@
       // {filename, palette} since Aug 2026 (palette used by the lightbox, not the grid).
       const gallery = document.getElementById('project-gallery');
       gallery.innerHTML = project.gallery.map((item, i) => `
-        <button class="gallery-item" data-full="assets/${esc(item.filename)}">
+        <button class="gallery-item" data-reveal data-full="assets/${esc(item.filename)}">
           <img src="assets/${esc(item.filename)}" alt="${esc(project.title)} — still ${i + 1}" loading="lazy">
         </button>
       `).join('');
 
       document.getElementById('project-info').style.display = '';
+      // After the display:none comes off, not before: an IntersectionObserver never
+      // reports a display:none element as intersecting, so observing #project-info's
+      // children any earlier would leave the title, credits and next-project card stuck
+      // at opacity 0 forever. Covers the gallery stills in the same pass.
+      observeReveals();
       wireLightbox();
     })
     .catch((err) => {

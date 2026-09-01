@@ -94,8 +94,10 @@ function esc(value) {
 
 // ---------------------------------------------------------------------------
 // Runs updateFn as a same-document View Transition where supported, otherwise just runs
-// it — used for the work-grid filter crossfade (index.html) and the lightbox's
-// still-to-still crossfade (project.html).
+// it — used by the lightbox's open, close and still-to-still crossfades (project.html).
+// index.html's work-grid filter used this too until Sept 2026, when the crossfade it
+// brings with it turned out to be the wrong motion for that change; see
+// withInfoBarSlide() there for what replaced it.
 //
 // Temporarily adds .same-doc-transition to <body> for the duration; see the CSS rule of
 // the same name in style.css for why. Short version: the nav's own view-transition-name
@@ -120,9 +122,9 @@ function withViewTransition(updateFn, onDone) {
   // skips the animation and only the DOM update lands. It isn't: nothing in the API
   // consults that preference, so these transitions were in fact animating for users who
   // asked them not to. Skipping here rather than per caller covers every same-document
-  // transition at once (work-grid filter, lightbox open/close/navigate), and matches how
+  // transition at once (lightbox open/close/navigate), and matches how
   // the rest of the site's motion is gated in style.css's prefers-reduced-motion block.
-  const stillMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stillMotion = prefersReducedMotion();
   if (!document.startViewTransition || stillMotion) {
     updateFn();
     if (onDone) onDone();
@@ -137,6 +139,164 @@ function withViewTransition(updateFn, onDone) {
       document.body.classList.remove('same-doc-transition');
       if (onDone) onDone();
     });
+}
+
+// ---------------------------------------------------------------------------
+// Does this visitor ask the system to keep motion to a minimum?
+//
+// Read live on every call rather than cached once: the setting can be toggled
+// mid-session, and every caller is either a one-off init or a user interaction, so
+// re-querying costs nothing next to the risk of acting on a stale answer.
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// ---------------------------------------------------------------------------
+// Scroll-triggered entrance reveals — the single mechanism behind every "lifts and
+// fades in as you reach it" on the public pages: work cards and filter chips, the
+// contact block, project gallery stills, the credits and the next-project card.
+//
+// This replaces a load-triggered @keyframes entrance (card-enter) that ran on every
+// card the moment the grid rendered. On every viewport the hero fills the screen, so
+// the whole grid finished animating below the fold roughly a second before anyone
+// scrolled to it, and the site read as completely static from the fold down. It only
+// ever looked alive on phones by accident: there the grid renders after
+// data/projects.json resolves, so on a slower connection the visitor was already
+// scrolling when the cards landed and caught the stagger by chance. Nothing about it
+// was ever device-specific — there is no width-gated animation CSS anywhere.
+//
+// Elements opt in with a data-reveal attribute. The hidden "before" state is scoped to
+// .js-reveal on <html>, set immediately below at parse time, which is the safety gate:
+// if this file ever fails to load, the class is never added, nothing is hidden, and the
+// pages render plainly — the same progressive-enhancement stance the accent cycle takes
+// with its olive fallback.
+//
+// Why a @keyframes animation applied by a class, rather than a CSS transition: an
+// earlier scroll-reveal here was built as a transition and abandoned after two rounds of
+// fixes (a requestAnimationFrame deferral, then a forced reflow via offsetHeight). A
+// transition needs the browser to have already painted the "before" state to animate
+// FROM, and these elements are created by innerHTML and observed in the same task, so
+// that paint hasn't happened yet. A @keyframes animation starts on its own clock the
+// instant `animation` applies to an element, so there is no race to lose. Same
+// reasoning as the hero's own entrance in style.css, which is why that one always
+// worked while the transition version never did.
+document.documentElement.classList.add('js-reveal');
+
+var revealObserver = null;
+var revealTiming = null;
+
+// The stagger's two numbers live in style.css with the rest of the motion tokens; this
+// reads them once so there's still only one place to tune them. parseFloat handles the
+// "55ms" unit, and each falls back to its authored value if the property is ever missing.
+function getRevealTiming() {
+  if (revealTiming) return revealTiming;
+  var cs = getComputedStyle(document.documentElement);
+  function num(name, fallback) {
+    var v = parseFloat(cs.getPropertyValue(name));
+    return isFinite(v) && v > 0 ? v : fallback;
+  }
+  revealTiming = { step: num('--reveal-stagger', 55), budget: num('--reveal-window', 500) };
+  return revealTiming;
+}
+
+function getRevealObserver() {
+  if (revealObserver) return revealObserver;
+  revealObserver = new IntersectionObserver(function (entries, observer) {
+    // Stagger across whatever crossed the line together, in document order — not by
+    // each element's index within the full list. A grid of 32 cards enters a row at a
+    // time, so this gives row 8 exactly the same rhythm as row 1. The hand-written
+    // nth-child ladder this replaces had to cap its delays at 12 steps to stop late
+    // cards trailing ever further behind, which meant everything past the cap started
+    // simultaneously — the stagger died halfway down the grid.
+    // Anything sitting entirely above the root counts as arrived too. The huge top
+    // rootMargin below means that's normally reported as intersecting anyway; this is
+    // the backstop for a document taller than that margin, where the guaranteed initial
+    // observation is the only callback such an element will ever get.
+    //
+    // The isConnected check first, though, is what keeps the rest of this honest.
+    // Re-rendering the work grid or a gallery replaces every card via innerHTML, and the
+    // observer goes on watching the elements that were thrown away — it delivers one
+    // last entry for each. Those entries have a zero-sized rect and, worse,
+    // compareDocumentPosition() is implementation-defined for a disconnected node, so
+    // they sorted arbitrarily among the real ones below: after a filter change the eight
+    // surviving cards came out numbered 0, 1, 2, 16, 17, 18, 19, 20 with the filter bar
+    // wedged in at 15, and a batch of 13 was counted as 44, squeezing the step from 55ms
+    // to 11.63ms. Dropping them here fixes the ordering and the count at once, and
+    // unobserving stops them being reported again.
+    var arrived = entries.filter(function (e) {
+      if (!e.target.isConnected) {
+        observer.unobserve(e.target); // thrown away by a re-render; stop watching it
+        return false;
+      }
+      return e.isIntersecting ||
+        (e.rootBounds && e.boundingClientRect.bottom <= e.rootBounds.top);
+    });
+    arrived.sort(function (a, b) {
+      return (a.target.compareDocumentPosition(b.target) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1;
+    });
+    // A batch is usually one row of a grid, but it can be far larger — a reload partway
+    // down the page, a hash link, or one hard flick can land twenty cards at once. At a
+    // flat 55ms each that would leave the last one waiting over a second, which is the
+    // same trailing-off the old nth-child ladder tried to solve by capping its delays
+    // (and which made everything past the cap start simultaneously instead). Narrowing
+    // the step so the whole batch fits a fixed budget keeps it a real wave at every size.
+    var timing = getRevealTiming();
+    var step = arrived.length > 1
+      ? Math.min(timing.step, timing.budget / (arrived.length - 1))
+      : timing.step;
+    step = Math.round(step * 100) / 100; // keeps the inline style readable; sub-10us is not a timing anyone can perceive
+    arrived.forEach(function (entry, i) {
+      entry.target.style.setProperty('--reveal-index', i);
+      entry.target.style.setProperty('--reveal-stagger', step + 'ms');
+      entry.target.classList.add('is-revealed');
+      observer.unobserve(entry.target); // reveals once, then stops being watched
+    });
+  }, {
+    // The negative bottom margin pulls the trigger line up off the viewport edge, so an
+    // element starts moving just before it would otherwise be properly in view and is
+    // already settling by the time it reads.
+    //
+    // The enormous TOP margin is load-bearing, not a typo. An observer only reports a
+    // change in intersection, so an element that goes from below the viewport to above
+    // it between two frames — a hash link to #contact, a reload partway down, one hard
+    // flick — is never reported at all, and would stay at opacity 0 forever. Growing the
+    // root upward past any realistic page height means "above the viewport" is always
+    // an intersecting state, so being scrolled past reveals an element instead of
+    // stranding it. threshold stays near zero on purpose: crossing the line at all is
+    // the signal, not how much of a very tall element shows.
+    rootMargin: '9999px 0px -12% 0px',
+    threshold: 0.05
+  });
+  return revealObserver;
+}
+
+// Starts watching every not-yet-revealed [data-reveal] inside root (the whole document
+// by default). Safe to call repeatedly and safe on pages with no such elements at all —
+// admin/index.html shares this file and has none.
+function observeReveals(root) {
+  var scope = root || document;
+  var targets = scope.querySelectorAll('[data-reveal]:not(.is-revealed)');
+  if (!targets.length) return;
+  // No observer is created at all for these two cases, rather than creating one and
+  // letting the CSS render it inert — the same approach the hero parallax in index.html
+  // takes with prefers-reduced-motion.
+  if (!('IntersectionObserver' in window) || prefersReducedMotion()) {
+    revealNow(scope);
+    return;
+  }
+  var observer = getRevealObserver();
+  Array.prototype.forEach.call(targets, function (el) { observer.observe(el); });
+}
+
+// Marks everything inside root as revealed straight away. Used by the fallbacks above;
+// the reduced-motion rule in style.css is what keeps this from animating for the people
+// who asked it not to.
+function revealNow(root) {
+  var scope = root || document;
+  Array.prototype.forEach.call(
+    scope.querySelectorAll('[data-reveal]:not(.is-revealed)'),
+    function (el) { el.classList.add('is-revealed'); }
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -15,6 +15,29 @@
   --display: "Space Grotesk", sans-serif;  /* headings, titles, card captions */
   --mono: "IBM Plex Mono", monospace;      /* body copy, labels, nav — technical/utility feel */
 
+  /* Motion system, Sept 2026 — one timing scale and two curves for the whole site.
+     Before this every transition picked its own duration by hand (0.2s, 0.25s, 0.3s,
+     0.4s, 0.5s) and leaned on the browser's `ease`/`ease-out` keywords, so no two
+     interactions felt like they belonged together and the slower ones read as laggy.
+     `ease-out` the keyword is cubic-bezier(0, 0, 0.58, 1) — the flattest deceleration
+     of the standard set, which is exactly what made things feel mushy; both curves
+     below decelerate harder and settle, which is what reads as fluid.
+     NOTE: never put a transition on a property whose RESTING value is var(--accent) —
+     site.js rewrites that ~8x/sec, and each rewrite would restart the transition and
+     visibly drag the colour cycle. Accent transitions belong on hover states only. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* expo-out — entrances, anything that "arrives" */
+  --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);  /* cubic-out — hover/UI responses */
+  --dur-hover: 220ms;   /* colour, border and opacity responses to a pointer */
+  --dur-ui: 320ms;      /* scrims, fades and small transforms */
+  --dur-zoom: 450ms;    /* the slower image zooms on card/next-project hover */
+  --dur-bar-travel: 220ms; /* the work info bar's slide on a filter change — read from :root by withInfoBarSlide() in index.html */
+  --dur-reveal: 700ms;  /* scroll-triggered entrance (see .js-reveal below) */
+  --reveal-stagger: 55ms;  /* per item; site.js narrows it for an unusually large batch */
+  --reveal-window: 500ms;  /* ceiling on one batch's total stagger, however many arrive at once */
+  --reveal-lift: 18px;
+  --dur-enter-sm: 420ms;   /* secondary entrances: lightbox swatches, the reel's corner brackets */
+  --palette-stagger: 28ms; /* x13 swatches ~= 750ms, one beat with --dur-reveal */
+
   /* Admin-adjustable via Design tab sliders (data/design.json, applied by inline script
      in index.html/project.html) — Aug 2026. Defaults below are 1 (no change) everywhere
      so the site looks identical to before this existed until an admin value is actually
@@ -118,6 +141,34 @@ a { color: inherit; text-decoration: none; }
   border: 0;
 }
 
+/* ---------- Scroll-triggered entrance reveals ---------- */
+/* Anything carrying data-reveal starts invisible and lifts+fades into place the first
+   time it scrolls into view — work cards, filter chips, the contact block, project
+   gallery stills, credits, the next-project card. The observer that adds .is-revealed
+   lives in site.js (observeReveals), along with the full story of why this replaced the
+   load-triggered card-enter animation that used to sit in the work-grid section below.
+
+   Short version: card-enter fired the moment the grid rendered, and since the hero
+   fills the viewport on every device, all 32 cards finished animating below the fold
+   about a second before anyone reached them.
+
+   Everything here is gated on .js-reveal, which site.js puts on <html> at parse time.
+   That is deliberate and load-bearing: if site.js ever fails, the class is never added,
+   the opacity:0 below never applies, and the page renders plainly instead of blank.
+
+   The stagger index is set per entering batch by the observer rather than by nth-child,
+   so a card in row 8 gets the same rhythm as one in row 1. */
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(var(--reveal-lift)); }
+  to   { opacity: 1; transform: none; }
+}
+.js-reveal [data-reveal] { opacity: 0; }
+.js-reveal [data-reveal].is-revealed {
+  opacity: 1;
+  animation: reveal-in var(--dur-reveal) var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-index, 0) * var(--reveal-stagger));
+}
+
 /* Page-wide grain texture — requested Aug 2026, replaces two earlier layers scoped to
    specific glows (.halo-dither around the reel, .bottom-glow-noise at the bottom of
    the page), which only ever showed grain in narrow bleed zones near those glows and
@@ -202,8 +253,9 @@ h1, h2, h3 {
      above for legibility over scrolling content. Aug 2026. */
 }
 
-/* Any same-document View Transition (the lightbox crossfade, the work-grid filter
-   crossfade) needs the nav excluded from its own view-transition-name while it runs —
+/* Any same-document View Transition (today just the lightbox crossfade on project.html;
+   the work-grid filter used one too until Sept 2026) needs the nav excluded from its own
+   view-transition-name while it runs —
    otherwise the nav gets pulled into the browser's view-transition top layer, which
    renders above everything else regardless of normal z-index, and visibly pops over
    whatever's actually transitioning. Hit this first with the lightbox crossfade, Aug
@@ -258,22 +310,27 @@ body.same-doc-transition .site-nav {
 .nav-links a {
   position: relative; /* positioning context for the ::after underline below */
   opacity: 0.75;
-  transition: opacity 0.2s;
+  transition: opacity var(--dur-hover) var(--ease-out-soft);
 }
 .nav-links a:hover { opacity: 1; color: var(--accent); }
 /* Thin underline that grows in from the left on hover, requested Aug 2026 — a second,
-   smaller cue alongside the existing color change rather than a replacement for it. */
+   smaller cue alongside the existing color change rather than a replacement for it.
+   Drawn at full width and scaled from 0 rather than animating `width` from 0 (which it
+   did until Sept 2026): width is a layout property, so every frame forced a reflow;
+   scaleX runs on the compositor. transform-origin keeps it growing from the left. */
 .nav-links a::after {
   content: '';
   position: absolute;
   left: 0;
   bottom: -4px;
-  width: 0;
+  width: 100%;
   height: 1px;
   background: currentColor; /* tracks the link's own hover color automatically, no separate var(--accent) reference to keep in sync */
-  transition: width 0.25s ease;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-hover) var(--ease-out-soft);
 }
-.nav-links a:hover::after { width: 100%; }
+.nav-links a:hover::after { transform: scaleX(1); }
 
 #lang-toggle {
   font-family: var(--mono);
@@ -285,7 +342,7 @@ body.same-doc-transition .site-nav {
   color: var(--fg-dim);
   padding: 6px 10px;
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
 }
 #lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -306,10 +363,19 @@ body.same-doc-transition .site-nav {
    loads, not scroll-triggered at all, so there's no timing race of any kind to worry
    about (the same reasoning as the grid/gallery entrance above). Uses the transform
    shorthand for this one-time slide+fade, while the scroll-linked parallax just below
-   uses the separate scale property instead, so the two don't fight over the same
-   property — same technique as the thumb-drift/hover-zoom combo above. */
+   uses the separate scale and translate properties instead, so the two don't fight over
+   the same property.
+   Moved onto the shared motion scale in Sept 2026: this is now exactly the reveal the
+   rest of the site uses — same 18px lift, same duration, same curve — just triggered by
+   the page loading rather than by scrolling, since the hero is above the fold by
+   definition. It ran at 800ms on the `ease-out` KEYWORD until then, which is
+   cubic-bezier(0, 0, 0.58, 1) — the flattest deceleration of the standard set, and the
+   same curve that made the lightbox palette read as mushy before that was retuned.
+   Note the swap is not simply "100ms faster": --ease-out is an expo-out, which covers
+   most of its distance in the first third of its run, so the hero now lands
+   considerably sooner than the 800→700 change alone suggests. */
 @keyframes hero-enter {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(var(--reveal-lift)); }
   to { opacity: 1; transform: translateY(0); }
 }
 .reel-frame {
@@ -318,19 +384,35 @@ body.same-doc-transition .site-nav {
   max-width: 1400px;
   border: 1px solid var(--line);
   background: var(--bg-raised);
-  animation: hero-enter 0.8s ease-out;
-  /* Safety net for the rare case sizeReel()'s post-load correction (fonts swapping
-     in, nav height settling) differs from its synchronous first-paint value — smooths
-     that into a soft resize instead of a hard snap. The synchronous call in index.html
-     means this almost never actually runs visibly, but it's a cheap guarantee. Aug 2026. */
-  transition: max-width 0.3s ease;
-  /* Subtle scroll-linked parallax, requested Aug 2026 — set by updateHeroParallax() in
+  animation: hero-enter var(--dur-reveal) var(--ease-out);
+  /* No transition on max-width. There was one until Sept 2026, as a safety net for the
+     rare case sizeReel()'s post-load correction differed from its synchronous
+     first-paint value — but sizeReel() also re-runs on every rAF-throttled resize frame,
+     and each re-set restarted the 300ms transition, so the frame visibly lagged the
+     window edge for the whole of a drag-resize. The synchronous call before first paint
+     in index.html is what actually covers the case this was hedging against. */
+  /* Scroll-linked parallax, requested Aug 2026 — set by updateHeroParallax() in
      index.html, a direct scroll-value-following custom property (same technique the
      earlier nav-fade-on-scroll experiment used, before that was reverted for unrelated
      visual reasons, not technical ones — the underlying pattern works fine). No CSS
      transition here on purpose, matching that same precedent: a transition would make
-     the scale lag behind the actual scroll position instead of tracking it 1:1. */
+     the scale lag behind the actual scroll position instead of tracking it 1:1.
+     Strengthened Sept 2026 from a 5% scale alone (which nobody read as motion) to 10%
+     plus a downward drift, so the reel visibly lags and recedes as you scroll past it.
+     Both are the INDEPENDENT transform properties, not the transform shorthand, and
+     that is deliberate: hero-enter above owns `transform` and `opacity` for the first
+     0.8s of the page's life. Anything the parallax animated through either of those two
+     would simply be overridden while that animation ran and then jump to its real value
+     the moment it ended — a visible step for anyone who starts scrolling during the
+     load-in. scale/translate compose with the shorthand instead of competing with it,
+     which is the same reasoning hero-enter's own comment already gives for staying off
+     `scale`. A fade was tried here first and dropped for exactly that collision.
+     will-change is what makes this affordable: this element carries the three-layer
+     bias-light halo below, whose outermost shadow reaches ~340px on a wide screen, and
+     without promotion every scroll frame re-rasterized that entire glow. */
   scale: var(--parallax-scale, 1);
+  translate: 0 var(--parallax-shift, 0px);
+  will-change: scale, translate;
   box-shadow: /* bias-light halo — neutral 6500K white, like a grading-room monitor light.
                  clamp() floors match the original mobile values exactly (unchanged there)
                  and scale up on wider viewports so the falloff stays proportionally smooth
@@ -348,11 +430,18 @@ body.same-doc-transition .site-nav {
 }
 
 /* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle.
-   Scale+fade in slightly after the frame itself (0.4s delay), like they're snapping into
-   focus once the frame has settled — requested Aug 2026. Animates TO 0.35, the same admin-configurable value the static opacity already used, so the
-   Design tab's grain/halo sliders still control the resting state correctly once the
-   entrance finishes; backwards fill-mode shows the (invisible) from-state during the
-   delay instead of flashing full brackets before the delayed start. */
+   Scale+fade in slightly after the frame itself, like they're snapping into focus once
+   the frame has settled — requested Aug 2026. Animates TO 0.35, the same
+   admin-configurable value the static opacity already used, so the Design tab's
+   grain/halo sliders still control the resting state correctly once the entrance
+   finishes; backwards fill-mode shows the (invisible) from-state during the delay
+   instead of flashing full brackets before the delayed start.
+   On the shared scale since Sept 2026 (was 0.5s on the `ease-out` keyword, alongside the
+   frame's own entrance above). --dur-enter-sm is the same token the lightbox palette
+   uses: both are small, secondary things arriving after something larger.
+   The 400ms delay is deliberately NOT a token. It isn't a speed, it's a beat — how long
+   to wait for the frame to look settled — and with the frame now on an expo-out it is
+   visually done well before this fires, which is exactly the intended reading. */
 @keyframes bracket-enter {
   from { opacity: 0; scale: 1.4; }
   to { opacity: 0.35; scale: 1; }
@@ -365,7 +454,7 @@ body.same-doc-transition .site-nav {
   height: 18px;
   border: 1px solid var(--accent);
   opacity: 0.35; /* dimmed once the bias-light halo was added, Aug 2026 */
-  animation: bracket-enter 0.5s ease-out 0.4s backwards;
+  animation: bracket-enter var(--dur-enter-sm) var(--ease-out) 400ms backwards;
 }
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
@@ -430,7 +519,7 @@ body.same-doc-transition .site-nav {
   border: 1px solid var(--line);
   color: var(--fg);
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft), background var(--dur-hover) var(--ease-out-soft);
 }
 #sound-toggle { top: 14px; left: 14px; }
 #fullscreen-toggle { bottom: 14px; right: 14px; }
@@ -541,7 +630,7 @@ body.same-doc-transition .site-nav {
   color: var(--fg-dim);
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.2s ease;
+  transition: color var(--dur-hover) var(--ease-out-soft);
 }
 .work-filter button:hover,
 .work-filter button.active {
@@ -556,7 +645,11 @@ body.same-doc-transition .site-nav {
   grid-template-columns: repeat(4, 1fr);
   gap: var(--grid-gap);
   background: var(--bg); /* seamless black gap between cards, ShotDeck-inspired, Aug 2026 */
-  view-transition-name: work-grid; /* scopes the same-document crossfade on filter change (see the click handler in index.html) to just this container, instead of the browser treating the whole page as one transitioning root */
+  /* No view-transition-name here any more. The filter change used to run as a
+     same-document View Transition scoped to this container, but a View Transition
+     crossfades every snapshot it takes — and a crossfade is the one thing the filter
+     change shouldn't do. Cards now lift in under the shared reveal animation instead,
+     and the info bar's travel is FLIPped in JS; see withInfoBarSlide() in index.html. */
 }
 
 .work-card {
@@ -568,39 +661,16 @@ body.same-doc-transition .site-nav {
   flex-direction: column;
   justify-content: flex-end; /* pins the caption to the bottom of the card */
   padding: 14px;
+  /* For the hover-dim in the (hover: hover) block further down. On the base rule, not
+     inside the :hover one, so it applies in both directions — see the note there. */
+  transition: filter var(--dur-ui) var(--ease-out-soft);
 }
 
-/* Entrance animation for grid/gallery cards, requested Aug 2026 — replaces the earlier
-   scroll-triggered .reveal attempt (removed the same day after two rounds of fixes —
-   requestAnimationFrame deferral, then a synchronous forced reflow via offsetHeight —
-   never made it reliable in practice). This is architecturally different and doesn't
-   share that failure mode: @keyframes animations run on their own clock the instant
-   animation applies to an element, they don't need the browser to have already painted
-   a "before" state to transition FROM the way a CSS transition does — there's no race
-   to lose. Triggers on every render (initial load AND filter changes both create
-   brand-new elements via innerHTML), pure CSS, zero JS/observer involved.
-   nth-child stagger is capped at 12 steps so a long list doesn't push the last cards'
-   entrance out by an ever-growing wait. */
-@keyframes card-enter {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.work-card,
-.gallery-item {
-  animation: card-enter 0.6s ease-out backwards;
-}
-.work-card:nth-child(1), .gallery-item:nth-child(1) { animation-delay: 0ms; }
-.work-card:nth-child(2), .gallery-item:nth-child(2) { animation-delay: 40ms; }
-.work-card:nth-child(3), .gallery-item:nth-child(3) { animation-delay: 80ms; }
-.work-card:nth-child(4), .gallery-item:nth-child(4) { animation-delay: 120ms; }
-.work-card:nth-child(5), .gallery-item:nth-child(5) { animation-delay: 160ms; }
-.work-card:nth-child(6), .gallery-item:nth-child(6) { animation-delay: 200ms; }
-.work-card:nth-child(7), .gallery-item:nth-child(7) { animation-delay: 240ms; }
-.work-card:nth-child(8), .gallery-item:nth-child(8) { animation-delay: 280ms; }
-.work-card:nth-child(9), .gallery-item:nth-child(9) { animation-delay: 320ms; }
-.work-card:nth-child(10), .gallery-item:nth-child(10) { animation-delay: 360ms; }
-.work-card:nth-child(11), .gallery-item:nth-child(11) { animation-delay: 400ms; }
-.work-card:nth-child(n+12), .gallery-item:nth-child(n+12) { animation-delay: 440ms; }
+/* The load-triggered card-enter animation and its 12 nth-child delay rules used to live
+   here. Replaced Sept 2026 by the scroll-triggered reveal defined near the top of this
+   file (search .js-reveal) — cards now carry data-reveal, set in renderWorkGrid()'s
+   template in index.html and in the gallery template in project.html. See the comment
+   on that block, and observeReveals() in site.js, for why. */
 
 /* Continuous, ambient pan/zoom — moved to .contact-photo below, Aug 2026, per explicit
    request (was on the work-grid/gallery thumbnails). See .contact-photo-frame's own
@@ -618,7 +688,7 @@ body.same-doc-transition .site-nav {
   height: 100%;
   background: var(--bg-raised); /* shows while the image loads */
   object-fit: cover; /* was background-size:cover on a div — now an <img> so loading="lazy" actually works, Aug 2026 */
-  transition: transform 0.5s ease;
+  transition: transform var(--dur-zoom) var(--ease-out-soft);
 }
 .work-card:hover .thumb { transform: scale(1.04); }
 
@@ -628,14 +698,14 @@ body.same-doc-transition .site-nav {
   position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(12,12,12,0) 55%, rgba(12,12,12,0.94) 100%);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity var(--dur-ui) var(--ease-out-soft);
 }
 
 .work-card-meta {
   position: relative;
   z-index: 1;
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity var(--dur-ui) var(--ease-out-soft);
 }
 
 /* Hover-capable devices (desktop/trackpad): no per-card caption at all — the shared
@@ -645,12 +715,26 @@ body.same-doc-transition .site-nav {
    reads at full opacity while the rest recede. Pure CSS (:hover on the grid, an
    adjacent-card selector for the dim) — no JS state needed for this part. */
 @media (hover: hover) {
+  /* Two Sept 2026 fixes to what was one four-line rule.
+     1. The transition lives on .work-card itself, not in here. Declared inside the
+        :hover rule it only existed while the pointer was over the grid — so leaving the
+        grid dropped the declaration along with the rule, and the dimmed cards snapped
+        back to full instead of easing.
+     2. The dim is filter: brightness(), not opacity: 0.82. Over a #0C0C0C page the two
+        are visually indistinguishable, but opacity is the property the scroll reveal
+        animates, and a transition beats an animation in the cascade — so a card
+        revealing while the grid happened to be hovered would have had its entrance
+        overridden for the transition's duration and then jumped when it ended. Giving
+        the two effects separate properties means they can never contend at all.
+        filter: none is the resting value rather than brightness(1): interpolation from
+        `none` is well-defined (it's read as the identity for the other side's function
+        list) and it avoids promoting all 32 cards to filtered layers when nobody is
+        hovering. */
   .work-grid:hover .work-card {
-    opacity: 0.82;
-    transition: opacity 0.3s ease;
+    filter: brightness(0.82);
   }
   .work-grid:hover .work-card:hover {
-    opacity: 1;
+    filter: none;
   }
 }
 
@@ -726,6 +810,18 @@ body.same-doc-transition .site-nav {
 @media (hover: hover) {
   .work-info-bar { display: flex; }
 }
+
+/* The bar sits at the bottom of #work and sticks to the viewport only while the section
+   runs past it, so filtering moves it: going from 32 projects to 8 shortens the section
+   from ~1750px to ~520px and the bar unsticks down to the section's real bottom edge —
+   measured at 1440x900, a 685px jump in a single frame.
+   Animating that is JS's job (withInfoBarSlide() in index.html) rather than CSS's,
+   because nothing about the bar's own styles changed: it moved because the section above
+   it got shorter, and layout isn't transitionable. A View Transition did handle it for a
+   while — that API exists for exactly this — but it crossfades every snapshot it takes,
+   including the cards and the whole page root as #contact slid up underneath, and the
+   crossfade is precisely what wasn't wanted here. --dur-bar-travel and --ease-out-soft
+   are still the knobs; the JS reads them straight off :root. */
 .info-bar-content {
   display: flex;
   align-items: center;
@@ -733,7 +829,7 @@ body.same-doc-transition .site-nav {
   min-width: 0;
   max-width: 100%;
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity var(--dur-ui) var(--ease-out-soft);
 }
 .info-bar-content.visible { opacity: 1; }
 .info-bar-main {
@@ -1054,7 +1150,7 @@ body.same-doc-transition .site-nav {
   color: inherit;
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.2s ease;
+  transition: color var(--dur-hover) var(--ease-out-soft);
 }
 .contact-footer-nav button:hover,
 .contact-top:hover {
@@ -1128,7 +1224,7 @@ body.same-doc-transition .site-nav {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.4s ease;
+  transition: transform var(--dur-zoom) var(--ease-out-soft);
 }
 .gallery-item:hover img { transform: scale(1.03); }
 
@@ -1222,14 +1318,14 @@ body.same-doc-transition .site-nav {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   background: var(--bg-raised); /* shows while the image loads */
-  transition: transform 0.5s ease;
+  transition: transform var(--dur-zoom) var(--ease-out-soft);
 }
 .next-project:hover .next-project-thumb { transform: scale(1.04); }
 .next-project-title {
   margin: 10px 0 0;
   font-size: 13px;
   color: var(--fg);
-  transition: color 0.2s ease;
+  transition: color var(--dur-hover) var(--ease-out-soft);
 }
 .next-project:hover .next-project-title { color: var(--accent); }
 
@@ -1353,34 +1449,45 @@ body.same-doc-transition .site-nav {
 /* Each swatch rises from the strip's baseline on a short stagger rather than the whole
    row appearing at once, requested Aug 2026 — on a colorist's site the palette is the
    signature, and it was the one element on the page that simply blinked into place.
-   Same mechanism as card-enter above and chosen for the same reason: a @keyframes
-   animation starts on its own clock the moment it applies to an element, so running it
-   on swatches built by innerHTML needs no observer, no deferral, and has no painted
-   "before" state to race against. Re-runs for free on prev/next, since those rebuild
-   the swatches too. */
+   Same mechanism as the scroll reveal near the top of this file, and chosen for the same
+   reason: a @keyframes animation starts on its own clock the moment it applies, so
+   running it on swatches built by innerHTML needs no observer, no deferral, and has no
+   painted "before" state to race against.
+
+   Three things changed here in Sept 2026, all aimed at the same complaint (the stagger
+   didn't feel fluid):
+
+   1. The delay is driven by --i, set per swatch as they're built in project.html,
+      instead of a hand-written nth-child ladder that ran to 11 and then capped every
+      remaining swatch at 220ms. A palette is always exactly 13 swatches, so that cap
+      only ever did one thing: make swatches 12 and 13 start together, stalling the wave
+      one step before the end. The cap was copied from the work grid, where an unbounded
+      list genuinely needs one.
+   2. The curve moved from the `ease-out` keyword — cubic-bezier(0, 0, 0.58, 1), the
+      flattest deceleration of the standard set — to --ease-out, which snaps up and
+      settles. That keyword was most of why the rise read soft.
+   3. The animation is now scoped to .is-entering, which project.html only sets when the
+      lightbox is *opened*. Navigating prev/next used to rebuild the swatches and replay
+      the whole ~750ms wave on top of the browser's ~250ms image crossfade — two motions
+      on two unrelated clocks, so the palette never settled while arrowing through a
+      gallery. Navigation now writes the new colours onto the existing swatches instead;
+      .lightbox-palette has no view-transition-name of its own, so it rides the root
+      snapshot and the browser crossfades the colour change in sync with the image.
+      The background-color transition below is the fallback for browsers with no View
+      Transitions support, where withViewTransition() applies the update bare. */
 @keyframes palette-enter {
-  from { opacity: 0; transform: scaleY(0.3); }
+  from { opacity: 0; transform: scaleY(0.25); }
   to { opacity: 1; transform: scaleY(1); }
 }
 .lightbox-palette > div {
   flex: 1;
   transform-origin: bottom;
-  animation: palette-enter 0.4s ease-out backwards;
+  transition: background-color var(--dur-ui) var(--ease-out-soft);
 }
-/* 13 swatches per image, so the stagger is written out to 12 and capped like the grid's
-   — the cap is what keeps a short palette (or a longer one later) from trailing off. */
-.lightbox-palette > div:nth-child(1) { animation-delay: 0ms; }
-.lightbox-palette > div:nth-child(2) { animation-delay: 20ms; }
-.lightbox-palette > div:nth-child(3) { animation-delay: 40ms; }
-.lightbox-palette > div:nth-child(4) { animation-delay: 60ms; }
-.lightbox-palette > div:nth-child(5) { animation-delay: 80ms; }
-.lightbox-palette > div:nth-child(6) { animation-delay: 100ms; }
-.lightbox-palette > div:nth-child(7) { animation-delay: 120ms; }
-.lightbox-palette > div:nth-child(8) { animation-delay: 140ms; }
-.lightbox-palette > div:nth-child(9) { animation-delay: 160ms; }
-.lightbox-palette > div:nth-child(10) { animation-delay: 180ms; }
-.lightbox-palette > div:nth-child(11) { animation-delay: 200ms; }
-.lightbox-palette > div:nth-child(n+12) { animation-delay: 220ms; }
+.lightbox-palette.is-entering > div {
+  animation: palette-enter var(--dur-enter-sm) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--palette-stagger));
+}
 .lightbox-close {
   position: absolute;
   top: var(--lb-close-top);
@@ -1419,7 +1526,7 @@ body.same-doc-transition .site-nav {
   background: rgba(12, 12, 12, 0.5);
   border: 1px solid var(--line);
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
   z-index: 1; /* stays above the full-bleed image */
 }
 .lightbox-nav:hover { color: var(--accent); border-color: var(--accent); }
@@ -1483,11 +1590,12 @@ body.same-doc-transition .site-nav {
 
 /* Reduced motion: honors the OS-level accessibility setting for people sensitive to
    motion. Turns off smooth scrolling, the hover-triggered zoom on gallery/work-card
-   thumbnails, the card entrance animation, the contact photo's ambient drift, the
-   hero's load-in and corner-bracket entrance, and the scroll-linked parallax
-   (updateHeroParallax() in index.html also skips registering its scroll listener
-   entirely for these users, so it's not just visually inert, it's not doing the work
-   at all). Deliberately does NOT touch the hero reel's autoplay/loop — that's a
+   thumbnails, the scroll-triggered entrance reveals, the lightbox palette's rise, the
+   contact photo's ambient drift, the hero's load-in and corner-bracket entrance, and
+   the scroll-linked parallax (updateHeroParallax() in index.html also skips registering
+   its scroll listener entirely for these users, and observeReveals() in site.js never
+   creates an observer at all — so none of this is merely visually inert, the work isn't
+   being done). Deliberately does NOT touch the hero reel's autoplay/loop — that's a
    separate, deliberate choice (muted by default, full user control via the sound/
    fullscreen buttons), not treated as the kind of incidental motion this addresses.
    Aug 2026. */
@@ -1501,19 +1609,24 @@ body.same-doc-transition .site-nav {
   .gallery-item:hover img {
     transform: none;
   }
-  .work-card,
-  .gallery-item {
+  /* Both selectors matter: site.js reveals everything immediately for these visitors,
+     but an element it hasn't reached yet must not be sitting at opacity 0 in the
+     meantime. */
+  .js-reveal [data-reveal],
+  .js-reveal [data-reveal].is-revealed {
+    opacity: 1;
     animation: none;
   }
   .contact-photo {
     animation: none;
   }
-  .lightbox-palette > div {
+  .lightbox-palette.is-entering > div {
     animation: none;
   }
   .reel-frame {
     animation: none;
     scale: 1;
+    translate: none;
   }
   .reel-frame::before,
   .reel-frame::after {
