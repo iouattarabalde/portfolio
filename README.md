@@ -128,6 +128,10 @@ Conséquence pour les catégories du pied de page : sous 480px, elles affichent 
 acronymes (AD/PUB, MV/CLIP…) au lieu des libellés complets, sinon la rangée ne tient pas
 sur une ligne une fois les zones tactiles agrandies. Les deux versions sont dans le HTML
 et c'est le CSS qui choisit — rien à faire côté JS lors d'une rotation d'écran.
+L'espacement de cette rangée diffère selon la langue (30px en anglais, 24px en français) :
+les acronymes n'ont pas la même longueur, donc ni le minimum (ne pas faire se chevaucher
+deux cibles) ni le maximum (tenir sur une ligne) ne tombent au même endroit. Le tableau
+des valeurs est dans `style.css` — à recalculer si un acronyme change dans l'admin.
 
 ## Catégories de projet
 

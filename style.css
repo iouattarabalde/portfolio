@@ -1001,7 +1001,23 @@ body.same-doc-transition .site-nav {
 @media (max-width: 480px) {
   .contact-footer-nav .cat-full { display: none; }
   .contact-footer-nav .cat-short { display: inline; }
-  .contact-footer-nav { column-gap: 30px; } /* 29 is the real floor (two 2-character acronyms adjacent); 30 for a little slack */
+  /* The gap has to clear the widest pair of neighbouring hit areas without pushing the
+     row past the column, and the two languages don't have a value in common — the
+     acronyms differ in length, so both the floor and the ceiling move with the language:
+
+                text   min gap (no overlap)   max gap (fits a 280px viewport)
+       EN       100px  28.6  (AD|MV)          35
+       FR       131px  20.9  (FILM|TV)        27.3
+
+     30 sits in EN's window and above FR's ceiling, which is why French was the one
+     language still wrapping at 280px. 24 is around the middle of FR's window.
+     Both numbers depend on the acronyms themselves, which are editable in the admin
+     ("Textes du site" -> Types de projet): a new 2-character acronym next to another
+     2-character one raises that language's floor to ~28.6, and longer acronyms lower its
+     ceiling. If a row starts wrapping or two neighbours start stealing each other's
+     taps, this table is what to recompute. */
+  .contact-footer-nav { column-gap: 30px; }
+  body.lang-fr .contact-footer-nav { column-gap: 24px; }
 }
 
 .contact-footer-nav button,
