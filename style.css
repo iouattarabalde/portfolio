@@ -919,20 +919,32 @@ body.same-doc-transition .site-nav {
    its toggle is already reachable from this scroll position, and a second one would
    have to be kept in sync with it for no gain.
 
-   Deliberately NOT capped at --contact-measure like the columns above it: this is the
-   page's footer, not part of the contact block, so it runs the full content width and
-   ends flush with .site-nav on both sides. .contact's own horizontal padding is the
-   same clamp(20px, 4vw, 48px) that .site-nav and .work-filter use, which is what makes
-   that line up for free — change one and the other two drift out of alignment. The rule
-   above the row therefore extends past the copy beside it, which is the intent: it
-   bookends the page against the nav rather than underlining the contact columns. */
+   Capped at --contact-measure, same as the columns, so the copyright starts directly
+   under the heading and the rule ends level with the right edge of the photo. This one
+   is a settled choice between two alignments that can't both hold, so don't "fix" it
+   back without reading the rest of this note:
+
+     - Cap it (this): the bar lines up with the copy above it, and stops short of where
+       .site-nav and .work-filter end (~400px short at a 2000px viewport).
+     - Drop the cap: the bar runs the full content width and ends exactly flush with the
+       nav and the filter bar — .contact shares their clamp(20px, 4vw, 48px) horizontal
+       padding, so that alignment comes for free — but then the copyright sits well to
+       the left of the heading.
+
+   Aligning to the copy won. The third option, left-aligning the columns to the page
+   gutter so both could hold at once, doesn't work: the photo would end mid-page and
+   leave ~780px of nothing to its right at 2000px, and widening the columns to close
+   that reopens the copy-to-photo gap this section was restructured to remove. Below
+   ~1216px the question is moot — the section is narrower than the measure, so the bar,
+   the columns and the nav all line up anyway. */
 .contact-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px 32px;
-  margin: clamp(48px, 7vw, 88px) 0 0;
+  max-width: var(--contact-measure);
+  margin: clamp(48px, 7vw, 88px) auto 0;
   padding-top: 26px;
   border-top: 1px solid var(--line);
   font-size: 11px;
