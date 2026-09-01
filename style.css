@@ -764,19 +764,27 @@ body.same-doc-transition .site-nav {
    dropped from the page in the Aug 2026 pass) is rendered again to fill the first.
 
    The two text columns are nested in .contact-text rather than being siblings of the
-   photo, and that nesting is what keeps the arrangement monotonic as the viewport
-   narrows — 3 across, then the photo beneath a 2-column text block, then everything
-   stacked — with no media query for the in-between range. The mechanism is
-   .contact-text's flex-basis: it's derived below from the exact width the two columns
-   need to sit side by side, so as soon as the line can't afford that, the photo is what
-   wraps off it, not the text folding in on itself. Getting that backwards (a basis
-   smaller than the pair needs, which is what a hand-picked 520px did) produces a flip:
-   the text folds to one column around 1200px, then springs back to two around 820px
-   once the photo finally drops. */
+   photo, and that nesting is what decides which of the two wraps when the row runs out
+   of room. .contact-text's flex-basis is the whole control: keep it small and the photo
+   holds the line while the text pair folds into a single column beside it, which is the
+   arrangement below ~1270px. That gives three states, each of which stands on its own,
+   in a strictly monotonic order as the viewport narrows:
+
+     >= ~1270px   heading+bio | links+meta | photo
+     700-1270px   all the copy in one column | photo
+     <= 700px     everything stacked (the media query further down)
+
+   Two things this basis must not be. Too large and the photo wraps off the line instead,
+   which is what a derived "exactly what the two columns need" value did: it left the
+   photo alone and centred under the text with 319px of empty gutter on either side at
+   1100px, taller and emptier than the layout it replaced — the original problem back in
+   a new spot. Too large in a different way (a hand-picked 520px) and the order stops
+   being monotonic: the text folds around 1200px, then springs back to two columns
+   around 820px once the photo finally does drop. 340px is comfortably under the point
+   where the photo would wrap at any width above the 700px breakpoint (the photo's own
+   basis bottoms out at 260px, and 340 + 260 + gap still fits down to ~682px), so the
+   photo stays beside the copy right up to where everything stacks anyway. */
 .contact-columns {
-  /* Shared by the two text columns and by .contact-text's derived basis just below —
-     the derivation is the whole point, so these can't be inlined without the basis
-     silently drifting out of step with the columns it's meant to describe. */
   --contact-col: 320px; /* each text column: wide enough for the email address at its largest clamp size */
   --contact-gap: clamp(28px, 4vw, 56px);
 
@@ -790,7 +798,7 @@ body.same-doc-transition .site-nav {
 }
 
 .contact-text {
-  flex: 1 1 calc(var(--contact-col) * 2 + var(--contact-gap));
+  flex: 1 1 340px; /* deliberately small — see the note above; this is what keeps the photo on the line and folds the text instead */
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start; /* the email label lines up with the top of the heading, rather than the two columns floating against each other's centres */
@@ -854,7 +862,7 @@ body.same-doc-transition .site-nav {
 .contact-bio {
   margin: 24px 0 0;
   color: var(--fg-dim);
-  max-width: 42ch; /* holds a readable measure in the in-between range where .contact-intro spans the whole text row on its own */
+  max-width: 54ch; /* 42ch left ~270px of the column unfilled once .contact-intro spans the whole folded text row; 54ch of mono is still a comfortable measure and doesn't bind at all in the 3-column state, where the column itself is narrower */
 }
 
 /* Email + Instagram as prominent underlined links with icons, replacing the old
