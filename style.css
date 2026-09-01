@@ -775,13 +775,18 @@ body.same-doc-transition .site-nav {
       didn't cap at all. But the measure has to suit the number of columns in it: at
       1400px (matching .reel-frame) the copy shrank to its own ~507px while the photo
       stayed pinned to the far edge, leaving ~370px of nothing between them.
-   2. .contact-text's flex-basis stays small (340px). That's what decides which element
+   2. .contact-text's flex-basis stays small (300px). That's what decides which element
       wraps when the row runs out of room: small basis, and the photo holds the line.
-      Sized to what the two columns "need" instead, the photo wraps below and sits
-      centred under the copy with 319px of gutter either side — taller and emptier than
-      what it replaced. 340 is comfortably clear of the wrap point at every width above
-      700px (the photo's own basis bottoms out at 260px, and 340 + 260 + gap still fits
-      at ~682px).
+      Sized to what the two columns "need" instead, the photo wraps below and sits under
+      the copy — taller and emptier than what it replaced.
+      The basis has to be checked against the photo's basis whenever either changes.
+      It was 340, which cleared the wrap point at ~682px back when the photo was sized
+      at 34vw; switching the photo to 46% of the measure raised its basis in this band
+      and pushed the wrap point up to ~744, so 701-744px (iPad mini portrait among them)
+      fell through to a wrapped photo without the mobile rules that make that arrangement
+      work. At 300 the row still fits at 700px — 300 + 296 + 28 = 624 inside a 644px
+      container — so the photo now stops holding the line only below the breakpoint,
+      where the media query takes over deliberately.
    3. The bio is rendered again (bioFr/bioEn — still authored and translated in the
       admin, just dropped from the page in the Aug 2026 pass) and given a real measure.
       It's most of what fills the copy column.
@@ -803,7 +808,7 @@ body.same-doc-transition .site-nav {
 }
 
 .contact-text {
-  flex: 1 1 340px; /* deliberately small — see the note above; it's what keeps the photo on the line rather than wrapping it below */
+  flex: 1 1 300px; /* deliberately small — see the note above; it's what keeps the photo on the line rather than wrapping it below, and it's checked against the photo's own basis, not picked freely */
   display: flex;
   flex-direction: column; /* one column of copy, so no basis/wrap juggling between the blocks inside it */
   align-items: flex-start;
@@ -823,7 +828,7 @@ body.same-doc-transition .site-nav {
   flex: 0 1 clamp(260px, 46%, 520px);
   width: auto;
   max-width: 100%;
-  margin-inline: auto;
+  margin-inline: 0; /* never centre: on any row where the photo sits alone, its left edge belongs on the same line as the heading, bio, email and copyright */
   aspect-ratio: 4 / 5;
   border: 1px solid var(--line);
   background: var(--bg-raised); /* shows while the image loads */
@@ -846,10 +851,17 @@ body.same-doc-transition .site-nav {
 }
 
 @media (max-width: 700px) {
+  /* Stacked under the copy, filling the column up to 420px. It used to cap at 320 and
+     centre itself, which drifted further off the copy's left edge the wider the column
+     got — 8px out at 375px, 35 at 430, 70 at 500, 162 at 700, by which point it read as
+     a small card floating in the middle of the section rather than as part of the stack.
+     The left edge is handled by the base rule's margin-inline: 0 now; the cap goes to
+     420 so it keeps filling the column at tablet widths without the 4/5 frame turning
+     into a ~800px-tall slab. */
   .contact-photo-frame {
     flex: 0 0 auto;
     width: 100%;
-    max-width: 320px;
+    max-width: 420px;
   }
 }
 
@@ -984,10 +996,16 @@ body.same-doc-transition .site-nav {
 }
 
 @media (max-width: 700px) {
-  /* Stacked and left-aligned rather than pushed to the two ends of a narrow row, where
-     space-between would strand the copyright and the top link on opposite edges. */
+  /* One group per row. space-between would strand the copyright and the top link on
+     opposite edges of a narrow row, but simply switching to flex-start wasn't enough:
+     between ~600 and 700px all three groups still fit on one line, separated by nothing
+     but the 16px gap, so the copyright, the category links and "back to top" read as a
+     single run of text with no cue that the middle items are even links. Going to a
+     column makes the grouping explicit at every width — which is what already happened
+     below ~560px, where the row wrapped on its own. */
   .contact-footer {
-    justify-content: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 16px;
   }
 }
