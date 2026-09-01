@@ -249,7 +249,21 @@
   // padding, both already resolved once the elements exist in the DOM, and doesn't
   // depend on video/image/font loading at all. Aug 2026.
   sizeReel();
-  window.addEventListener('load', () => { sizeReel(); scrollToHashTarget(); });
+
+  // Publishes the sticky nav's measured height as --nav-h. style.css uses it for two
+  // things that both have to match the nav exactly: where #work and #contact land when
+  // their nav link is clicked (scroll-margin-top), and the minimum height #contact needs
+  // in order to be able to reach that position at all. Measured rather than hardcoded
+  // because the nav grows and shrinks with the webfont swap and with browser zoom, and a
+  // stale constant shows up directly as the section landing at the wrong height.
+  function syncNavHeight() {
+    const nav = document.querySelector('.site-nav');
+    if (!nav) return;
+    document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px');
+  }
+  syncNavHeight(); // synchronous first pass, same reasoning as sizeReel() above
+
+  window.addEventListener('load', () => { sizeReel(); syncNavHeight(); scrollToHashTarget(); });
 
   // Fragment-scroll fix, Aug 2026: the browser's native anchor scroll (on initial
   // navigation to index.html#work or #contact, e.g. from project.html's nav or "Back
@@ -488,6 +502,7 @@
   let resizeTicking = false;
   function onResizeThrottled() {
     sizeReel();
+    syncNavHeight();
     resizeTicking = false;
   }
   window.addEventListener('resize', () => {

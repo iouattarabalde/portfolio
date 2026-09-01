@@ -101,6 +101,13 @@ vide au milieu sur les grands écrans. Sous 700px, la photo passe sous le texte.
 est de nouveau affichée après avoir été retirée en août 2026 ; le champ était resté
 modifiable dans l'admin entre-temps.
 
+Cliquer « Contact » (ou « Projets ») amène la section pile sous la barre de navigation :
+son bord supérieur est aligné sur le bas de la barre, ni plus haut ni plus bas. La hauteur
+de la barre est mesurée en JS et publiée dans `--nav-h` (elle bouge avec le chargement de
+la police et le zoom du navigateur) ; `#contact` a aussi une hauteur minimale d'un écran
+moins cette barre, sinon — étant la dernière section — la page se termine avant d'avoir pu
+la faire monter jusque-là, et l'atterrissage dépendrait de la hauteur de la fenêtre.
+
 La section porte aussi le pied de page du site (il n'y avait aucun `<footer>` avant) :
 mention de copyright, liens vers les catégories de projets (ils appliquent le même filtre
 que la barre au-dessus de la grille, puis remontent à celle-ci) et un lien "Haut de page".

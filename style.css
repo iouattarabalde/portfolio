@@ -442,12 +442,34 @@ body.same-doc-transition .site-nav {
 }
 
 /* ---------- Work grid ---------- */
-/* Anchor-link targets (#work, #contact in the nav) land below the sticky nav instead of
-   getting their heading clipped behind it. */
+/* Anchor-link targets (#work, #contact in the nav) land immediately below the sticky
+   nav — the section's own top edge flush with the nav's bottom edge, so nothing of the
+   previous section shows in between and nothing of this one hides behind it.
+
+   --nav-h is measured and published by syncNavHeight() in index.html rather than
+   hardcoded, because the nav's height moves with the webfont swap and with browser zoom.
+   It replaces a flat 88px, which was ~18px more than the nav actually is (70px at
+   default zoom) and so left a sliver of the work grid visible above the contact section.
+   The fallback in the var() is that measured height, for the case where the script
+   hasn't run yet. */
 #work,
 #contact {
   position: relative; /* positioning context for .bottom-glow below */
-  scroll-margin-top: 88px;
+  scroll-margin-top: var(--nav-h, 70px);
+}
+
+/* scroll-margin-top alone isn't enough for #contact, because it's the last section on
+   the page: the browser can only scroll until the document ends, so if the section is
+   shorter than the space below the nav it simply stops early and lands lower than asked.
+   That made the landing position depend on the window height — at 900px tall it reached
+   the target, at 1080 it stopped 42px short, at 1085 it stopped 47px short. Giving the
+   section a minimum height of exactly the viewport below the nav guarantees there's
+   always enough room to scroll it into position. It only binds on windows tall enough
+   for the section's own content not to fill them (above ~1040px), and adds trailing
+   space below the footer bar rather than moving anything. */
+#contact {
+  min-height: calc(100vh - var(--nav-h, 70px)); /* fallback for browsers without dvh, same as .hero */
+  min-height: calc(100dvh - var(--nav-h, 70px));
 }
 
 /* Colored halo rising from the very bottom of the page — on index.html that's #contact
