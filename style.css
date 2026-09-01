@@ -496,7 +496,7 @@ body.same-doc-transition .site-nav {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px; /* was 8: with 44px hit areas, "Film" and "TV" (the two narrowest labels, so the two that grow most) came within 1.6px of overlapping — see the touch-target section at the end of this file */
   padding: 16px clamp(20px, 4vw, 48px);
   border-bottom: 1px solid var(--line);
   font-family: var(--mono);
@@ -974,7 +974,12 @@ body.same-doc-transition .site-nav {
 .contact-footer-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  /* Both gaps are set by the 44px hit areas rather than by how the row looks: 24px
+     across, because "Film" and "TV" each grow ~6.5 and ~14.5px sideways to reach 44 and
+     18px left them overlapping by 3; 28px down, for the narrow screens where this row
+     wraps, because each line grows 13px up and 13px down. See the touch-target section
+     at the end of this file. */
+  gap: 28px 24px;
 }
 .contact-footer-nav button,
 .contact-top {
@@ -1006,7 +1011,10 @@ body.same-doc-transition .site-nav {
   .contact-footer {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    /* 28 rather than 16 so the category row's and "back to top"'s 44px hit areas — 13px
+       of growth above and below each — don't overlap. See the touch-target section at
+       the end of this file. */
+    gap: 28px;
   }
 }
 
@@ -1451,4 +1459,68 @@ body.same-doc-transition .site-nav {
     animation: none;
     opacity: 0.35;
   }
+}
+
+/* ---------- Touch targets ---------- */
+/* Every control on the public pages gets at least a 44x44px hit area — the Apple HIG
+   figure, and near enough WCAG 2.5.5's 44x44 AAA target — without a single pixel moving
+   on screen.
+
+   The mechanism is an invisible ::before, absolutely positioned, centred on the control
+   and sized to max(100%, 44px) in each axis: it grows the clickable region outward from
+   the visual box while the text size, padding and spacing all stay exactly as they were.
+   max() means a control that already clears 44px in an axis is left alone in that axis,
+   so this can be applied to the whole set without auditing each one. Absolute
+   positioning also keeps the pseudo-element out of flow, which matters for the controls
+   that are flex containers themselves (.contact-link, .lightbox-close) — as a static
+   ::before it would become a flex item and push their icon and label apart.
+
+   Why not padding, the more usual fix: several of these sit in flex rows where padding
+   is layout, so every one would need a matching negative margin, and .nav-links a
+   positions its hover underline at bottom: -4px — padding would drag that underline
+   down with the box and it would need re-deriving. The pseudo-element leaves all of
+   that untouched.
+
+   What this does NOT solve on its own is neighbouring targets colliding once they grow.
+   Three gaps were widened for exactly that reason and are marked at their own rules:
+   .work-filter (8 -> 10px), .contact-footer-nav (8/18 -> 28/24px) and .contact-footer
+   on mobile (16 -> 28px). Narrow labels are what drive this — "TV" is 15px wide and has
+   to grow 14.5px on each side, while "Music Video" at 85px grows not at all — so adding
+   a short label to the filters or the footer categories is the thing most likely to
+   reintroduce an overlap. .lightbox-nav is already 44x44 by its own --lb-arrow-size and
+   the cards (.work-card, .gallery-item, .next-project) are far larger, so none of them
+   appear here. */
+.wordmark,
+.nav-links a,
+#lang-toggle,
+.work-filter button,
+.contact-footer-nav button,
+.contact-top,
+.contact-link,
+.project-back {
+  position: relative; /* containing block for the ::before below (.nav-links a already had this for its underline) */
+}
+
+/* .lightbox-close is deliberately absent from the list above — it's position: absolute,
+   so it already establishes the containing block, and forcing it to relative would drop
+   it out of its corner. */
+.wordmark::before,
+.nav-links a::before,
+#lang-toggle::before,
+.work-filter button::before,
+.contact-footer-nav button::before,
+.contact-top::before,
+.contact-link::before,
+.project-back::before,
+.lightbox-close::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  /* No background and no pointer-events override: an empty positioned box still takes
+     pointer events, which is the entire point. Keep it that way — giving it a background
+     would paint a rectangle over the layout around each control. */
 }

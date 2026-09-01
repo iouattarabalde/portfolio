@@ -114,6 +114,16 @@ visible, la sienne est donc déjà à portée de clic.
 Un ancien formulaire (`intake-form.html`) a été retiré : sans backend, il ne faisait que
 construire un lien `mailto:`, sans réel avantage sur un lien courriel direct.
 
+## Zones tactiles
+
+Tous les contrôles des pages publiques (navigation, bascule FR/EN, filtres de la grille,
+liens courriel/Instagram, pied de page, boutons de la visionneuse) ont une zone cliquable
+d'au moins 44x44px, sans que rien ne bouge visuellement : un `::before` invisible et
+centré agrandit la zone autour du contrôle. Voir la section « Touch targets » à la fin de
+`style.css`. Attention en ajoutant un libellé court (type de projet, lien de pied de
+page) : plus le texte est court, plus sa zone déborde, et c'est ce qui peut faire se
+chevaucher deux cibles voisines. L'admin n'est pas concernée (outil privé, non tactile).
+
 ## Catégories de projet
 
 Liste actuelle (éditable dans l'admin, sous "Textes du site → Types de projet") :
