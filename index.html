@@ -139,40 +139,66 @@
   </div>
 </section>
 
+<!-- Contact + site footer. Three columns (heading/bio, links/meta, photo) inside a
+     1400px measure, then the footer bar — see the Sept 2026 note in style.css for why
+     it's shaped this way. #contact is the last section on the page, so the footer bar
+     lives in here rather than in a <footer> of its own. -->
 <section class="contact" id="contact">
   <div class="bottom-glow" aria-hidden="true">
     <div class="bottom-glow-gradient"></div>
   </div>
   <div class="contact-columns">
-    <div class="contact-right">
-      <h2 class="contact-title">
-        <span data-fr data-key="contact.heading"></span>
-        <span data-en data-key="contact.heading"></span>
-      </h2>
-      <div class="contact-links">
-        <div class="contact-link-group">
-          <span class="contact-link-label"><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></span>
-          <a id="contact-email" class="contact-link" href="#" target="_blank" rel="noopener">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" stroke="currentColor" stroke-width="1.6"/><path d="M3 7.5L12 13.5L21 7.5" stroke="currentColor" stroke-width="1.6"/></svg>
-            <span id="contact-email-text"></span>
-          </a>
-        </div>
-        <div class="contact-link-group">
-          <span class="contact-link-label">Instagram</span>
-          <a id="contact-instagram" class="contact-link" href="#" target="_blank" rel="noopener">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor"/></svg>
-            <span id="contact-instagram-text"></span>
-          </a>
-        </div>
+    <!-- Heading/bio and links/meta are wrapped together rather than sitting as
+         siblings of the photo, so that as the viewport narrows it's the photo that drops
+         below the pair, not the pair folding into one column first. See style.css. -->
+    <div class="contact-text">
+      <div class="contact-intro">
+        <h2 class="contact-title">
+          <span data-fr data-key="contact.heading"></span>
+          <span data-en data-key="contact.heading"></span>
+        </h2>
+        <p class="contact-bio">
+          <span data-fr id="contact-bio-fr"></span><span data-en id="contact-bio-en"></span>
+        </p>
       </div>
-      <p class="contact-meta">
-        <span data-fr id="contact-location-fr"></span><span data-en id="contact-location-en"></span>
-        — <span data-fr id="contact-availability-fr"></span><span data-en id="contact-availability-en"></span>
-      </p>
+      <div class="contact-details">
+        <div class="contact-links">
+          <div class="contact-link-group">
+            <span class="contact-link-label"><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></span>
+            <a id="contact-email" class="contact-link" href="#" target="_blank" rel="noopener">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" stroke="currentColor" stroke-width="1.6"/><path d="M3 7.5L12 13.5L21 7.5" stroke="currentColor" stroke-width="1.6"/></svg>
+              <span id="contact-email-text"></span>
+            </a>
+          </div>
+          <div class="contact-link-group">
+            <span class="contact-link-label">Instagram</span>
+            <a id="contact-instagram" class="contact-link" href="#" target="_blank" rel="noopener">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor"/></svg>
+              <span id="contact-instagram-text"></span>
+            </a>
+          </div>
+        </div>
+        <p class="contact-meta">
+          <span data-fr id="contact-location-fr"></span><span data-en id="contact-location-en"></span>
+          — <span data-fr id="contact-availability-fr"></span><span data-en id="contact-availability-en"></span>
+        </p>
+      </div>
     </div>
     <div class="contact-photo-frame">
       <img id="contact-photo" class="contact-photo" src="" alt="Ismael OB">
     </div>
+  </div>
+
+  <div class="contact-footer">
+    <p class="contact-copyright">
+      © <span id="contact-year"></span> Ismael OB —
+      <span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span>
+    </p>
+    <!-- Filled by renderFooterNav() from PROJECT_TYPES, same source as the filter row. -->
+    <nav class="contact-footer-nav" id="contact-footer-nav"></nav>
+    <button type="button" class="contact-top" id="contact-top">
+      <span data-fr data-key="contact.top"></span><span data-en data-key="contact.top"></span>
+    </button>
   </div>
 </section>
 
@@ -188,11 +214,12 @@
   // ---------------------------------------------------------------
 
   const body = document.body;
-  // Toggle itself lives in site.js; the callback re-renders the two things on this page
-  // built in JS, which would otherwise keep their old-language labels: the filter bar
-  // and the card type tags (AD/PUB, MV/CLIP...).
+  // Toggle itself lives in site.js; the callback re-renders the three things on this
+  // page built in JS, which would otherwise keep their old-language labels: the filter
+  // bar, the card type tags (AD/PUB, MV/CLIP...), and the footer's category links.
   initLangToggle(() => {
     renderCategoryFilter();
+    renderFooterNav();
     renderWorkGrid();
   });
 
@@ -470,19 +497,25 @@
     }
   });
 
-  // Category filter bar: one entry per PROJECT_TYPES (from i18n.js), plus an "All"/"Tous"
-  // entry to clear the filter, rendered as a slash-separated list of plain text buttons
-  // (no chip/pill styling) — rebuilt on language toggle since the labels are bilingual.
-  // Clicking one just sets activeFilter and re-renders the grid; it doesn't refetch
-  // anything, filtering happens against the already-cached project list.
+  // The one list of filter choices — "All"/"Tous" plus every entry in PROJECT_TYPES, in
+  // the current language. Shared by the filter bar below and by the footer's category
+  // links (Sept 2026), so the two rows can never offer a different set of options.
+  function buildFilterItems(isFr) {
+    const allLabel = STRINGS['work.filter_all'] ? (isFr ? STRINGS['work.filter_all'].fr : STRINGS['work.filter_all'].en) : 'All';
+    return [{ code: null, label: allLabel }].concat(
+      Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
+    );
+  }
+
+  // Category filter bar: rendered from buildFilterItems() as a slash-separated list of
+  // plain text buttons (no chip/pill styling) — rebuilt on language toggle since the
+  // labels are bilingual. Clicking one just sets activeFilter and re-renders the grid;
+  // it doesn't refetch anything, filtering happens against the already-cached list.
   function renderCategoryFilter() {
     const container = document.getElementById('category-filter');
     if (!container) return;
     const isFr = body.classList.contains('lang-fr');
-    const allLabel = STRINGS['work.filter_all'] ? (isFr ? STRINGS['work.filter_all'].fr : STRINGS['work.filter_all'].en) : 'All';
-    const items = [{ code: null, label: allLabel }].concat(
-      Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
-    );
+    const items = buildFilterItems(isFr);
     container.innerHTML = items.map((item, i) => `
       <button type="button" data-filter="${esc(item.code || '')}" class="${activeFilter === item.code ? 'active' : ''}">${esc(item.label)}</button>
       ${i < items.length - 1 ? '<span class="filter-sep" aria-hidden="true">/</span>' : ''}
@@ -498,6 +531,42 @@
     });
   }
 
+  // Footer category links (Sept 2026): the same choices as the filter bar, but reached
+  // from the bottom of the page, so they also have to scroll back up to #work — without
+  // that, clicking one would silently re-render a grid the visitor can't see. No
+  // withViewTransition() here, unlike the filter bar: the grid is off-screen at the
+  // moment of the click, so the crossfade would play where nobody is looking and only
+  // risk fighting the scroll.
+  function renderFooterNav() {
+    const container = document.getElementById('contact-footer-nav');
+    if (!container) return;
+    const isFr = body.classList.contains('lang-fr');
+    container.setAttribute('aria-label', isFr ? 'Projets par catégorie' : 'Projects by category');
+    container.innerHTML = buildFilterItems(isFr).map((item) => `
+      <button type="button" data-filter="${esc(item.code || '')}">${esc(item.label)}</button>
+    `).join('');
+    container.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        activeFilter = btn.dataset.filter || null;
+        renderCategoryFilter(); // keeps the bar at the top showing the same active choice
+        renderWorkGrid();
+        document.getElementById('work').scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+      });
+    });
+  }
+
+  // Honoured by the two scrolls this page triggers from a click (footer category links
+  // and back-to-top). style.css's prefers-reduced-motion block can't reach these —
+  // scroll-behavior isn't what's in play, scrollIntoView/scrollTo take it as an argument.
+  function scrollBehavior() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  }
+
+  document.getElementById('contact-year').textContent = new Date().getFullYear();
+  document.getElementById('contact-top').addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
+  });
+
   // i18n (all static bilingual copy + project type acronyms) and the project list are
   // independent fetches, loaded in parallel — applyStrings() needs the former, and
   // renderWorkGrid() needs both (project data plus the type acronyms i18n provides).
@@ -509,22 +578,25 @@
       applyStrings();
       cachedProjects = data.projects;
       renderCategoryFilter();
+      renderFooterNav();
       renderWorkGrid();
       scrollToHashTarget(); // grid just changed #work's height, which can shift #contact below it
     })
     .catch((err) => console.error('Impossible de charger les données:', err));
 
-  // Contact section: photo, email, location, availability, Instagram — editable in the
-  // admin ("Coordonnées" panel) without touching this file, since they're pulled from
-  // data/settings.json rather than hardcoded here. bioFr/bioEn are still saved by the
-  // admin but no longer rendered on the site (design decision, Aug 2026) — the fields
-  // stay in data/settings.json untouched, just unused here.
+  // Contact section: photo, bio, email, location, availability, Instagram — editable in
+  // the admin ("Coordonnées" panel) without touching this file, since they're pulled
+  // from data/settings.json rather than hardcoded here. bioFr/bioEn went unrendered
+  // between the Aug 2026 redesign and the Sept 2026 restructure (the admin kept saving
+  // them throughout), and are back on the page now as .contact-bio.
   fetch('data/settings.json')
     .then((r) => r.json())
     .then((s) => {
       if (s.photoFilename) {
         document.getElementById('contact-photo').src = 'assets/' + s.photoFilename;
       }
+      document.getElementById('contact-bio-fr').textContent = s.bioFr || '';
+      document.getElementById('contact-bio-en').textContent = s.bioEn || '';
       const emailEl = document.getElementById('contact-email');
       document.getElementById('contact-email-text').textContent = s.email;
       emailEl.href = 'mailto:' + s.email;

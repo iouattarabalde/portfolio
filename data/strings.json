@@ -28,6 +28,10 @@
       "fr": "Courriel",
       "en": "Email"
     },
+    "contact.top": {
+      "fr": "Haut de page",
+      "en": "Back to top"
+    },
     "project.back": {
       "fr": "Retour aux projets",
       "en": "Back to projects"

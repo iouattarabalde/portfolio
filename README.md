@@ -18,7 +18,7 @@ les cas qui sortent de l'admin.
 | Réordonner ou retirer des images dans un projet | Admin → ouvrir le projet, glisser-déposer | Retirer une image ne supprime pas le fichier ; le bouton **Nettoyer** (Admin → Projets) efface ceux qui ne servent plus, voir "fichiers orphelins" plus bas |
 | Recadrer/repositionner une vignette (le sujet est mal centré sur la grille) | Admin → ouvrir le projet → clique/glisse sur la vignette | Ne coupe pas l'image, ça déplace juste le point de focus utilisé pour les deux formats du site (16:9 desktop, 1:1 mobile) |
 | Annuler ma dernière modif de projet | Admin → Projets → bouton **Annuler** | Ne touche pas aux images uploadées |
-| Changer courriel / localisation / dispo / Instagram / photo de contact | Admin → Coordonnées | La bio se modifie au même endroit mais n'est plus affichée sur le site (refonte Aug 2026) |
+| Changer courriel / localisation / dispo / Instagram / photo / bio de contact | Admin → Coordonnées | La bio est de nouveau affichée sur le site depuis la refonte de septembre 2026 |
 | Changer un texte du site (nav, titres, étiquettes) | Admin → Textes du site | |
 | Ajouter ou retirer un type de projet (AD, MV, etc.) | Admin → Textes du site → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
 | Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | L'aperçu reflète aussi tes réglages non enregistrés (halo, grain, fond) |
@@ -93,9 +93,19 @@ plein écran (sur iPhone, le plein écran passe par le lecteur natif de Safari, 
 mécanisme disponible).
 
 Pas de page de formulaire distincte : le lien "Contact" pointe directement vers la
-section coordonnées de la page d'accueil (courriel et Instagram en liens cliquables,
-localisation + disponibilité sur une ligne, photo). La bio n'y est plus affichée depuis la
-refonte d'août 2026 — le champ reste modifiable dans l'admin, il ne sert simplement plus.
+section coordonnées de la page d'accueil. Depuis la refonte de septembre 2026, elle est
+sur trois colonnes — titre + bio, puis courriel/Instagram + localisation/disponibilité,
+puis la photo — le tout limité à 1400px de large comme le reel de la page d'accueil (elle
+occupait toute la largeur de l'écran auparavant, ce qui laissait un grand vide au milieu
+sur les grands écrans). La bio y est de nouveau affichée après l'avoir été retirée en
+août 2026 ; le champ était resté modifiable dans l'admin entre-temps.
+
+La section porte aussi le pied de page du site (il n'y avait aucun `<footer>` avant) :
+mention de copyright, liens vers les catégories de projets (ils appliquent le même filtre
+que la barre au-dessus de la grille, puis remontent à celle-ci) et un lien "Haut de page".
+Pas de bascule FR/EN dans le pied de page : la barre de navigation est collante et reste
+visible, la sienne est donc déjà à portée de clic.
+
 Un ancien formulaire (`intake-form.html`) a été retiré : sans backend, il ne faisait que
 construire un lien `mailto:`, sans réel avantage sur un lien courriel direct.
 

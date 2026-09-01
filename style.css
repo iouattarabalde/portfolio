@@ -751,27 +751,65 @@ body.same-doc-transition .site-nav {
   border-top: 1px solid var(--line);
 }
 
-/* Heading + links on the left, photo on the right (Aug 2026 redesign — was the mirror
-   of this, photo left/text right; swapped per the new design, along with dropping the
-   bio paragraph that used to sit between the heading and the contact links). wrap lets
-   the two sides drop to their own line at in-between widths before the 700px stack
-   below kicks in. */
+/* Three columns — heading + bio, then links + meta, then the photo (Sept 2026 restructure;
+   was two, heading+links left / photo right, itself the Aug 2026 mirror-flip of an
+   earlier photo-left design). The two-column version stretched .contact-right with
+   flex:1 across the full viewport with nothing to fill it: at a 2000px viewport that
+   was a ~1400px box holding a ~450px heading and a ~350px email link, so roughly 950px
+   of the section was empty by construction. Two changes close that. First, the section
+   now caps at the same 1400px measure as .reel-frame instead of running full-bleed —
+   it was the only block on the page that didn't, so it read ~500px wider than the hero
+   above it. Second, the copy is split across two real columns rather than one narrow
+   one, and the bio (bioFr/bioEn — still authored and translated in the admin, just
+   dropped from the page in the Aug 2026 pass) is rendered again to fill the first.
+
+   The two text columns are nested in .contact-text rather than being siblings of the
+   photo, and that nesting is what keeps the arrangement monotonic as the viewport
+   narrows — 3 across, then the photo beneath a 2-column text block, then everything
+   stacked — with no media query for the in-between range. The mechanism is
+   .contact-text's flex-basis: it's derived below from the exact width the two columns
+   need to sit side by side, so as soon as the line can't afford that, the photo is what
+   wraps off it, not the text folding in on itself. Getting that backwards (a basis
+   smaller than the pair needs, which is what a hand-picked 520px did) produces a flip:
+   the text folds to one column around 1200px, then springs back to two around 820px
+   once the photo finally drops. */
 .contact-columns {
+  /* Shared by the two text columns and by .contact-text's derived basis just below —
+     the derivation is the whole point, so these can't be inlined without the basis
+     silently drifting out of step with the columns it's meant to describe. */
+  --contact-col: 320px; /* each text column: wide enough for the email address at its largest clamp size */
+  --contact-gap: clamp(28px, 4vw, 56px);
+
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: clamp(32px, 6vw, 72px);
+  gap: var(--contact-gap);
+  max-width: 1400px;
+  margin-inline: auto;
 }
 
-.contact-right {
-  flex: 1;
-  min-width: 320px;
+.contact-text {
+  flex: 1 1 calc(var(--contact-col) * 2 + var(--contact-gap));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start; /* the email label lines up with the top of the heading, rather than the two columns floating against each other's centres */
+  gap: var(--contact-gap);
+}
+.contact-intro {
+  flex: 1 1 var(--contact-col); /* grows: all the free space in the text row lands here, so the heading keeps its own line breaks rather than being squeezed */
+  min-width: 0;
+}
+.contact-details {
+  flex: 0 1 var(--contact-col); /* doesn't grow — only ever needs to be wide enough for the email address */
+  min-width: 0;
 }
 
 .contact-photo-frame {
-  flex: 0 0 clamp(260px, 32vw, 420px);
-  width: clamp(260px, 32vw, 420px);
+  /* Grown from a 420px cap to 520px as part of the same pass: with the void gone, the
+     photo is what balances the text, and it has to carry real mass to do that. */
+  flex: 0 1 clamp(260px, 34vw, 520px);
+  width: clamp(260px, 34vw, 520px);
   max-width: 100%;
   margin-inline: auto;
   aspect-ratio: 4 / 5;
@@ -808,12 +846,19 @@ body.same-doc-transition .site-nav {
   line-height: 1.05;
   letter-spacing: -0.02em;
   max-width: 14ch;
-  margin-bottom: 32px;
+  margin-bottom: 0; /* the bio below owns the gap now — was 32px, when the links sat directly underneath */
+}
+
+/* Short bio, back on the page as of the Sept 2026 restructure above. Reads from
+   settings.json's bioFr/bioEn, which the admin has been saving all along. */
+.contact-bio {
+  margin: 24px 0 0;
+  color: var(--fg-dim);
+  max-width: 42ch; /* holds a readable measure in the in-between range where .contact-intro spans the whole text row on its own */
 }
 
 /* Email + Instagram as prominent underlined links with icons, replacing the old
-   dt/dl label grid — bioFr/bioEn are still saved by the admin but no longer rendered
-   here (design decision, Aug 2026). */
+   dt/dl label grid (Aug 2026). */
 .contact-links {
   display: flex;
   flex-direction: column;
@@ -851,6 +896,69 @@ body.same-doc-transition .site-nav {
   font-size: 12px;
   color: var(--fg-dim);
   letter-spacing: 0.06em;
+}
+
+/* ---------- Footer bar (inside #contact) ---------- */
+/* The site had no <footer> element at all before Sept 2026 — #contact was the last
+   thing on the page and was carrying that role with a heading and two links, which is
+   part of why it looked underfed for the width it claimed. This row adds the material
+   a footer actually owes: attribution, a way back into the work grid, and a way back
+   up. No language toggle here on purpose — .site-nav is sticky and always visible, so
+   its toggle is already reachable from this scroll position, and a second one would
+   have to be kept in sync with it for no gain. Same 1400px measure as the columns. */
+.contact-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 32px;
+  max-width: 1400px;
+  margin: clamp(48px, 7vw, 88px) auto 0;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.contact-copyright { margin: 0; }
+
+/* Deep links into the work grid's category filter. Rendered from PROJECT_TYPES by the
+   same helper that builds .work-filter (see buildFilterItems in index.html), so the two
+   rows can't drift apart, and clicking one sets the very same activeFilter the filter
+   row does. Styled as plain text to match that row rather than reintroducing the
+   bordered chips it dropped in the Aug 2026 redesign. */
+.contact-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.contact-footer-nav button,
+.contact-top {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.contact-footer-nav button:hover,
+.contact-top:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  /* Stacked and left-aligned rather than pushed to the two ends of a narrow row, where
+     space-between would strand the copyright and the top link on opposite edges. */
+  .contact-footer {
+    justify-content: flex-start;
+    gap: 16px;
+  }
 }
 
 /* ---------- Responsive: work grid column counts ---------- */
