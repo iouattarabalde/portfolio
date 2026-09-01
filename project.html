@@ -176,6 +176,22 @@
   }
   lightboxImg.addEventListener('load', sizePalette);
 
+  // Quietly replaces the grid variant the lightbox opened with by the full-resolution
+  // file, once that file is decoded and can be swapped in without a blank frame —
+  // whenPaintable() (site.js) is what waits for the decode rather than just the bytes.
+  // Both guards matter: arrowing on to another still, or closing, before the download
+  // lands must not drop a stale photo into the frame.
+  function upgradeToFull(url, forIndex) {
+    if (lightboxImg.src.endsWith(url)) return; // already the full file
+    const preload = new Image();
+    preload.src = url;
+    whenPaintable(preload, () => {
+      if (lightboxIndex !== forIndex || !lightbox.classList.contains('open')) return;
+      if (!preload.naturalWidth) return; // failed to load; keep the variant on screen
+      lightboxImg.src = url;
+    });
+  }
+
   // The gallery tile showing whichever still is currently open — the shape the lightbox
   // grows out of and collapses back into, and where focus returns to on close. Resolved
   // by index every time rather than held as the element that was originally clicked:
@@ -255,14 +271,30 @@
       lightboxPalette.classList.toggle('is-entering', !isNavigating);
     }
 
+    // Opens on whatever the grid already decoded for this tile, then upgrades to the
+    // full-resolution file underneath.
+    //
+    // Before the gallery served responsive variants, the tile and the lightbox shared one
+    // src, so the enlarged still was always already in cache and the morph out of the tile
+    // cost nothing. That stopped being true the moment the grid started picking a 640 or
+    // 1280 variant: opening would have grown the tile into an empty frame and waited on a
+    // fresh ~420KB download. currentSrc is the exact file the browser chose for that tile,
+    // so it is decoded and paints instantly. Its aspect ratio is identical to the
+    // original's, which is what makes this safe — the CSS caps and the ratio decide the
+    // rendered size, so the layout, and the palette width measured from it below, are the
+    // same either way and nothing shifts when the full file swaps in.
     function applyImage() {
-      lightboxImg.src = `assets/${item.filename}`;
+      const openingThumb = currentThumb();
+      const openingThumbImg = openingThumb && openingThumb.querySelector('img');
+      const fullSrc = `assets/${item.filename}`;
+      lightboxImg.src = (openingThumbImg && openingThumbImg.currentSrc) || fullSrc;
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
       applyPalette(item.palette || []);
       lightbox.classList.add('open');
       lightboxPrev.style.display = hasMultiple ? '' : 'none';
       lightboxNext.style.display = hasMultiple ? '' : 'none';
       sizePalette(); // after .open: the overlay is display:none until then, so nothing has a measurable width before this point
+      upgradeToFull(fullSrc, lightboxIndex);
     }
 
     if (isNavigating) {
@@ -447,13 +479,40 @@
         nextLink.style.display = '';
       }
 
-      // Gallery order matches the order of entries in projects.json's "gallery" array —
+      // Builds the srcset for a still from the variants scripts/generate_image_variants.py
+  // writes next to it: <name>-640.jpg and <name>-1280.jpg, with the untouched original as
+  // the 1920w entry. The widths here have to match VARIANT_WIDTHS in that script.
+  //
+  // The gallery is three columns edge to edge (two below 360px), so a tile is about a
+  // third of the viewport — hence the sizes attribute. On a 1440px display that's a 476px
+  // slot, which picks the 1280 variant on a 2x screen and the 640 on a 1x one, instead of
+  // the 1920px original the page used to serve at every size. For the heaviest project
+  // that is the difference between 10MB and roughly 1.5MB.
+  //
+  // The original stays first in the DOM as src, so a browser that ignores srcset still
+  // gets a working image.
+  function srcsetFor(filename) {
+    const dot = filename.lastIndexOf('.');
+    const stem = filename.slice(0, dot);
+    const ext = filename.slice(dot);
+    return [
+      `assets/${stem}-640${ext} 640w`,
+      `assets/${stem}-1280${ext} 1280w`,
+      `assets/${filename} 1920w`
+    ].join(', ');
+  }
+
+  // Gallery order matches the order of entries in projects.json's "gallery" array —
       // that's exactly what the admin's drag-and-drop reordering updates. Each entry is
       // {filename, palette} since Aug 2026 (palette used by the lightbox, not the grid).
       const gallery = document.getElementById('project-gallery');
       gallery.innerHTML = project.gallery.map((item, i) => `
         <button class="gallery-item" data-reveal data-full="assets/${esc(item.filename)}">
-          <img src="assets/${esc(item.filename)}" alt="${esc(project.title)} — still ${i + 1}" loading="lazy">
+          <img src="assets/${esc(item.filename)}"
+               srcset="${esc(srcsetFor(item.filename))}"
+               sizes="(max-width: 360px) 50vw, 33vw"
+               decoding="async"
+               alt="${esc(project.title)} — still ${i + 1}">
         </button>
       `).join('');
 

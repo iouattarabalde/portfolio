@@ -1576,6 +1576,33 @@ function compressImage(file, maxWidth = 1920, quality = 0.85) {
   });
 }
 
+// Génère et envoie les variantes -640 et -1280 d'un still.
+//
+// Les largeurs correspondent à VARIANT_WIDTHS dans scripts/generate_image_variants.py,
+// qui fait le même travail en Python pour le rattrapage initial des 720 stills existants.
+// Une différence assumée entre les deux : le script Python écrit du JPEG progressif,
+// impossible ici — canvas.toBlob() ne l'expose pas. Une variante envoyée par l'admin est
+// donc en baseline. C'est sans conséquence visible : la galerie n'affiche une tuile
+// qu'une fois son image entièrement décodée (voir whenPaintable dans site.js), donc le
+// rendu en bandes propre au baseline n'est jamais montré. Relancer le script Python sur
+// le dépôt les convertira si on veut aligner.
+const VARIANT_WIDTHS = [640, 1280];
+
+async function uploadVariants(filename, sourceFile, indexLabel, title) {
+  const dot = filename.lastIndexOf('.');
+  const stem = filename.slice(0, dot);
+  const ext = filename.slice(dot);
+  for (const width of VARIANT_WIDTHS) {
+    // compressImage ne fait jamais d'agrandissement : une source plus étroite que la
+    // cible ressort à sa taille d'origine, ce qui donnerait deux fichiers identiques
+    // sous deux noms. On saute plutôt la variante, et le srcset la pointera en 404 —
+    // sauf que ça n'arrive pas en pratique, l'upload étant déjà borné à 1920px.
+    const blob = await compressImage(sourceFile, width, 0.82);
+    const b64 = await blobToBase64(blob);
+    await ghPutFile(`assets/${stem}-${width}${ext}`, b64, `Admin : still ${indexLabel} (${width}px) pour ${title}`);
+  }
+}
+
 /* ---------- Color palette extraction ----------
    Gallery stills get a 13-color palette (median-cut quantization) shown as a strip
    under the enlarged image in the lightbox, requested Aug 2026 (ShotDeck-style
@@ -2408,6 +2435,15 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
         const b64 = await blobToBase64(compressed);
         const filename = `${slug}/${slug}-${Date.now()}-${i}.jpg`;
         await ghPutFile(`assets/${filename}`, b64, `Admin : still ${i + 1} pour ${title}`);
+        // Les variantes responsives DOIVENT partir avec l'original. project.html construit
+        // un srcset qui liste -640 et -1280 pour chaque still ; si le navigateur choisit
+        // une largeur dont le fichier n'existe pas, l'image ne s'affiche pas du tout (un
+        // 404 dans un srcset ne retombe pas sur src). Générer les variantes plus tard,
+        // côté CI, laisserait donc la galerie cassée entre les deux commits.
+        // Voir VARIANT_WIDTHS dans scripts/generate_image_variants.py : les deux listes
+        // doivent rester identiques. Le script sait aussi rattraper après coup ce qui
+        // manquerait (il est idempotent), mais il ne devrait jamais avoir à le faire.
+        await uploadVariants(filename, item.file, i + 1, title);
         item.filename = filename;
         item.palette = palette;
       }

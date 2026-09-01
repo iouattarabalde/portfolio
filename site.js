@@ -246,10 +246,19 @@ function getRevealObserver() {
       : timing.step;
     step = Math.round(step * 100) / 100; // keeps the inline style readable; sub-10us is not a timing anyone can perceive
     arrived.forEach(function (entry, i) {
-      entry.target.style.setProperty('--reveal-index', i);
-      entry.target.style.setProperty('--reveal-stagger', step + 'ms');
-      entry.target.classList.add('is-revealed');
-      observer.unobserve(entry.target); // reveals once, then stops being watched
+      var el = entry.target;
+      observer.unobserve(el); // reveals once, then stops being watched
+      // Hold the lift until the tile's own image can actually be painted. Without this
+      // the two are on independent clocks and the animation always wins: a 700ms lift
+      // against a photo still arriving over the network means an empty box slides into
+      // place and the picture appears afterwards, which is what made the project
+      // galleries look like they were loading at random. Elements with no image of their
+      // own (the filter bar, the credits block) resolve immediately.
+      whenPaintable(el.querySelector('img'), function () {
+        el.style.setProperty('--reveal-index', i);
+        el.style.setProperty('--reveal-stagger', step + 'ms');
+        el.classList.add('is-revealed');
+      });
     });
   }, {
     // The negative bottom margin pulls the trigger line up off the viewport edge, so an
@@ -268,6 +277,40 @@ function getRevealObserver() {
     threshold: 0.05
   });
   return revealObserver;
+}
+
+// Runs cb once img is ready to paint, or immediately when there is no img.
+//
+// decode() rather than the load event alone: load fires when the bytes are in, but the
+// decode can still happen on the first paint, which is exactly when the reveal animation
+// is starting and is the worst moment to spend it. Waiting for decode means the first
+// frame of the lift already has pixels.
+//
+// Every failure path still calls cb. A broken image, a decode that rejects, or a request
+// that stalls without ever firing load or error would otherwise leave the tile parked at
+// opacity 0 for good — a blank grid is bad, an invisible one is worse. The timeout is the
+// backstop for that last case and should never normally fire.
+var PAINT_TIMEOUT_MS = 4000;
+
+function whenPaintable(img, cb) {
+  if (!img) { cb(); return; }
+  var fired = false;
+  function fire() {
+    if (fired) return;
+    fired = true;
+    cb();
+  }
+  function decodeThenFire() {
+    if (!img.decode) { fire(); return; }
+    img.decode().then(fire, fire);
+  }
+  if (img.complete && img.naturalWidth) {
+    decodeThenFire();
+  } else {
+    img.addEventListener('load', decodeThenFire, { once: true });
+    img.addEventListener('error', fire, { once: true });
+  }
+  setTimeout(fire, PAINT_TIMEOUT_MS);
 }
 
 // Starts watching every not-yet-revealed [data-reveal] inside root (the whole document
