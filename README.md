@@ -104,6 +104,10 @@ modifiable dans l'admin entre-temps.
 La section porte aussi le pied de page du site (il n'y avait aucun `<footer>` avant) :
 mention de copyright, liens vers les catégories de projets (ils appliquent le même filtre
 que la barre au-dessus de la grille, puis remontent à celle-ci) et un lien "Haut de page".
+Contrairement aux deux colonnes au-dessus, cette barre occupe toute la largeur : elle se
+termine exactement au même endroit que la barre de navigation et que la barre de filtres
+de la grille (les trois utilisent la même marge `clamp(20px, 4vw, 48px)` — modifier l'une
+sans les autres casse l'alignement).
 Pas de bascule FR/EN dans le pied de page : la barre de navigation est collante et reste
 visible, la sienne est donc déjà à portée de clic.
 

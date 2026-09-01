@@ -917,16 +917,22 @@ body.same-doc-transition .site-nav {
    a footer actually owes: attribution, a way back into the work grid, and a way back
    up. No language toggle here on purpose — .site-nav is sticky and always visible, so
    its toggle is already reachable from this scroll position, and a second one would
-   have to be kept in sync with it for no gain. Shares --contact-measure with the
-   columns, so the footer rule always lines up with the copy above it. */
+   have to be kept in sync with it for no gain.
+
+   Deliberately NOT capped at --contact-measure like the columns above it: this is the
+   page's footer, not part of the contact block, so it runs the full content width and
+   ends flush with .site-nav on both sides. .contact's own horizontal padding is the
+   same clamp(20px, 4vw, 48px) that .site-nav and .work-filter use, which is what makes
+   that line up for free — change one and the other two drift out of alignment. The rule
+   above the row therefore extends past the copy beside it, which is the intent: it
+   bookends the page against the nav rather than underlining the contact columns. */
 .contact-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px 32px;
-  max-width: var(--contact-measure);
-  margin: clamp(48px, 7vw, 88px) auto 0;
+  margin: clamp(48px, 7vw, 88px) 0 0;
   padding-top: 26px;
   border-top: 1px solid var(--line);
   font-size: 11px;
