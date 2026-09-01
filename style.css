@@ -970,7 +970,22 @@ body.same-doc-transition .site-nav {
    same helper that builds .work-filter (see buildFilterItems in index.html), so the two
    rows can't drift apart, and clicking one sets the very same activeFilter the filter
    row does. Styled as plain text to match that row rather than reintroducing the
-   bordered chips it dropped in the Aug 2026 redesign. */
+   bordered chips it dropped in the Aug 2026 redesign.
+
+   Below 480px the row switches from the full labels to the acronyms the work cards
+   already use (AD/PUB, MV/CLIP...). That's a fitting problem with no spacing solution:
+   the five English labels are ~231px of text, and 44px hit areas need ~21px between
+   them, so the row cannot go below ~315px however the gaps are tuned — wider than the
+   ~320px column a 360px phone gives it. It used to fit only because the targets were
+   18px tall and could be packed at 18px apart; once they grew, "TV" wrapped onto a line
+   of its own. The acronyms are ~99px of text, so the row fits on one line down to a
+   ~280px viewport with room to spare, and nothing above 480px changes at all.
+
+   Both forms are in the DOM and CSS picks one, so there is no resize listener and no
+   re-render on rotate. The column-gap goes up inside the media query because the
+   acronyms are shorter and therefore grow *more* to reach 44px — two 2-character labels
+   side by side ("AD", "MV") each need 14.5px a side, so they need 29px between them,
+   where the full labels only ever needed 21. */
 .contact-footer-nav {
   display: flex;
   flex-wrap: wrap;
@@ -981,6 +996,14 @@ body.same-doc-transition .site-nav {
      at the end of this file. */
   gap: 28px 24px;
 }
+/* One of the two label forms per button; see the note above. */
+.contact-footer-nav .cat-short { display: none; }
+@media (max-width: 480px) {
+  .contact-footer-nav .cat-full { display: none; }
+  .contact-footer-nav .cat-short { display: inline; }
+  .contact-footer-nav { column-gap: 30px; } /* 29 is the real floor (two 2-character acronyms adjacent); 30 for a little slack */
+}
+
 .contact-footer-nav button,
 .contact-top {
   background: transparent;

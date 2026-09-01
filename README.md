@@ -124,6 +124,11 @@ centré agrandit la zone autour du contrôle. Voir la section « Touch targets �
 page) : plus le texte est court, plus sa zone déborde, et c'est ce qui peut faire se
 chevaucher deux cibles voisines. L'admin n'est pas concernée (outil privé, non tactile).
 
+Conséquence pour les catégories du pied de page : sous 480px, elles affichent les
+acronymes (AD/PUB, MV/CLIP…) au lieu des libellés complets, sinon la rangée ne tient pas
+sur une ligne une fois les zones tactiles agrandies. Les deux versions sont dans le HTML
+et c'est le CSS qui choisit — rien à faire côté JS lors d'une rotation d'écran.
+
 ## Catégories de projet
 
 Liste actuelle (éditable dans l'admin, sous "Textes du site → Types de projet") :

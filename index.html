@@ -500,10 +500,20 @@
   // The one list of filter choices — "All"/"Tous" plus every entry in PROJECT_TYPES, in
   // the current language. Shared by the filter bar below and by the footer's category
   // links (Sept 2026), so the two rows can never offer a different set of options.
+  //
+  // Each item carries both the full label and the acronym the work cards already use
+  // (AD/PUB, MV/CLIP...). The filter bar only ever renders `label`; the footer renders
+  // both and lets CSS pick, so that row can shrink to fit a narrow phone without any
+  // resize listener or re-render — see .contact-footer-nav in style.css. "All"/"Tous"
+  // has no acronym and is short enough not to need one, so it is its own short form.
   function buildFilterItems(isFr) {
     const allLabel = STRINGS['work.filter_all'] ? (isFr ? STRINGS['work.filter_all'].fr : STRINGS['work.filter_all'].en) : 'All';
-    return [{ code: null, label: allLabel }].concat(
-      Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code, isFr) }))
+    return [{ code: null, label: allLabel, short: allLabel }].concat(
+      Object.keys(PROJECT_TYPES).map((code) => ({
+        code,
+        label: projectTypeLabel(code, isFr),
+        short: projectTypeAcronym(code, isFr)
+      }))
     );
   }
 
@@ -542,8 +552,13 @@
     if (!container) return;
     const isFr = body.classList.contains('lang-fr');
     container.setAttribute('aria-label', isFr ? 'Projets par catégorie' : 'Projects by category');
+    // Both forms are rendered; style.css shows exactly one. Kept on separate spans
+    // rather than swapped in JS so nothing has to listen for resize or re-render when
+    // the phone rotates.
     container.innerHTML = buildFilterItems(isFr).map((item) => `
-      <button type="button" data-filter="${esc(item.code || '')}">${esc(item.label)}</button>
+      <button type="button" data-filter="${esc(item.code || '')}">
+        <span class="cat-full">${esc(item.label)}</span><span class="cat-short">${esc(item.short)}</span>
+      </button>
     `).join('');
     container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
