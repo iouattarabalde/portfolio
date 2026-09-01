@@ -747,45 +747,50 @@ body.same-doc-transition .site-nav {
 
 /* ---------- Contact ---------- */
 .contact {
+  /* Measure shared by the columns and the footer bar below them. Narrower than
+     .reel-frame's 1400px, which this used to match: two columns of copy-plus-portrait
+     simply don't need that much width. At 1400 the copy shrank to its own ~507px and
+     the photo stayed pinned to the far edge, leaving ~370px of nothing between them —
+     the void this section was restructured to get rid of, re-earned by a measure too
+     wide for the number of columns in it. 1120 is about what the content asks for:
+     ~490 of copy, the gap, and a 520 photo. */
+  --contact-measure: 1120px;
+
   padding: clamp(calc(28px * 1.7), 8vw, calc(56px * 1.7)) clamp(20px, 4vw, 48px);
   border-top: 1px solid var(--line);
 }
 
-/* Three columns — heading + bio, then links + meta, then the photo (Sept 2026 restructure;
-   was two, heading+links left / photo right, itself the Aug 2026 mirror-flip of an
-   earlier photo-left design). The two-column version stretched .contact-right with
-   flex:1 across the full viewport with nothing to fill it: at a 2000px viewport that
-   was a ~1400px box holding a ~450px heading and a ~350px email link, so roughly 950px
-   of the section was empty by construction. Two changes close that. First, the section
-   now caps at the same 1400px measure as .reel-frame instead of running full-bleed —
-   it was the only block on the page that didn't, so it read ~500px wider than the hero
-   above it. Second, the copy is split across two real columns rather than one narrow
-   one, and the bio (bioFr/bioEn — still authored and translated in the admin, just
-   dropped from the page in the Aug 2026 pass) is rendered again to fill the first.
+/* Two columns: all the copy in .contact-text — heading, bio, links, availability — with
+   the photo beside it, down to the 700px breakpoint further below where the photo drops
+   beneath and everything stacks. (Sept 2026. The section has been through a few shapes
+   this month; what follows is why it settled here, since each constraint below is one
+   that a later edit could undo without noticing.)
 
-   The two text columns are nested in .contact-text rather than being siblings of the
-   photo, and that nesting is what decides which of the two wraps when the row runs out
-   of room. .contact-text's flex-basis is the whole control: keep it small and the photo
-   holds the line while the text pair folds into a single column beside it, which is the
-   arrangement below ~1270px. That gives three states, each of which stands on its own,
-   in a strictly monotonic order as the viewport narrows:
+   What it replaced ran full-bleed with .contact-right stretched by flex:1 and nothing to
+   fill it — at a 2000px viewport, a ~1400px box holding a ~450px heading and a ~350px
+   email link, so roughly 950px of the section was empty by construction. Three things
+   keep that from coming back, and each was learned by putting it on screen:
 
-     >= ~1270px   heading+bio | links+meta | photo
-     700-1270px   all the copy in one column | photo
-     <= 700px     everything stacked (the media query further down)
+   1. The section caps at --contact-measure. It was the only block on the page that
+      didn't cap at all. But the measure has to suit the number of columns in it: at
+      1400px (matching .reel-frame) the copy shrank to its own ~507px while the photo
+      stayed pinned to the far edge, leaving ~370px of nothing between them.
+   2. .contact-text's flex-basis stays small (340px). That's what decides which element
+      wraps when the row runs out of room: small basis, and the photo holds the line.
+      Sized to what the two columns "need" instead, the photo wraps below and sits
+      centred under the copy with 319px of gutter either side — taller and emptier than
+      what it replaced. 340 is comfortably clear of the wrap point at every width above
+      700px (the photo's own basis bottoms out at 260px, and 340 + 260 + gap still fits
+      at ~682px).
+   3. The bio is rendered again (bioFr/bioEn — still authored and translated in the
+      admin, just dropped from the page in the Aug 2026 pass) and given a real measure.
+      It's most of what fills the copy column.
 
-   Two things this basis must not be. Too large and the photo wraps off the line instead,
-   which is what a derived "exactly what the two columns need" value did: it left the
-   photo alone and centred under the text with 319px of empty gutter on either side at
-   1100px, taller and emptier than the layout it replaced — the original problem back in
-   a new spot. Too large in a different way (a hand-picked 520px) and the order stops
-   being monotonic: the text folds around 1200px, then springs back to two columns
-   around 820px once the photo finally does drop. 340px is comfortably under the point
-   where the photo would wrap at any width above the 700px breakpoint (the photo's own
-   basis bottoms out at 260px, and 340 + 260 + gap still fits down to ~682px), so the
-   photo stays beside the copy right up to where everything stacks anyway. */
+   This was briefly three columns (heading+bio | links+meta | photo). Two is the
+   deliberate replacement, by preference — and three had its own problem anyway: it only
+   fit above ~1270px, and even just above that the heading column was down to ~338px,
+   giving a three-line heading with the links column stranded in a pocket of space. */
 .contact-columns {
-  --contact-col: 320px; /* each text column: wide enough for the email address at its largest clamp size */
   --contact-gap: clamp(28px, 4vw, 56px);
 
   display: flex;
@@ -793,31 +798,30 @@ body.same-doc-transition .site-nav {
   align-items: center;
   justify-content: space-between;
   gap: var(--contact-gap);
-  max-width: 1400px;
+  max-width: var(--contact-measure);
   margin-inline: auto;
 }
 
 .contact-text {
-  flex: 1 1 340px; /* deliberately small — see the note above; this is what keeps the photo on the line and folds the text instead */
+  flex: 1 1 340px; /* deliberately small — see the note above; it's what keeps the photo on the line rather than wrapping it below */
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start; /* the email label lines up with the top of the heading, rather than the two columns floating against each other's centres */
+  flex-direction: column; /* one column of copy, so no basis/wrap juggling between the blocks inside it */
+  align-items: flex-start;
   gap: var(--contact-gap);
-}
-.contact-intro {
-  flex: 1 1 var(--contact-col); /* grows: all the free space in the text row lands here, so the heading keeps its own line breaks rather than being squeezed */
-  min-width: 0;
-}
-.contact-details {
-  flex: 0 1 var(--contact-col); /* doesn't grow — only ever needs to be wide enough for the email address */
   min-width: 0;
 }
 
 .contact-photo-frame {
-  /* Grown from a 420px cap to 520px as part of the same pass: with the void gone, the
-     photo is what balances the text, and it has to carry real mass to do that. */
-  flex: 0 1 clamp(260px, 34vw, 520px);
-  width: clamp(260px, 34vw, 520px);
+  /* Grown from a 420px cap to 520px: with the void gone, the photo is what balances the
+     copy, and it has to carry real mass to do that.
+     Sized as a share of --contact-measure rather than of the viewport. It was 34vw,
+     which tracked the container only while the container itself grew with the viewport;
+     once the section caps at --contact-measure the two come apart, and between ~1216px
+     and ~1530px the photo kept shrinking inside a container that had stopped moving —
+     opening the gap between copy and photo back up to ~200px at 1216. A percentage
+     resolves against .contact-columns, so it tracks the measure at every width. */
+  flex: 0 1 clamp(260px, 46%, 520px);
+  width: auto;
   max-width: 100%;
   margin-inline: auto;
   aspect-ratio: 4 / 5;
@@ -913,14 +917,15 @@ body.same-doc-transition .site-nav {
    a footer actually owes: attribution, a way back into the work grid, and a way back
    up. No language toggle here on purpose — .site-nav is sticky and always visible, so
    its toggle is already reachable from this scroll position, and a second one would
-   have to be kept in sync with it for no gain. Same 1400px measure as the columns. */
+   have to be kept in sync with it for no gain. Shares --contact-measure with the
+   columns, so the footer rule always lines up with the copy above it. */
 .contact-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px 32px;
-  max-width: 1400px;
+  max-width: var(--contact-measure);
   margin: clamp(48px, 7vw, 88px) auto 0;
   padding-top: 26px;
   border-top: 1px solid var(--line);

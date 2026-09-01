@@ -94,11 +94,12 @@ mécanisme disponible).
 
 Pas de page de formulaire distincte : le lien "Contact" pointe directement vers la
 section coordonnées de la page d'accueil. Depuis la refonte de septembre 2026, elle est
-sur trois colonnes — titre + bio, puis courriel/Instagram + localisation/disponibilité,
-puis la photo — le tout limité à 1400px de large comme le reel de la page d'accueil (elle
-occupait toute la largeur de l'écran auparavant, ce qui laissait un grand vide au milieu
-sur les grands écrans). La bio y est de nouveau affichée après l'avoir été retirée en
-août 2026 ; le champ était resté modifiable dans l'admin entre-temps.
+sur deux colonnes — tout le texte (titre, bio, courriel/Instagram, localisation et
+disponibilité) d'un côté, la photo de l'autre — le tout limité à 1120px de large et
+centré. Elle occupait toute la largeur de l'écran auparavant, ce qui laissait un grand
+vide au milieu sur les grands écrans. Sous 700px, la photo passe sous le texte. La bio y
+est de nouveau affichée après avoir été retirée en août 2026 ; le champ était resté
+modifiable dans l'admin entre-temps.
 
 La section porte aussi le pied de page du site (il n'y avait aucun `<footer>` avant) :
 mention de copyright, liens vers les catégories de projets (ils appliquent le même filtre
