@@ -137,38 +137,73 @@ if ($Unregister) {
 # Normal tick
 # ---------------------------------------------------------------------------
 
-Rotate-Log
-
-if (-not (Test-Path $DropDir)) {
-    Write-Log "Drop folder missing: $DropDir. Run with -Setup." 'ERROR'
-    exit 1
-}
-
-$exts = @('.mov', '.mp4', '.mxf', '.m4v', '.avi', '.mkv')
-$pending = Get-ChildItem -LiteralPath $DropDir -File -ErrorAction SilentlyContinue |
-    Where-Object { $exts -contains $_.Extension.ToLower() }
-
-if (-not $pending) { exit 0 }   # quiet tick, nothing to say
-
+# The tick runs unattended behind the shim: no console, nobody watching. An
+# unhandled terminating error would exit silently and leave the log ending
+# mid-sentence -- which is exactly how the stderr bug below hid itself for so
+# long. Catch anything that gets this far and write down why.
 try {
-    $python = Resolve-Python
-} catch {
-    Write-Log $_.Exception.Message 'ERROR'
+    Rotate-Log
+
+    if (-not (Test-Path $DropDir)) {
+        Write-Log "Drop folder missing: $DropDir. Run with -Setup." 'ERROR'
+        exit 1
+    }
+
+    $exts = @('.mov', '.mp4', '.mxf', '.m4v', '.avi', '.mkv')
+    $pending = Get-ChildItem -LiteralPath $DropDir -File -ErrorAction SilentlyContinue |
+        Where-Object { $exts -contains $_.Extension.ToLower() }
+
+    if (-not $pending) { exit 0 }   # quiet tick, nothing to say
+
+    try {
+        $python = Resolve-Python
+    } catch {
+        Write-Log $_.Exception.Message 'ERROR'
+        exit 1
+    }
+
+    Write-Log ("Tick: {0} candidate file(s) in drop folder." -f $pending.Count)
+
+    # encode_reel.py decides what's actually new (its own state file), waits for
+    # the file to finish copying, and no-ops if another run holds the lock.
+    #
+    # $ErrorActionPreference has to drop to Continue across this one call.
+    # PowerShell 5.1 wraps every stderr line from a native command in an
+    # ErrorRecord, and 2>&1 feeds those into the pipeline; under 'Stop' the
+    # first one becomes a TERMINATING NativeCommandError. The script died right
+    # there -- before the $LASTEXITCODE check below, and before the offending
+    # stderr line was even written -- so a failed encode logged its last stdout
+    # line and then nothing: no traceback, no exit code, no 'Tick complete.'
+    # Python writes its traceback to stderr, which is the single most useful
+    # thing that can land in this log. Here stderr is output to record, not an
+    # exception to raise on.
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $python $Encoder --watch 2>&1 | ForEach-Object {
+            Add-Content -LiteralPath $LogFile -Value "$_" -Encoding utf8
+            Write-Host $_
+        }
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "encode_reel.py exited with code $LASTEXITCODE." 'ERROR'
+        exit $LASTEXITCODE
+    }
+
+    Write-Log 'Tick complete.'
+}
+catch {
+    # Write-Log can itself be what broke (an unwritable or locked log file), so
+    # it gets its own guard. Failing that, the exit code is the last signal
+    # left: Task Scheduler shows it as Last Run Result, and task history is on.
+    try {
+        Write-Log ("Unhandled error: {0}: {1}" -f `
+                   $_.Exception.GetType().Name, $_.Exception.Message) 'ERROR'
+        $pos = $_.InvocationInfo.PositionMessage
+        if ($pos) { Write-Log ("  {0}" -f $pos.Trim()) 'ERROR' }
+    } catch { }
     exit 1
 }
-
-Write-Log ("Tick: {0} candidate file(s) in drop folder." -f $pending.Count)
-
-# encode_reel.py decides what's actually new (its own state file), waits for the
-# file to finish copying, and no-ops if another run holds the lock.
-& $python $Encoder --watch 2>&1 | ForEach-Object {
-    Add-Content -LiteralPath $LogFile -Value $_ -Encoding utf8
-    Write-Host $_
-}
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Log "encode_reel.py exited with code $LASTEXITCODE." 'ERROR'
-    exit $LASTEXITCODE
-}
-
-Write-Log 'Tick complete.'
