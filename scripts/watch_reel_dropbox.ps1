@@ -7,6 +7,11 @@
     Everything real happens there; this is just the trigger, the log, and the
     Windows plumbing.
 
+    The task is registered to run through watch_reel_hidden.vbs rather than
+    powershell.exe directly. The shim exists purely to start PowerShell with no
+    console window: -WindowStyle Hidden cannot do that, because Windows
+    allocates the console before PowerShell ever sees the flag.
+
     Polling rather than a long-running FileSystemWatcher, deliberately: a
     scheduled poll survives reboots, sleep and Explorer restarts, can't leak a
     hung process, and a 5-minute delay is irrelevant next to a ~25 minute
@@ -81,12 +86,21 @@ if ($Setup) {
         Write-Host "Drop folder already exists: $DropDir"
     }
 
-    $psExe = (Get-Command powershell.exe).Source
     # The \" escaping is required, not cosmetic: both paths contain spaces, and
     # PowerShell 5.1 strips bare double quotes when handing arguments to a native
     # exe -- schtasks then sees "Code\portfolio\..." as a separate argument and
     # rejects it. Escaped quotes survive the handoff intact.
-    $cmd = '\"{0}\" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{1}\"' -f $psExe, $MyInvocation.MyCommand.Path
+    #
+    # wscript.exe rather than powershell.exe directly. -WindowStyle Hidden does
+    # not prevent the console from being drawn: Windows allocates it before
+    # PowerShell can act on the flag, so the task flashed a terminal on every
+    # tick. The shim passes SW_HIDE at process creation, which does work.
+    $wscript = Join-Path $env:SystemRoot 'System32\wscript.exe'
+    $shim    = Join-Path $ScriptDir 'watch_reel_hidden.vbs'
+    if (-not (Test-Path $shim)) {
+        throw "Launcher shim missing: $shim"
+    }
+    $cmd = '\"{0}\" \"{1}\"' -f $wscript, $shim
 
     # schtasks.exe rather than Register-ScheduledTask, for two concrete reasons
     # found the hard way: the cmdlets need elevation to write a task at the root
