@@ -2,8 +2,9 @@
 <!--
   index.html — homepage: hero reel, work grid (built from data/projects.json), contact info.
   Nav labels: "Projects" -> #work, "Contact" -> #contact.
-  style.css is versioned (?v=N) as a cache-buster; bump the number on every CSS edit
-  across ALL pages that link it, or browsers may keep serving a stale stylesheet.
+  style.css and site.js are both versioned (?v=N) as a cache-buster, on one shared
+  number; a GitHub Action bumps it across ALL pages that link them whenever either file
+  changes, so browsers can't keep serving a stale stylesheet or a stale script.
 -->
 <html lang="en">
 <head>
@@ -38,7 +39,7 @@
      prefersReducedMotion(), observeReveals(), initLangToggle() and applyDesignSettings()
      used by the script at the bottom of this file. (withViewTransition() lives there too
      but is only used by project.html's lightbox now.) See site.js for the story on each. -->
-<script src="site.js"></script>
+<script src="site.js?v=124"></script>
 <script src="i18n.js"></script>
 </head>
 <body>

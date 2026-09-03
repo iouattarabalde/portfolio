@@ -1,21 +1,28 @@
-name: Bump CSS cache-buster
+name: Bump asset cache-busters
 
-# Whenever style.css changes, auto-syncs the style.css?v=N cache-buster in
+# Whenever a shared asset changes, auto-syncs its ?v=N cache-buster in
 # index.html, project.html and admin/index.html so this manual step can't be
 # forgotten. (admin/index.html was added Aug 2026 — it links the same stylesheet
 # but had been left out, and had silently drifted 13 versions behind.)
+#
+# site.js joined style.css here in Sept 2026. It had been unversioned, like the
+# HTML that loads it, so mid-deploy a visitor could hold a new page against a
+# cached older site.js and call a function that didn't exist in it yet. One
+# shared version number covers both assets — see the script for why that's a
+# single counter and not one per file.
 on:
   push:
     branches: [main]
     paths:
       - 'style.css'
+      - 'site.js'
 
 permissions:
   contents: write
 
-# Serializes runs of this workflow so two quick pushes to style.css can't both
-# bump-and-push at once and collide. Not cancel-in-progress: every run must
-# actually finish, since skipping one would leave that CSS change unbumped.
+# Serializes runs of this workflow so two quick pushes to a shared asset can't
+# both bump-and-push at once and collide. Not cancel-in-progress: every run must
+# actually finish, since skipping one would leave that change unbumped.
 concurrency:
   group: auto-commit-main
   cancel-in-progress: false
@@ -30,7 +37,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      - run: python3 scripts/bump_css_version.py
+      - run: python3 scripts/bump_asset_versions.py
 
       - name: Commit version bump
         run: |
@@ -40,7 +47,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No version change to commit."
           else
-            git commit -m "Auto-bump style.css cache-buster [skip ci]"
+            git commit -m "Auto-bump asset cache-busters [skip ci]"
             # Rebase-then-push, retried: the sibling workflow (generate-share-pages)
             # commits to main too, and a push from a job that started before its commit
             # landed is rejected non-fast-forward. The concurrency group above already

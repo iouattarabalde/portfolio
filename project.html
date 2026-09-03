@@ -32,7 +32,7 @@
      randomised phase offset per load — so navigating between pages can land at a
      different point in the loop each time), plus esc(), withViewTransition(),
      initLangToggle() and applyDesignSettings() used below. See site.js. -->
-<script src="site.js"></script>
+<script src="site.js?v=124"></script>
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -206,10 +206,14 @@
   // clearing the one tile we know about: a name left behind anywhere means two rendered
   // elements claiming it, which costs the transition entirely (silently — the DOM update
   // still lands, so it just stops animating). The close below already gives its own name
-  // back, but that cleanup rides on a callback, and this file and site.js are both served
-  // without a cache-buster — so during a deploy a visitor can briefly hold a new
-  // project.html against a cached site.js whose withViewTransition takes no second
-  // argument and never runs it. Sweeping before each open makes that self-correcting.
+  // back, but that cleanup rides on a callback, and a callback that doesn't run — an
+  // interrupted transition, a script error mid-close — strands the name on that tile for
+  // the rest of the session. Sweeping before each open makes it self-correcting.
+  //
+  // It also used to cover a deploy: site.js was unversioned, so a visitor could briefly
+  // hold a new project.html against a cached older copy whose withViewTransition took no
+  // second argument and never ran the callback. site.js carries a ?v=N of its own since
+  // Sept 2026, so the page and the script it loads can no longer come apart that way.
   function releaseThumbNames() {
     document.querySelectorAll('.gallery-item img').forEach((im) => {
       im.style.viewTransitionName = '';
@@ -536,18 +540,10 @@
       // The header elements ride in the same call rather than a second one so the whole
       // thing stays a single cascade in document order — two separate batches would both
       // start at index 0 and the title would lift alongside the first still.
-      // Guarded for the same reason releaseThumbNames() sweeps: neither this file nor
-      // site.js carries a cache-buster, so mid-deploy a visitor can hold this markup
-      // against a site.js that predates revealBatch. Calling it blind would throw here
-      // and take observeReveals() and wireLightbox() down with it, leaving the whole
-      // gallery parked at opacity 0. Skipping it just falls back to the two rows the
-      // observer finds on its own.
-      if (typeof revealBatch === 'function') {
-        revealBatch([
-          document.getElementById('project-title'),
-          document.querySelector('.credits')
-        ].concat(Array.prototype.slice.call(gallery.children, 0, GALLERY_OPENING_TILES)));
-      }
+      revealBatch([
+        document.getElementById('project-title'),
+        document.querySelector('.credits')
+      ].concat(Array.prototype.slice.call(gallery.children, 0, GALLERY_OPENING_TILES)));
 
       // After the display:none comes off, not before: an IntersectionObserver never
       // reports a display:none element as intersecting, so observing #project-info's

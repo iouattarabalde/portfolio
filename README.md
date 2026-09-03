@@ -49,11 +49,11 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 - **Repo** (dépôt) : le dossier de projet complet sur GitHub, avec tout son historique.
 - **Déploiement** : le moment où GitHub Pages republie le site à partir du dernier commit.
   Automatique, prend en général moins d'une minute, parfois deux.
-- **Cache-buster** (`?v=105`) : le `?v=N` à la fin des liens vers `style.css`. Force les
-  navigateurs à retélécharger la feuille de style plutôt que de garder une vieille version
-  en mémoire. Incrémenté automatiquement à chaque modification de `style.css`, sur les trois
-  pages qui la chargent (accueil, projet, admin) — voir "Automatisations" plus bas. Rien à
-  faire à la main.
+- **Cache-buster** (`?v=105`) : le `?v=N` à la fin des liens vers `style.css` et `site.js`.
+  Force les navigateurs à retélécharger la feuille de style et le script plutôt que de garder
+  une vieille version en mémoire. Un seul numéro partagé par les deux fichiers, incrémenté
+  automatiquement dès que l'un d'eux change, sur les trois pages qui les chargent (accueil,
+  projet, admin) — voir "Automatisations" plus bas. Rien à faire à la main.
 - **JSON** : le format des fichiers `data/*.json`. C'est le contenu du site (projets, textes,
   coordonnées) séparé du code qui l'affiche — l'admin lit et écrit ces fichiers pour vous.
 
@@ -70,15 +70,15 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `data/design.json` | Réglages visuels éditables depuis Admin → Design : intensité/taille/étalement du halo du reel, niveau de grain, couleur de fond. Absent = valeurs par défaut (identiques aux valeurs codées dans `style.css`) |
 | `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
 | `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin |
-| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()`, `initLangToggle()` et `applyDesignSettings()`. Chacun existait auparavant en deux ou trois copies recopiées à la main |
+| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()`, `initLangToggle()` et `applyDesignSettings()`. Chacun existait auparavant en deux ou trois copies recopiées à la main. Versionné en cache-buster (`?v=N`) comme `style.css`, sur le même numéro |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
-| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
+| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`, le même numéro que `site.js`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
 | `video/reel.av1.mp4` | Reel auto-hébergé, **source principale** (AV1 10 bits — voir "Vidéo du reel") |
 | `video/reel.mp4` | Même reel en H.264, filet de compatibilité pour Safari ≤16 / iOS ≤16 |
 | `assets/` | Stills et vignettes des projets |
 | `assets/og/` | **Généré**, ne pas éditer à la main : une image de partage 1200×630 par projet |
 | `project/` | **Généré**, ne pas éditer à la main : une coquille HTML par projet, qui porte les balises Open Graph que les crawlers lisent puis redirige vers la vraie page |
-| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément du cache-buster. Contient aussi le pipeline d'encodage du reel (`encode_reel.py` + `watch_reel_dropbox.ps1`), qui tourne en local et pas dans la CI |
+| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément des cache-busters. Contient aussi le pipeline d'encodage du reel (`encode_reel.py` + `watch_reel_dropbox.ps1`), qui tourne en local et pas dans la CI |
 | `.github/workflows/` | Les deux automatisations elles-mêmes — voir "Automatisations" plus bas |
 | `sitemap.xml` | **Généré** à partir de `projects.json` |
 | `.nojekyll`, `robots.txt`, `CNAME`, `favicon.ico` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom, favicon de repli) |
@@ -313,7 +313,7 @@ faire quand ils apparaissent.
 | Quand | Ce qui se passe |
 |---|---|
 | `data/projects.json` ou une image change (donc : à chaque sauvegarde de projet dans l'admin) | `projects.json` est d'abord validé (ids uniques, fichiers réellement présents) ; si c'est bon, les coquilles de partage `project/<slug>.html`, les images `assets/og/<slug>.jpg` et `sitemap.xml` sont régénérées et commitées |
-| `style.css` change | Le cache-buster `?v=N` est incrémenté sur `index.html`, `project.html` **et** `admin/index.html`, puis commité |
+| `style.css` **ou** `site.js` change | Le cache-buster `?v=N` — un seul numéro pour les deux fichiers — est incrémenté sur `index.html`, `project.html` **et** `admin/index.html`, puis commité |
 
 Deux détails qui ont déjà causé des ennuis et sont maintenant réglés :
 
@@ -321,6 +321,10 @@ Deux détails qui ont déjà causé des ennuis et sont maintenant réglés :
   ce qui pouvait lui faire servir une vieille feuille de style pendant longtemps. Les trois
   pages sont désormais incrémentées ensemble, et le script se resynchronise tout seul si
   elles divergent à nouveau.
+- `site.js` n'était pas versionné du tout (Sept 2026). Pendant un déploiement, un visiteur
+  pouvait donc se retrouver avec une page toute neuve et une ancienne copie du script en
+  cache, et appeler une fonction qui n'existait pas encore dedans. Il porte maintenant le
+  même `?v=N` que `style.css`.
 - Les deux robots écrivent dans le même dépôt. Un `push` qui touchait à la fois `style.css`
   et une image les lançait en parallèle et l'un des deux échouait. Ils sont maintenant mis
   en file l'un derrière l'autre, et réessaient en cas de collision.
