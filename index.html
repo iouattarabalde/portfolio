@@ -2,9 +2,9 @@
 <!--
   index.html — homepage: hero reel, work grid (built from data/projects.json), contact info.
   Nav labels: "Projects" -> #work, "Contact" -> #contact.
-  style.css and site.js are both versioned (?v=N) as a cache-buster, on one shared
-  number; a GitHub Action bumps it across ALL pages that link them whenever either file
-  changes, so browsers can't keep serving a stale stylesheet or a stale script.
+  style.css, site.js and i18n.js are all versioned (?v=N) as a cache-buster, on one
+  shared number; a GitHub Action bumps it across ALL pages that link them whenever any of
+  them changes, so browsers can't keep serving a stale stylesheet or a stale script.
 -->
 <html lang="en">
 <head>
@@ -40,7 +40,7 @@
      used by the script at the bottom of this file. (withViewTransition() lives there too
      but is only used by project.html's lightbox now.) See site.js for the story on each. -->
 <script src="site.js?v=124"></script>
-<script src="i18n.js"></script>
+<script src="i18n.js?v=124"></script>
 </head>
 <body>
 

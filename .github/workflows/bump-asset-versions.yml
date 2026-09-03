@@ -5,17 +5,18 @@ name: Bump asset cache-busters
 # forgotten. (admin/index.html was added Aug 2026 — it links the same stylesheet
 # but had been left out, and had silently drifted 13 versions behind.)
 #
-# site.js joined style.css here in Sept 2026. It had been unversioned, like the
-# HTML that loads it, so mid-deploy a visitor could hold a new page against a
-# cached older site.js and call a function that didn't exist in it yet. One
-# shared version number covers both assets — see the script for why that's a
-# single counter and not one per file.
+# site.js and i18n.js joined style.css here in Sept 2026. They had been
+# unversioned, like the HTML that loads them, so mid-deploy a visitor could hold
+# a new page against a cached older site.js and call a function that didn't exist
+# in it yet. One shared version number covers all three assets — see the script
+# for why that's a single counter and not one per file.
 on:
   push:
     branches: [main]
     paths:
       - 'style.css'
       - 'site.js'
+      - 'i18n.js'
 
 permissions:
   contents: write

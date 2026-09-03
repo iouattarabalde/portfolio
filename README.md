@@ -49,11 +49,11 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 - **Repo** (dépôt) : le dossier de projet complet sur GitHub, avec tout son historique.
 - **Déploiement** : le moment où GitHub Pages republie le site à partir du dernier commit.
   Automatique, prend en général moins d'une minute, parfois deux.
-- **Cache-buster** (`?v=105`) : le `?v=N` à la fin des liens vers `style.css` et `site.js`.
-  Force les navigateurs à retélécharger la feuille de style et le script plutôt que de garder
-  une vieille version en mémoire. Un seul numéro partagé par les deux fichiers, incrémenté
-  automatiquement dès que l'un d'eux change, sur les trois pages qui les chargent (accueil,
-  projet, admin) — voir "Automatisations" plus bas. Rien à faire à la main.
+- **Cache-buster** (`?v=105`) : le `?v=N` à la fin des liens vers `style.css`, `site.js` et
+  `i18n.js`. Force les navigateurs à retélécharger la feuille de style et les scripts plutôt
+  que de garder une vieille version en mémoire. Un seul numéro partagé par les trois fichiers,
+  incrémenté automatiquement dès que l'un d'eux change, sur les trois pages qui les chargent
+  (accueil, projet, admin) — voir "Automatisations" plus bas. Rien à faire à la main.
 - **JSON** : le format des fichiers `data/*.json`. C'est le contenu du site (projets, textes,
   coordonnées) séparé du code qui l'affiche — l'admin lit et écrit ces fichiers pour vous.
 
@@ -69,10 +69,10 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram |
 | `data/design.json` | Réglages visuels éditables depuis Admin → Design : intensité/taille/étalement du halo du reel, niveau de grain, couleur de fond. Absent = valeurs par défaut (identiques aux valeurs codées dans `style.css`) |
 | `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
-| `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin |
-| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()`, `initLangToggle()` et `applyDesignSettings()`. Chacun existait auparavant en deux ou trois copies recopiées à la main. Versionné en cache-buster (`?v=N`) comme `style.css`, sur le même numéro |
+| `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin. Versionné en cache-buster (`?v=N`), sur le même numéro que `style.css` et `site.js` |
+| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()`, `initLangToggle()` et `applyDesignSettings()`. Chacun existait auparavant en deux ou trois copies recopiées à la main. Versionné en cache-buster (`?v=N`) comme `style.css` et `i18n.js`, sur le même numéro |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
-| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`, le même numéro que `site.js`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
+| `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`, le même numéro que `site.js` et `i18n.js`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
 | `video/reel.av1.mp4` | Reel auto-hébergé, **source principale** (AV1 10 bits — voir "Vidéo du reel") |
 | `video/reel.mp4` | Même reel en H.264, filet de compatibilité pour Safari ≤16 / iOS ≤16 |
 | `assets/` | Stills et vignettes des projets |
@@ -313,7 +313,7 @@ faire quand ils apparaissent.
 | Quand | Ce qui se passe |
 |---|---|
 | `data/projects.json` ou une image change (donc : à chaque sauvegarde de projet dans l'admin) | `projects.json` est d'abord validé (ids uniques, fichiers réellement présents) ; si c'est bon, les coquilles de partage `project/<slug>.html`, les images `assets/og/<slug>.jpg` et `sitemap.xml` sont régénérées et commitées |
-| `style.css` **ou** `site.js` change | Le cache-buster `?v=N` — un seul numéro pour les deux fichiers — est incrémenté sur `index.html`, `project.html` **et** `admin/index.html`, puis commité |
+| `style.css`, `site.js` **ou** `i18n.js` change | Le cache-buster `?v=N` — un seul numéro pour les trois fichiers — est incrémenté sur `index.html`, `project.html` **et** `admin/index.html`, puis commité |
 
 Deux détails qui ont déjà causé des ennuis et sont maintenant réglés :
 
@@ -321,10 +321,11 @@ Deux détails qui ont déjà causé des ennuis et sont maintenant réglés :
   ce qui pouvait lui faire servir une vieille feuille de style pendant longtemps. Les trois
   pages sont désormais incrémentées ensemble, et le script se resynchronise tout seul si
   elles divergent à nouveau.
-- `site.js` n'était pas versionné du tout (Sept 2026). Pendant un déploiement, un visiteur
-  pouvait donc se retrouver avec une page toute neuve et une ancienne copie du script en
-  cache, et appeler une fonction qui n'existait pas encore dedans. Il porte maintenant le
-  même `?v=N` que `style.css`.
+- `site.js` et `i18n.js` n'étaient pas versionnés du tout (Sept 2026). Pendant un
+  déploiement, un visiteur pouvait donc se retrouver avec une page toute neuve et une
+  ancienne copie des scripts en cache : appeler une fonction qui n'existait pas encore dans
+  `site.js`, ou afficher les vieux libellés d'`i18n.js`. Les deux portent maintenant le même
+  `?v=N` que `style.css`.
 - Les deux robots écrivent dans le même dépôt. Un `push` qui touchait à la fois `style.css`
   et une image les lançait en parallèle et l'un des deux échouait. Ils sont maintenant mis
   en file l'un derrière l'autre, et réessaient en cas de collision.

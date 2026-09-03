@@ -5,20 +5,22 @@ bump_asset_versions.py
 Auto-syncs the ?v=N cache-buster on every shared asset the pages link, whenever
 one of those assets changes, so this manual step (documented as a reminder
 comment in index.html) can't be forgotten. Aug 2026; extended from style.css
-alone to site.js as well in Sept 2026.
+alone to site.js and i18n.js as well in Sept 2026.
 
 Takes the highest version currently found anywhere across those files (self-
 healing if they've drifted apart), adds 1, and writes that back onto every
 asset in all of them. One shared number rather than one per asset: it makes a
 drifted file obvious at a glance, and the cost of the coupling is that a CSS
-edit also re-downloads ~15KB of JS once, which is not worth a second counter to
-avoid.
+edit also re-downloads the two scripts once, which is not worth a counter each
+to avoid.
 
-site.js was added because it and the HTML that loads it were both unversioned,
-so a visitor mid-deploy could hold a new page against a cached older site.js and
-call into functions that didn't exist yet. project.html had grown a defensive
-typeof check around exactly that. A versioned URL is a URL the browser has never
-seen, so the pair can no longer come apart.
+The scripts were added because they and the HTML that loads them were all
+unversioned, so a visitor mid-deploy could hold a new page against a cached
+older site.js and call into functions that didn't exist yet. project.html had
+grown a defensive typeof check around exactly that. A versioned URL is a URL the
+browser has never seen, so the set can no longer come apart. i18n.js is quieter
+about failing than site.js — it falls back to its built-in default strings — but
+a stale copy of it serves stale labels, which is worse for being invisible.
 
 admin/index.html is in the list too, as of Aug 2026 — it links the same assets
 (as ../style.css?v=N) but was originally left out, so it silently drifted 13
@@ -37,7 +39,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILES = ["index.html", "project.html", "admin/index.html"]
 # Every page links every one of these, so a missing reference below is a real
 # error rather than something to skip over.
-ASSETS = ["style.css", "site.js"]
+ASSETS = ["style.css", "site.js", "i18n.js"]
 PATTERN = re.compile(r'(%s)(\?v=)(\d+)' % "|".join(re.escape(a) for a in ASSETS))
 
 
