@@ -228,38 +228,16 @@ function getRevealObserver() {
         observer.unobserve(e.target); // thrown away by a re-render; stop watching it
         return false;
       }
+      // Already claimed by a wave started elsewhere (revealBatch marks it and unobserves
+      // it, but an entry queued a frame earlier can still land here afterwards).
+      if (e.target.hasAttribute('data-revealing')) return false;
       return e.isIntersecting ||
         (e.rootBounds && e.boundingClientRect.bottom <= e.rootBounds.top);
     });
     arrived.sort(function (a, b) {
       return (a.target.compareDocumentPosition(b.target) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1;
     });
-    // A batch is usually one row of a grid, but it can be far larger — a reload partway
-    // down the page, a hash link, or one hard flick can land twenty cards at once. At a
-    // flat 55ms each that would leave the last one waiting over a second, which is the
-    // same trailing-off the old nth-child ladder tried to solve by capping its delays
-    // (and which made everything past the cap start simultaneously instead). Narrowing
-    // the step so the whole batch fits a fixed budget keeps it a real wave at every size.
-    var timing = getRevealTiming();
-    var step = arrived.length > 1
-      ? Math.min(timing.step, timing.budget / (arrived.length - 1))
-      : timing.step;
-    step = Math.round(step * 100) / 100; // keeps the inline style readable; sub-10us is not a timing anyone can perceive
-    arrived.forEach(function (entry, i) {
-      var el = entry.target;
-      observer.unobserve(el); // reveals once, then stops being watched
-      // Hold the lift until the tile's own image can actually be painted. Without this
-      // the two are on independent clocks and the animation always wins: a 700ms lift
-      // against a photo still arriving over the network means an empty box slides into
-      // place and the picture appears afterwards, which is what made the project
-      // galleries look like they were loading at random. Elements with no image of their
-      // own (the filter bar, the credits block) resolve immediately.
-      whenPaintable(el.querySelector('img'), function () {
-        el.style.setProperty('--reveal-index', i);
-        el.style.setProperty('--reveal-stagger', step + 'ms');
-        el.classList.add('is-revealed');
-      });
-    });
+    revealBatch(arrived.map(function (e) { return e.target; }));
   }, {
     // The negative bottom margin pulls the trigger line up off the viewport edge, so an
     // element starts moving just before it would otherwise be properly in view and is
@@ -277,6 +255,58 @@ function getRevealObserver() {
     threshold: 0.05
   });
   return revealObserver;
+}
+
+// Lifts a set of elements into place as one staggered wave, in the order given.
+//
+// The observer above feeds this whatever crossed the trigger line together, one grid row
+// at a time in the usual case. The project page also calls it directly, to open with a
+// fixed three rows of stills rather than however many happen to clear the fold — see the
+// opening wave at the bottom of project.html.
+//
+// Claiming each element with data-revealing the moment its wave starts is what keeps
+// those two paths from fighting. A manually revealed element is skipped by the observer
+// and by observeReveals(), so nothing can be handed a second --reveal-index part-way
+// through its animation, which would restart the lift.
+//
+// A batch is usually one row of a grid, but it can be far larger — a reload partway down
+// the page, a hash link, one hard flick, or the project page's own opening wave can land
+// a dozen tiles at once. At a flat 55ms each the last one would wait over a second, which
+// is the same trailing-off the old nth-child ladder tried to solve by capping its delays
+// (and which made everything past the cap start simultaneously instead). Narrowing the
+// step so the whole batch fits a fixed budget keeps it a real wave at every size.
+function revealBatch(els) {
+  var batch = [];
+  Array.prototype.forEach.call(els, function (el) {
+    if (!el || !el.isConnected || el.hasAttribute('data-revealing')) return;
+    el.setAttribute('data-revealing', '');
+    if (revealObserver) revealObserver.unobserve(el); // reveals once, then stops being watched
+    batch.push(el);
+  });
+  if (!batch.length) return;
+  // Direct callers can reach this without going through observeReveals()' own check.
+  if (prefersReducedMotion()) {
+    batch.forEach(function (el) { el.classList.add('is-revealed'); });
+    return;
+  }
+  var timing = getRevealTiming();
+  var step = batch.length > 1
+    ? Math.min(timing.step, timing.budget / (batch.length - 1))
+    : timing.step;
+  step = Math.round(step * 100) / 100; // keeps the inline style readable; sub-10us is not a timing anyone can perceive
+  batch.forEach(function (el, i) {
+    // Hold the lift until the tile's own image can actually be painted. Without this the
+    // two are on independent clocks and the animation always wins: a 700ms lift against a
+    // photo still arriving over the network means an empty box slides into place and the
+    // picture appears afterwards, which is what made the project galleries look like they
+    // were loading at random. Elements with no image of their own (the filter bar, the
+    // credits block) resolve immediately.
+    whenPaintable(el.querySelector('img'), function () {
+      el.style.setProperty('--reveal-index', i);
+      el.style.setProperty('--reveal-stagger', step + 'ms');
+      el.classList.add('is-revealed');
+    });
+  });
 }
 
 // Runs cb once img is ready to paint, or immediately when there is no img.
@@ -318,7 +348,7 @@ function whenPaintable(img, cb) {
 // admin/index.html shares this file and has none.
 function observeReveals(root) {
   var scope = root || document;
-  var targets = scope.querySelectorAll('[data-reveal]:not(.is-revealed)');
+  var targets = scope.querySelectorAll('[data-reveal]:not(.is-revealed):not([data-revealing])');
   if (!targets.length) return;
   // No observer is created at all for these two cases, rather than creating one and
   // letting the CSS render it inert — the same approach the hero parallax in index.html
@@ -337,7 +367,7 @@ function observeReveals(root) {
 function revealNow(root) {
   var scope = root || document;
   Array.prototype.forEach.call(
-    scope.querySelectorAll('[data-reveal]:not(.is-revealed)'),
+    scope.querySelectorAll('[data-reveal]:not(.is-revealed):not([data-revealing])'),
     function (el) { el.classList.add('is-revealed'); }
   );
 }

@@ -502,6 +502,10 @@
     ].join(', ');
   }
 
+  // How many stills lift in with the page on load, before the scroll reveal takes over.
+  // Three full rows of the three-column grid — see the opening wave below.
+  const GALLERY_OPENING_TILES = 9;
+
   // Gallery order matches the order of entries in projects.json's "gallery" array —
       // that's exactly what the admin's drag-and-drop reordering updates. Each entry is
       // {filename, palette} since Aug 2026 (palette used by the lightbox, not the grid).
@@ -517,10 +521,39 @@
       `).join('');
 
       document.getElementById('project-info').style.display = '';
+
+      // The opening wave: the title, the credits and the first three rows of stills all
+      // lift in together on load, whether or not they clear the fold.
+      //
+      // Left to the observer alone this was only ever two rows. The gallery is three
+      // columns edge to edge, so a row is roughly a third of the viewport wide and the
+      // trigger line sits at 88% of its height (the -12% bottom rootMargin in site.js)
+      // — six tiles land on load and the seventh needs a scroll, which made the page
+      // open on a grid that looked cut off mid-thought. Nine is the deliberate number
+      // here, not a measurement of the viewport: pushing the observer's own trigger line
+      // down instead would have loosened it for the work grid and the contact block too.
+      //
+      // The header elements ride in the same call rather than a second one so the whole
+      // thing stays a single cascade in document order — two separate batches would both
+      // start at index 0 and the title would lift alongside the first still.
+      // Guarded for the same reason releaseThumbNames() sweeps: neither this file nor
+      // site.js carries a cache-buster, so mid-deploy a visitor can hold this markup
+      // against a site.js that predates revealBatch. Calling it blind would throw here
+      // and take observeReveals() and wireLightbox() down with it, leaving the whole
+      // gallery parked at opacity 0. Skipping it just falls back to the two rows the
+      // observer finds on its own.
+      if (typeof revealBatch === 'function') {
+        revealBatch([
+          document.getElementById('project-title'),
+          document.querySelector('.credits')
+        ].concat(Array.prototype.slice.call(gallery.children, 0, GALLERY_OPENING_TILES)));
+      }
+
       // After the display:none comes off, not before: an IntersectionObserver never
       // reports a display:none element as intersecting, so observing #project-info's
       // children any earlier would leave the title, credits and next-project card stuck
-      // at opacity 0 forever. Covers the gallery stills in the same pass.
+      // at opacity 0 forever. Covers the gallery stills in the same pass — everything the
+      // opening wave just claimed is skipped.
       observeReveals();
       wireLightbox();
     })
