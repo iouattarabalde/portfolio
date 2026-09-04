@@ -506,9 +506,35 @@
     ].join(', ');
   }
 
-  // How many stills lift in with the page on load, before the scroll reveal takes over.
-  // Three full rows of the three-column grid — see the opening wave below.
-  const GALLERY_OPENING_TILES = 9;
+  // How many stills lift in with the page on load, before the scroll reveal takes over:
+  // every row that the first screen can show, including the one the fold cuts through.
+  //
+  // This was a flat 9 (three rows) until Sept 2026, measured once against a desktop
+  // window. A gallery tile is 16/9 above 700px and square below it, so on a phone the
+  // same 9 tiles fill barely half the screen and the page opened on a grid that looked
+  // cut off mid-thought. The number has to come from the viewport, not from a constant.
+  //
+  // Reads the live grid rather than assuming three columns, since the CSS drops to two
+  // below 360px. Heights are safe to measure the moment the tiles exist: .gallery-item
+  // carries an aspect-ratio, so the row height is settled by layout and does not wait on
+  // a single image to decode.
+  //
+  // Ceil, not floor: a row the fold cuts in half is part of the first screen and lifting
+  // it in with the rest is the whole point. Guarded at one row so a restored scroll
+  // position deep in the page (negative rect.top) can't ask for zero. Everything above
+  // the viewport is inside the observer's 9999px top rootMargin and gets revealed anyway.
+  function openingTileCount(grid) {
+    const first = grid.firstElementChild;
+    if (!first) return 0;
+    const gridStyle = getComputedStyle(grid);
+    const columns = gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+    const rect = first.getBoundingClientRect();
+    const rowHeight = rect.height + (parseFloat(gridStyle.rowGap) || 0);
+    if (!rowHeight) return columns;
+    const roomToFold = window.innerHeight - rect.top;
+    const rows = Math.max(1, Math.ceil(roomToFold / rowHeight));
+    return rows * columns;
+  }
 
   // Gallery order matches the order of entries in projects.json's "gallery" array —
       // that's exactly what the admin's drag-and-drop reordering updates. Each entry is
@@ -526,16 +552,15 @@
 
       document.getElementById('project-info').style.display = '';
 
-      // The opening wave: the title, the credits and the first three rows of stills all
-      // lift in together on load, whether or not they clear the fold.
+      // The opening wave: the title, the credits and every still on the first screen all
+      // lift in together on load, whether or not they clear the fold. See
+      // openingTileCount() above for how many that is.
       //
-      // Left to the observer alone this was only ever two rows. The gallery is three
-      // columns edge to edge, so a row is roughly a third of the viewport wide and the
-      // trigger line sits at 88% of its height (the -12% bottom rootMargin in site.js)
-      // — six tiles land on load and the seventh needs a scroll, which made the page
-      // open on a grid that looked cut off mid-thought. Nine is the deliberate number
-      // here, not a measurement of the viewport: pushing the observer's own trigger line
-      // down instead would have loosened it for the work grid and the contact block too.
+      // Left to the observer alone this was only ever the rows clearing 88% of the
+      // viewport height (the -12% bottom rootMargin in site.js), which strands the last
+      // row or two of the first screen until a scroll. Filling the wave here rather than
+      // pushing the observer's own trigger line down keeps that line where it is for the
+      // work grid and the contact block.
       //
       // The header elements ride in the same call rather than a second one so the whole
       // thing stays a single cascade in document order — two separate batches would both
@@ -543,7 +568,7 @@
       revealBatch([
         document.getElementById('project-title'),
         document.querySelector('.credits')
-      ].concat(Array.prototype.slice.call(gallery.children, 0, GALLERY_OPENING_TILES)));
+      ].concat(Array.prototype.slice.call(gallery.children, 0, openingTileCount(gallery))));
 
       // After the display:none comes off, not before: an IntersectionObserver never
       // reports a display:none element as intersecting, so observing #project-info's
