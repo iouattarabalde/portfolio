@@ -409,6 +409,20 @@
   // itself (which used to drag the page behind the overlay) is blocked at the CSS
   // level via touch-action: pan-x on .lightbox, not here — that's what stops the
   // background from moving on an up/down swipe, this handler only reads the gesture.
+  // How far a horizontal drag has to travel before it counts as a swipe rather than a
+  // sloppy tap. Was a flat 50px until Sept 2026, tuned once on a phone: that's 13% of a
+  // 390px portrait screen but under 5% of a tablet, where the same gesture became so
+  // easy to trigger that resting a thumb and shifting slightly would skip an image.
+  //
+  // 12% of the lightbox's own width reproduces the phone feel that 50px was chosen for
+  // (390px gives 47px) and keeps the gesture proportional everywhere else. Capped at
+  // 80px because swipe distance is a matter of thumb reach, which does not keep growing
+  // with the screen: without the cap a 1440px window would demand a 173px drag. Floored
+  // at 30px so a very narrow window still needs a deliberate movement.
+  function swipeThreshold() {
+    const width = lightbox.clientWidth || window.innerWidth;
+    return Math.max(30, Math.min(width * 0.12, 80));
+  }
   let touchStartX = 0;
   let touchStartY = 0;
   lightbox.addEventListener('touchstart', (e) => {
@@ -419,8 +433,7 @@
     if (!currentProject || currentProject.gallery.length <= 1) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX;
     const deltaY = e.changedTouches[0].clientY - touchStartY;
-    const SWIPE_THRESHOLD = 50;
-    if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    if (Math.abs(deltaX) < swipeThreshold() || Math.abs(deltaX) < Math.abs(deltaY)) return;
     lastSwipeTime = Date.now();
     openLightboxAt(deltaX > 0 ? lightboxIndex - 1 : lightboxIndex + 1);
   }, { passive: true });
@@ -487,11 +500,12 @@
   // writes next to it: <name>-640.jpg and <name>-1280.jpg, with the untouched original as
   // the 1920w entry. The widths here have to match VARIANT_WIDTHS in that script.
   //
-  // The gallery is three columns edge to edge (two below 360px), so a tile is about a
-  // third of the viewport — hence the sizes attribute. On a 1440px display that's a 476px
-  // slot, which picks the 1280 variant on a 2x screen and the 640 on a 1x one, instead of
-  // the 1920px original the page used to serve at every size. For the heaviest project
-  // that is the difference between 10MB and roughly 1.5MB.
+  // A tile is one column of an edge-to-edge grid, so the slot is a fraction of the
+  // viewport rather than its full width. gallerySizesAttr() below works out which
+  // fraction. On a 1440px display that's a 476px slot, which picks the 1280 variant on a
+  // 2x screen and the 640 on a 1x one, instead of the 1920px original the page used to
+  // serve at every size. For the heaviest project that is the difference between 10MB
+  // and roughly 1.5MB.
   //
   // The original stays first in the DOM as src, so a browser that ignores srcset still
   // gets a working image.
@@ -506,6 +520,39 @@
     ].join(', ');
   }
 
+  // The one place the gallery's column count is known, read from the grid the CSS
+  // actually built rather than restated in JS. .project-gallery is three columns and
+  // drops to two below 360px (style.css, "Project template"), and both the opening
+  // reveal wave and the sizes attribute below need that number. Restating it here would
+  // mean a breakpoint change in the CSS silently desyncing two things that can't see it.
+  //
+  // Safe to call on an empty grid: explicit tracks exist whether or not there are items
+  // in them, so this resolves before the stills are injected. #project-gallery is never
+  // display:none (unlike #project-info), so it always has computed tracks to read.
+  function galleryColumnCount(grid) {
+    const tracks = getComputedStyle(grid).gridTemplateColumns;
+    if (!tracks || tracks === 'none') return 1;
+    return tracks.split(' ').filter(Boolean).length || 1;
+  }
+
+  // What fraction of the viewport one tile occupies, for the browser to pick a variant
+  // from the srcset above. Derived from the live column count instead of the hardcoded
+  // "(max-width: 360px) 50vw, 33vw" this was until Sept 2026, which was a second copy of
+  // the CSS breakpoint with nothing keeping the two in step: moving the breakpoint in
+  // style.css would have left this attribute quietly handing the browser the wrong slot
+  // width, and a wrong sizes is invisible in testing because every variant still renders.
+  //
+  // The grid is edge to edge with only a hairline gap, so a column is 100/n vw to within
+  // a pixel or two, and rounding up is the safe direction: it can only ever ask for a
+  // slightly larger variant, never a blurry one.
+  //
+  // Resolved once, at render, for the viewport as it is then. A rotation afterwards
+  // doesn't rewrite it, but the images are fetched by that point either way, and the old
+  // static attribute had the same ceiling with a worse starting value.
+  function gallerySizesAttr(grid) {
+    return Math.ceil(100 / galleryColumnCount(grid)) + 'vw';
+  }
+
   // How many stills lift in with the page on load, before the scroll reveal takes over:
   // every row that the first screen can show, including the one the fold cuts through.
   //
@@ -514,10 +561,9 @@
   // same 9 tiles fill barely half the screen and the page opened on a grid that looked
   // cut off mid-thought. The number has to come from the viewport, not from a constant.
   //
-  // Reads the live grid rather than assuming three columns, since the CSS drops to two
-  // below 360px. Heights are safe to measure the moment the tiles exist: .gallery-item
-  // carries an aspect-ratio, so the row height is settled by layout and does not wait on
-  // a single image to decode.
+  // Heights are safe to measure the moment the tiles exist: .gallery-item carries an
+  // aspect-ratio, so the row height is settled by layout and does not wait on a single
+  // image to decode.
   //
   // Ceil, not floor: a row the fold cuts in half is part of the first screen and lifting
   // it in with the rest is the whole point. Guarded at one row so a restored scroll
@@ -526,10 +572,9 @@
   function openingTileCount(grid) {
     const first = grid.firstElementChild;
     if (!first) return 0;
-    const gridStyle = getComputedStyle(grid);
-    const columns = gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+    const columns = galleryColumnCount(grid);
     const rect = first.getBoundingClientRect();
-    const rowHeight = rect.height + (parseFloat(gridStyle.rowGap) || 0);
+    const rowHeight = rect.height + (parseFloat(getComputedStyle(grid).rowGap) || 0);
     if (!rowHeight) return columns;
     const roomToFold = window.innerHeight - rect.top;
     const rows = Math.max(1, Math.ceil(roomToFold / rowHeight));
@@ -540,11 +585,14 @@
       // that's exactly what the admin's drag-and-drop reordering updates. Each entry is
       // {filename, palette} since Aug 2026 (palette used by the lightbox, not the grid).
       const gallery = document.getElementById('project-gallery');
+      // Read before the injection, not inside the map: one measurement for the whole
+      // grid, and reading it per tile would be a forced layout on every iteration.
+      const gallerySizes = gallerySizesAttr(gallery);
       gallery.innerHTML = project.gallery.map((item, i) => `
         <button class="gallery-item" data-reveal data-full="assets/${esc(item.filename)}">
           <img src="assets/${esc(item.filename)}"
                srcset="${esc(srcsetFor(item.filename))}"
-               sizes="(max-width: 360px) 50vw, 33vw"
+               sizes="${esc(gallerySizes)}"
                decoding="async"
                alt="${esc(project.title)} — still ${i + 1}">
         </button>
