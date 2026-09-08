@@ -6,10 +6,15 @@
   shared number; a GitHub Action bumps it across ALL pages that link them whenever any of
   them changes, so browsers can't keep serving a stale stylesheet or a stale script.
 -->
-<html lang="en">
+<html lang="en" translate="no" class="notranslate">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Les deux langues cohabitent dans le DOM ([data-fr] / [data-en], masquées par CSS), alors
+     la traduction automatique de Chrome retraduit les deux copies et donne n'importe quoi.
+     Ces trois signaux (meta google, translate="no" et .notranslate sur <html>) désactivent
+     la barre "Traduire cette page" : le toggle FR/EN du site reste la seule bascule. -->
+<meta name="google" content="notranslate">
 <title>Ismael OB — Colorist</title>
 <meta name="description" content="Ismael OB, colorist based in Montreal. Color grading for commercials, music videos, film and television.">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
