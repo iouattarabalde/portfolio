@@ -1001,24 +1001,65 @@ const PROJECT_MAX = 32;
 
 let token = localStorage.getItem(TOKEN_KEY) || '';
 let projectsData = null;   // { projects: [...] } — the full, in-memory contents of data/projects.json
-let projectsSha = null;    // git blob sha of projects.json (not actually used for writes — see ghPutFile,
-                            // which always fetches a fresh sha right before writing to avoid conflicts)
 let editingIndex = null;   // index into projectsData.projects currently open in the editor, or null for a new project
 let editorGallery = [];    // draft gallery state while the editor is open: [{ filename, palette, url, file (optional new File) }] — palette is undefined until a new file is actually uploaded (computed at save time, see saveProject's upload loop), Aug 2026
 let editorThumb = { filename: null, url: null, file: null, focus: { x: 50, y: 50 } }; // draft thumbnail state, same shape as one gallery item, plus its focal point
 let originalGalleryFilenames = []; // filenames in the gallery when the editor was opened — used to detect removed stills so they can be deleted from assets/ on save
 
-/* ---------- GitHub API helpers ----------
-   All three wrap the Contents API (docs.github.com/en/rest/repos/contents).
-   Every write (ghPutFile) needs the target file's current sha if it already exists —
-   GitHub uses that to detect conflicting edits — so ghPutFile always does a fresh
-   ghGetFile first to fetch it, rather than trusting a sha cached earlier in the page. */
+/* ---------- Couche d'écriture GitHub : commits groupés ----------
+   Historiquement, tout passait par l'API Contents (docs.github.com/en/rest/repos/contents),
+   qui ne sait écrire qu'un fichier à la fois — donc un commit par fichier. Enregistrer un
+   projet de 12 stills produisait 37 commits (l'original + ses deux variantes, ×12, plus
+   projects.json), et une soirée de curation en produisait plus de deux cents. `git log`
+   devenait illisible, et chaque commit déclenchait séparément les workflows.
 
-// Fetches one file's metadata + base64 content. Returns null (not an error) if the
-// file doesn't exist yet, since "not found" is a perfectly normal case here (e.g.
-// checking whether a project's still image is new or being replaced).
-// Pause utilisée par ghGetFile et ghPutFile pour le backoff entre les tentatives.
+   On passe donc par l'API Git Data, qui construit un commit à la main :
+     blobs (un par fichier) → tree (les chemins modifiés, greffés sur l'arbre courant)
+       → commit (parent = tête actuelle de main) → mise à jour de la ref.
+   Tout un enregistrement tient dans un seul commit, et surtout il devient atomique :
+   avant, les images partaient avant projects.json, donc une panne au milieu laissait le
+   dépôt à moitié à jour. Maintenant le commit atterrit en entier ou pas du tout.
+
+   ghGetFile reste sur l'API Contents : c'est de la lecture d'un fichier isolé, ce que
+   cette API fait très bien. */
+
+const GIT_API = `https://api.github.com/repos/${OWNER}/${REPO}/git/`;
+
+// Pause utilisée pour le backoff entre les tentatives.
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+// Appel à l'API GitHub avec la politique de reprise commune à tout ce fichier :
+// 3 tentatives, backoff linéaire, sur erreur réseau comme sur 502/503 — GitHub renvoie
+// parfois un 503 sans en-têtes CORS, que le navigateur signale comme « Failed to fetch ».
+// L'erreur levée porte le code HTTP dans `.status`, pour que les appelants puissent
+// distinguer un cas rattrapable (voir le 422 dans ghCommitBatch) d'un échec définitif.
+async function ghFetch(url, options = {}, label = url) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    let res;
+    try {
+      res = await fetch(url, {
+        ...options,
+        headers: {
+          Authorization: 'token ' + token,
+          Accept: 'application/vnd.github+json',
+          ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+          ...options.headers
+        }
+      });
+    } catch (networkErr) {
+      if (attempt < 3) { await wait(attempt * 1500); continue; }
+      throw new Error(`Erreur réseau (${label}) : connexion instable ou extension bloquante. Détail : ${networkErr.message}`);
+    }
+    if ((res.status === 502 || res.status === 503) && attempt < 3) { await wait(attempt * 1500); continue; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const e = new Error(`${label} → ${res.status} ${err.message || ''}`);
+      e.status = res.status;
+      throw e;
+    }
+    return res.json();
+  }
+}
 
 // Fetches one file's metadata + base64 content. Returns null (not an error) if the
 // file doesn't exist yet, since "not found" is a perfectly normal case here (e.g.
@@ -1042,84 +1083,107 @@ async function ghGetFile(path) {
   }
 }
 
-// Creates the file if it doesn't exist yet, or updates it in place if it does.
-// Creates the file if it doesn't exist yet, or updates it in place if it does.
-// Retries up to 3× with backoff on network errors and GitHub 503s — the API can
-// return 503 without CORS headers, which the browser reports as "Failed to fetch".
-async function ghPutFile(path, base64Content, message) {
-  // fileSha is fetched fresh before the first attempt. On a 409 conflict it is
-  // re-fetched automatically so the retry uses the revision actually on GitHub
-  // (handles the edge case where two saves overlap or the repo is touched externally).
-  let fileSha = (await ghGetFile(path))?.sha ?? null;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const body = { message, content: base64Content };
-    if (fileSha) body.sha = fileSha;
-    let res;
-    try {
-      res = await fetch(API + path, {
-        method: 'PUT',
-        headers: {
-          Authorization: 'token ' + token,
-          Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-    } catch (networkErr) {
-      if (attempt < 3) { await wait(attempt * 1500); continue; }
-      throw new Error(`Erreur réseau (PUT ${path}) : connexion instable ou extension bloquante après ${attempt} tentatives. Détail : ${networkErr.message}`);
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      // 409 Conflict — SHA is stale; re-fetch and retry with the current one.
-      if (res.status === 409 && attempt < 3) {
-        fileSha = (await ghGetFile(path).catch(() => null))?.sha ?? null;
-        await wait(attempt * 1500);
-        continue;
+// Exécute `task` sur chaque élément avec au plus `limit` requêtes en vol. Les blobs
+// sont indépendants les uns des autres, donc les envoyer en parallèle divise d'autant
+// l'attente sur un gros enregistrement. Plafonné bas volontairement : au-delà, on ne
+// gagne plus grand-chose et on se rapproche du secondary rate limit de GitHub.
+async function mapWithConcurrency(items, limit, task) {
+  const results = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        results[i] = await task(items[i], i);
       }
-      // 502/503 — GitHub infrastructure hiccup; retry with same SHA.
-      if ((res.status === 502 || res.status === 503) && attempt < 3) { await wait(attempt * 1500); continue; }
-      throw new Error(`PUT ${path} → ${res.status} ${err.message || ''}`);
+    })
+  );
+  return results;
+}
+
+// Liste tous les chemins de fichiers du dépôt (API Trees, récursive).
+// Sert à ne jamais demander la suppression d'un chemin déjà absent : l'API Contents
+// répondait 404 et l'appelant pouvait l'ignorer, alors qu'ici un chemin inconnu fait
+// échouer la création de l'arbre — donc le commit groupé entier. Renvoie null si GitHub
+// tronque la réponse (limite de l'API sur un très gros dépôt) ; on tente alors les
+// suppressions sans filtrer, ce qui redonne exactement l'ancien comportement.
+async function ghListPaths() {
+  const ref = await ghFetch(GIT_API + 'refs/heads/main', {}, 'GET ref main');
+  const tree = await ghFetch(`${GIT_API}trees/${ref.object.sha}?recursive=1`, {}, 'GET tree');
+  if (tree.truncated) return null;
+  return new Set(tree.tree.filter((f) => f.type === 'blob').map((f) => f.path));
+}
+
+const BLOB_CONCURRENCY = 4;
+
+// Écrit et supprime un ensemble de fichiers en UN commit.
+//   changes  : [{ path, content }] pour écrire (content en base64),
+//              [{ path, remove: true }] pour supprimer.
+//   onProgress(fait, total) : appelé pendant l'envoi des blobs, pour l'affichage.
+// Renvoie l'objet commit créé, ou null si le lot était vide.
+async function ghCommitBatch(changes, message, onProgress) {
+  const writes = changes.filter((c) => !c.remove);
+  let removes = changes.filter((c) => c.remove);
+
+  if (removes.length) {
+    const existing = await ghListPaths();
+    if (existing) removes = removes.filter((c) => existing.has(c.path));
+  }
+  if (!writes.length && !removes.length) return null;
+
+  // Un blob est adressé par son contenu : le réenvoyer est idempotent, et ceux créés
+  // ici restent valables si la boucle de commit ci-dessous doit repartir de zéro.
+  let sent = 0;
+  const blobEntries = await mapWithConcurrency(writes, BLOB_CONCURRENCY, async (c) => {
+    const blob = await ghFetch(
+      GIT_API + 'blobs',
+      { method: 'POST', body: JSON.stringify({ content: c.content, encoding: 'base64' }) },
+      `POST blob ${c.path}`
+    );
+    if (onProgress) onProgress(++sent, writes.length);
+    return { path: c.path, mode: '100644', type: 'blob', sha: blob.sha };
+  });
+
+  // `sha: null` sur un chemin existant = suppression dans l'arbre dérivé.
+  const treeEntries = [
+    ...blobEntries,
+    ...removes.map((c) => ({ path: c.path, mode: '100644', type: 'blob', sha: null }))
+  ];
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const ref = await ghFetch(GIT_API + 'refs/heads/main', {}, 'GET ref main');
+    const baseCommit = await ghFetch(GIT_API + 'commits/' + ref.object.sha, {}, 'GET commit de base');
+    const tree = await ghFetch(
+      GIT_API + 'trees',
+      { method: 'POST', body: JSON.stringify({ base_tree: baseCommit.tree.sha, tree: treeEntries }) },
+      'POST tree'
+    );
+    const commit = await ghFetch(
+      GIT_API + 'commits',
+      { method: 'POST', body: JSON.stringify({ message, tree: tree.sha, parents: [ref.object.sha] }) },
+      'POST commit'
+    );
+    try {
+      await ghFetch(
+        GIT_API + 'refs/heads/main',
+        { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) },
+        'PATCH ref main'
+      );
+      return commit;
+    } catch (e) {
+      // 422 = mise à jour non fast-forward : quelque chose a poussé sur main pendant
+      // qu'on construisait le commit (un des deux workflows auto-commit, ou un autre
+      // onglet de l'admin). On rebâtit sur la nouvelle tête plutôt que de forcer —
+      // les blobs sont déjà en place, seul l'arbre est à refaire.
+      if (e.status === 422 && attempt < 3) { await wait(attempt * 1500); continue; }
+      throw e;
     }
-    return res.json();
   }
 }
 
-// Deletes a file from the repo. Silently succeeds if the file is already gone (404).
-// Same retry pattern as ghPutFile — 502/503 retried, network errors caught explicitly.
-async function ghDeleteFile(path, message) {
-  let fileSha;
-  try {
-    const existing = await ghGetFile(path);
-    if (!existing) return; // already gone, nothing to do
-    fileSha = existing.sha;
-  } catch (e) {
-    return; // can't read it → skip rather than crashing the caller
-  }
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    let res;
-    try {
-      res = await fetch(API + path, {
-        method: 'DELETE',
-        headers: {
-          Authorization: 'token ' + token,
-          Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message, sha: fileSha })
-      });
-    } catch (networkErr) {
-      if (attempt < 3) { await wait(attempt * 1500); continue; }
-      throw new Error(`Erreur réseau (DELETE ${path}). Détail : ${networkErr.message}`);
-    }
-    if (res.status === 404) return; // already gone — treat as success
-    if ((res.status === 502 || res.status === 503) && attempt < 3) { await wait(attempt * 1500); continue; }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(`DELETE ${path} → ${res.status} ${err.message || ''}`);
-    }
-    return; // 200/2xx — success
-  }
+// Écriture d'un seul fichier — un lot d'un élément.
+function ghPutFile(path, base64Content, message) {
+  return ghCommitBatch([{ path, content: base64Content }], message);
 }
 
 // Scans the full assets/ tree via the Git Trees API (bypasses the 1 000-file Contents
@@ -1180,19 +1244,24 @@ async function fetchProjects() {
   const file = await ghGetFile('data/projects.json');
   if (!file) {
     projectsData = { projects: [] };
-    projectsSha = null;
     return;
   }
   projectsData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
-  projectsSha = file.sha;
 }
 
-// Writes the current in-memory projectsData back to data/projects.json. Called after
-// every change: adding/editing/deleting a project, and reordering the project list.
+// L'entrée de lot correspondant à l'état mémoire courant de projectsData.
+// Minifié : réduit le payload de 624 KB à ~313 KB (l'indentation ×4 niveaux sur les
+// palettes représentait ~311 KB de whitespace).
+function projectsJsonChange() {
+  return { path: 'data/projects.json', content: b64EncodeUnicode(JSON.stringify(projectsData)) };
+}
+
+// Writes the current in-memory projectsData back to data/projects.json. Utilisé par les
+// changements qui ne touchent que ce fichier — réordonnancement, annulation. Un
+// enregistrement de projet passe par saveProject, qui commite projects.json et les
+// images ensemble.
 async function saveProjectsJson(statusEl, toastMessage = 'Enregistré. En ligne dans ~1 min.') {
-  const content = b64EncodeUnicode(JSON.stringify(projectsData)); // minifié — réduit le payload PUT de 624 KB à ~313 KB (l'indentation ×4 niveaux sur les palettes représentait ~311 KB de whitespace)
-  const result = await ghPutFile('data/projects.json', content, 'Admin : mise à jour projects.json');
-  projectsSha = result.content.sha;
+  await ghCommitBatch([projectsJsonChange()], 'Admin : mise à jour projects.json');
   if (statusEl) statusEl.textContent = '';
   showToast(toastMessage);
 }
@@ -1273,18 +1342,21 @@ document.getElementById('save-photo-btn').addEventListener('click', async () => 
   try {
     const compressed = await compressImage(newPhotoFile, 800, 0.85);
     const b64 = await blobToBase64(compressed);
-    await ghPutFile('assets/profile-photo.jpg', b64, 'Admin : photo de contact mise à jour');
-    currentPhotoFilename = 'profile-photo.jpg';
-    newPhotoFile = null;
-    // Ensure settings.json has photoFilename set — safe to call even if already correct.
+    const changes = [{ path: 'assets/profile-photo.jpg', content: b64 }];
+    // Ensure settings.json has photoFilename set — safe to do even if already correct.
+    // Part dans le même commit que l'image : le fichier et la référence qui le pointe
+    // ne peuvent pas se retrouver désynchronisés entre deux commits.
     const sf = await ghGetFile('data/settings.json').catch(() => null);
     if (sf) {
-      const s = JSON.parse(decodeURIComponent(escape(atob(sf.content))));
-      if (s.photoFilename !== currentPhotoFilename) {
-        s.photoFilename = currentPhotoFilename;
-        await ghPutFile('data/settings.json', b64EncodeUnicode(JSON.stringify(s, null, 2)), 'Admin : photoFilename mis à jour');
+      const parsed = JSON.parse(decodeURIComponent(escape(atob(sf.content))));
+      if (parsed.photoFilename !== 'profile-photo.jpg') {
+        parsed.photoFilename = 'profile-photo.jpg';
+        changes.push({ path: 'data/settings.json', content: b64EncodeUnicode(JSON.stringify(parsed, null, 2)) });
       }
     }
+    await ghCommitBatch(changes, 'Admin : photo de contact mise à jour');
+    currentPhotoFilename = 'profile-photo.jpg';
+    newPhotoFile = null;
     btn.disabled = true;
     statusEl.textContent = 'En ligne dans ~1 min.';
     statusEl.className = 'save-status success';
@@ -1504,11 +1576,12 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
   try {
     // Photo: only touched if a new file was actually picked (see the s-photo change
     // handler above) — otherwise currentPhotoFilename just carries forward unchanged.
+    const changes = [];
     if (newPhotoFile) {
       statusEl.textContent = 'Envoi de la photo…';
       const compressed = await compressImage(newPhotoFile, 800, 0.85); // displayed at 96-120px, no need for a large source
       const b64 = await blobToBase64(compressed);
-      await ghPutFile('assets/profile-photo.jpg', b64, 'Admin : mise à jour de la photo de profil');
+      changes.push({ path: 'assets/profile-photo.jpg', content: b64 });
       currentPhotoFilename = 'profile-photo.jpg';
       newPhotoFile = null;
     }
@@ -1525,10 +1598,12 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
       bioEn: document.getElementById('s-bio-en').value.trim(),
       photoFilename: currentPhotoFilename
     };
-    await ghPutFile('data/settings.json', b64EncodeUnicode(JSON.stringify(settings, null, 2)), 'Admin : mise à jour des coordonnées');
+    changes.push({ path: 'data/settings.json', content: b64EncodeUnicode(JSON.stringify(settings, null, 2)) });
 
     const payload = { strings: collectStringsFromForm(), types: collectTypesFromForm() };
-    await ghPutFile('data/strings.json', b64EncodeUnicode(JSON.stringify(payload, null, 2)), 'Admin : mise à jour des textes du site');
+    changes.push({ path: 'data/strings.json', content: b64EncodeUnicode(JSON.stringify(payload, null, 2)) });
+
+    await ghCommitBatch(changes, 'Admin : mise à jour des coordonnées et des textes du site');
 
     statusEl.textContent = 'Enregistré. En ligne dans ~1 min.';
     statusEl.className = 'save-status success';
@@ -1576,7 +1651,9 @@ function compressImage(file, maxWidth = 1920, quality = 0.85) {
   });
 }
 
-// Génère et envoie les variantes -640 et -1280 d'un still.
+// Génère les variantes -640 et -1280 d'un still et renvoie leurs entrées de lot.
+// N'envoie rien elle-même : c'est saveProject qui commite l'original, ses variantes
+// et projects.json ensemble.
 //
 // Les largeurs correspondent à VARIANT_WIDTHS dans scripts/generate_image_variants.py,
 // qui fait le même travail en Python pour le rattrapage initial des 720 stills existants.
@@ -1588,10 +1665,11 @@ function compressImage(file, maxWidth = 1920, quality = 0.85) {
 // le dépôt les convertira si on veut aligner.
 const VARIANT_WIDTHS = [640, 1280];
 
-async function uploadVariants(filename, sourceFile, indexLabel, title) {
+async function variantChanges(filename, sourceFile) {
   const dot = filename.lastIndexOf('.');
   const stem = filename.slice(0, dot);
   const ext = filename.slice(dot);
+  const changes = [];
   for (const width of VARIANT_WIDTHS) {
     // compressImage ne fait jamais d'agrandissement : une source plus étroite que la
     // cible ressort à sa taille d'origine, ce qui donnerait deux fichiers identiques
@@ -1599,8 +1677,9 @@ async function uploadVariants(filename, sourceFile, indexLabel, title) {
     // sauf que ça n'arrive pas en pratique, l'upload étant déjà borné à 1920px.
     const blob = await compressImage(sourceFile, width, 0.82);
     const b64 = await blobToBase64(blob);
-    await ghPutFile(`assets/${stem}-${width}${ext}`, b64, `Admin : still ${indexLabel} (${width}px) pour ${title}`);
+    changes.push({ path: `assets/${stem}-${width}${ext}`, content: b64 });
   }
+  return changes;
 }
 
 /* ---------- Color palette extraction ----------
@@ -2400,8 +2479,13 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
   // valid); a brand new project gets a fresh, collision-checked slug from its title.
   const slug = editingIndex !== null ? projectsData.projects[editingIndex].id : uniqueSlug(slugify(title));
 
+  // Sauvegarde mémoire : le commit étant atomique, un échec ne laisse rien sur GitHub.
+  // On restaure donc projectsData tel quel plutôt que de garder en mémoire une version
+  // modifiée qui ne correspond à rien de publié (même logique que delete-project-btn).
+  const backup = projectsData.projects.slice();
   try {
     statusEl.className = 'save-status';
+    const changes = [];
 
     // Vignette (only if a new file was picked — see the f-thumbnail change handler above)
     if (editorThumb.file) {
@@ -2415,7 +2499,7 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       const compressed = await compressImage(editorThumb.file, 1200);
       const b64 = await blobToBase64(compressed);
       const filename = `${slug}/${slug}-cover.jpg`;
-      await ghPutFile(`assets/${filename}`, b64, `Admin : vignette pour ${title}`);
+      changes.push({ path: `assets/${filename}`, content: b64 });
       editorThumb.filename = filename;
     }
 
@@ -2424,28 +2508,32 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
     // name (still-01.jpg, still-02.jpg...) would collide with an existing file whenever
     // reordering and new uploads happen in the same save, silently overwriting the wrong
     // image. The timestamp guarantees every upload gets a unique name regardless of order.
+    let addedStills = 0;
     for (let i = 0; i < editorGallery.length; i++) {
       const item = editorGallery[i];
       if (item.file) {
-        statusEl.textContent = `Envoi de l'image ${i + 1} / ${editorGallery.length}…`;
+        statusEl.textContent = `Préparation de l'image ${i + 1} / ${editorGallery.length}…`;
         const [compressed, palette] = await Promise.all([
           compressImage(item.file),
           extractPalette(item.file)
         ]);
         const b64 = await blobToBase64(compressed);
         const filename = `${slug}/${slug}-${Date.now()}-${i}.jpg`;
-        await ghPutFile(`assets/${filename}`, b64, `Admin : still ${i + 1} pour ${title}`);
-        // Les variantes responsives DOIVENT partir avec l'original. project.html construit
+        changes.push({ path: `assets/${filename}`, content: b64 });
+        // Les variantes responsives DOIVENT arriver avec l'original. project.html construit
         // un srcset qui liste -640 et -1280 pour chaque still ; si le navigateur choisit
         // une largeur dont le fichier n'existe pas, l'image ne s'affiche pas du tout (un
         // 404 dans un srcset ne retombe pas sur src). Générer les variantes plus tard,
-        // côté CI, laisserait donc la galerie cassée entre les deux commits.
+        // côté CI, laisserait donc la galerie cassée dans l'intervalle. Le commit unique
+        // garantit maintenant cette contrainte : les trois fichiers apparaissent dans la
+        // même révision, il n'y a plus d'intervalle où l'un existe sans les autres.
         // Voir VARIANT_WIDTHS dans scripts/generate_image_variants.py : les deux listes
         // doivent rester identiques. Le script sait aussi rattraper après coup ce qui
         // manquerait (il est idempotent), mais il ne devrait jamais avoir à le faire.
-        await uploadVariants(filename, item.file, i + 1, title);
+        changes.push(...(await variantChanges(filename, item.file)));
         item.filename = filename;
         item.palette = palette;
+        addedStills++;
       }
     }
 
@@ -2473,24 +2561,37 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
       projectsData.projects.push(projectEntry);
     }
 
-    statusEl.textContent = 'Enregistrement de projects.json…';
-    await saveProjectsJson(statusEl, editingIndex !== null ? 'Projet mis à jour. En ligne dans ~1 min.' : 'Nouveau projet ajouté. En ligne dans ~1 min.');
+    changes.push(projectsJsonChange());
 
-    // Delete stills that were in the gallery when the editor opened but aren't anymore.
-    // Runs after the JSON is committed so a failed delete never leaves the project in
-    // a broken state (the worst outcome is an orphaned file, not a missing reference).
+    // Stills qui étaient dans la galerie à l'ouverture de l'éditeur et n'y sont plus.
+    // Ils partent dans le même commit que le projects.json qui cesse de les référencer :
+    // avant, la suppression suivait le commit du JSON pour qu'un échec laisse au pire un
+    // orphelin plutôt qu'une référence morte — le lot atomique rend l'ordre sans objet.
     const keptFilenames = new Set(editorGallery.map((g) => g.filename).filter(Boolean));
     const removedStills = originalGalleryFilenames.filter((fn) => !keptFilenames.has(fn));
-    if (removedStills.length) {
-      statusEl.textContent = `Nettoyage de ${removedStills.length} still(s) retiré(s)…`;
-      for (const fn of removedStills) {
-        await ghDeleteFile(`assets/${fn}`, `Admin : still retiré — ${title}`).catch(() => {});
-      }
-    }
+    for (const fn of removedStills) changes.push({ path: `assets/${fn}`, remove: true });
 
+    // Message de commit résumant l'enregistrement, puisqu'il n'y en a plus qu'un.
+    const parts = [];
+    if (editorThumb.file) parts.push('vignette');
+    if (addedStills) parts.push(`${addedStills} still(s) ajouté(s)`);
+    if (removedStills.length) parts.push(`${removedStills.length} retiré(s)`);
+    const summary = parts.length ? ` — ${parts.join(', ')}` : '';
+    const message = editingIndex !== null
+      ? `Admin : ${title}${summary}`
+      : `Admin : nouveau projet ${title}${summary}`;
+
+    statusEl.textContent = 'Enregistrement…';
+    await ghCommitBatch(changes, message, (done, total) => {
+      statusEl.textContent = `Envoi ${done} / ${total} fichier(s)…`;
+    });
+
+    statusEl.textContent = '';
+    showToast(editingIndex !== null ? 'Projet mis à jour. En ligne dans ~1 min.' : 'Nouveau projet ajouté. En ligne dans ~1 min.');
     editorEl.classList.remove('open');
     renderDashboard();
   } catch (e) {
+    projectsData.projects = backup; // rien n'a été publié — voir le commentaire sur `backup`
     statusEl.textContent = 'Erreur : ' + e.message;
     statusEl.className = 'save-status error';
     showToast('Erreur : ' + e.message, 'error');
@@ -2512,20 +2613,18 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
   try {
     projectsData.projects.splice(editingIndex, 1);
     statusEl.textContent = 'Suppression…';
-    await saveProjectsJson(statusEl, `Admin : suppression ${project.title}`);
 
-    // Delete cover + all stills. Runs after the JSON is committed — if a file delete
-    // fails it leaves an orphan in assets/ (harmless) rather than a dangling reference.
+    // Cover + stills, retirés dans le même commit que le projects.json qui les
+    // référençait. Les chemins déjà absents sont filtrés par ghCommitBatch.
     const filesToDelete = [
       ...(project.thumbnail ? [`assets/${project.thumbnail}`] : []),
       ...project.gallery.filter((g) => g.filename).map((g) => `assets/${g.filename}`)
     ];
-    if (filesToDelete.length) {
-      statusEl.textContent = `Suppression de ${filesToDelete.length} fichier(s)…`;
-      for (const path of filesToDelete) {
-        await ghDeleteFile(path, `Admin : suppression ${project.title}`).catch(() => {});
-      }
-    }
+    await ghCommitBatch(
+      [projectsJsonChange(), ...filesToDelete.map((path) => ({ path, remove: true }))],
+      `Admin : suppression ${project.title} — ${filesToDelete.length} fichier(s)`
+    );
+    statusEl.textContent = '';
 
     editorEl.classList.remove('open');
     renderDashboard();
@@ -2554,14 +2653,12 @@ document.getElementById('clean-orphans-btn').addEventListener('click', async () 
       `${orphans.length} fichier(s) orphelin(s) trouvé(s) dans assets/ (non référencés par aucun projet).\n\nSupprimer ?`
     );
     if (!confirmed) return;
-    setBtnLoading(btn, true, `0 / ${orphans.length}…`);
-    let deleted = 0;
-    for (const fn of orphans) {
-      await ghDeleteFile(`assets/${fn}`, `Admin : nettoyage orphelin ${fn}`).catch(() => {});
-      deleted++;
-      setBtnLoading(btn, true, `${deleted} / ${orphans.length}…`);
-    }
-    showToast(`${deleted} fichier(s) orphelin(s) supprimé(s).`);
+    setBtnLoading(btn, true, 'Suppression…');
+    await ghCommitBatch(
+      orphans.map((fn) => ({ path: `assets/${fn}`, remove: true })),
+      `Admin : nettoyage de ${orphans.length} fichier(s) orphelin(s)`
+    );
+    showToast(`${orphans.length} fichier(s) orphelin(s) supprimé(s).`);
   } catch (e) {
     showToast('Erreur pendant le nettoyage : ' + e.message, 'error');
   } finally {

@@ -45,7 +45,8 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 ### Petit lexique
 
 - **Commit** : un point de sauvegarde dans l'historique du repo. Chaque sauvegarde admin,
-  ou chaque modif via l'éditeur GitHub, en crée un.
+  ou chaque modif via l'éditeur GitHub, en crée **un seul**, quel que soit le nombre de
+  fichiers touchés — enregistrer un projet de 12 stills, c'est un commit, pas 37.
 - **Repo** (dépôt) : le dossier de projet complet sur GitHub, avec tout son historique.
 - **Déploiement** : le moment où GitHub Pages republie le site à partir du dernier commit.
   Automatique, prend en général moins d'une minute, parfois deux.
@@ -249,6 +250,14 @@ directement avec l'API GitHub depuis le navigateur (token collé une fois, gard�
 `localStorage`), donc chaque sauvegarde commit directement dans le repo — le site se
 met à jour tout seul via GitHub Pages, en général en moins d'une minute.
 
+Une sauvegarde = **un commit**, qui regroupe tout ce qu'elle touche : la vignette, les
+stills et leurs variantes responsives, `projects.json`, et les stills retirés. C'est
+atomique — le commit atterrit en entier ou pas du tout, donc le dépôt ne peut jamais se
+retrouver avec une image sans l'entrée qui la référence, ni l'inverse. (Jusqu'en
+septembre 2026 l'admin passait par l'API Contents, qui n'écrit qu'un fichier par commit :
+une soirée de curation produisait plus de deux cents commits. Voir le commentaire en tête
+de la couche d'écriture dans `admin/index.html`.)
+
 Section "Projets" en premier sur la page (ajout, recherche, réordonnancement), "Textes
 du site" ensuite. Largeur du tableau de bord : 1400px sur desktop.
 
@@ -298,11 +307,13 @@ ajouter les images dans `assets/`.
 ## À savoir sur le déploiement
 
 Uploader beaucoup d'images d'un coup (un nouveau projet avec sa galerie complète, par
-exemple) crée autant de commits rapprochés, un par fichier. GitHub Pages a parfois du mal
-à suivre et un déploiement échoue silencieusement (le site reste sur l'ancienne version).
-Si un changement récent n'apparaît pas après une minute ou deux, ce n'est généralement pas
-un problème de données, un nouveau commit (n'importe lequel) suffit à relancer un
-déploiement propre.
+exemple) ne produit plus qu'un seul commit, donc un seul déploiement. Avant, chaque
+fichier partait dans son propre commit et la rafale faisait parfois échouer un
+déploiement silencieusement — le site restait sur l'ancienne version.
+
+Si malgré tout un changement récent n'apparaît pas après une minute ou deux, ce n'est
+généralement pas un problème de données : un nouveau commit (n'importe lequel) suffit à
+relancer un déploiement propre.
 
 ## Automatisations
 
