@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!--
+  privacy/index.html — privacy policy, served at https://ismaelob.com/privacy/.
+
+  Written Sept 2026 because Google requires an App domain privacy policy link before
+  an OAuth app can be published to Production, and the AI-Master-Context Drive mirror
+  needs Production (in Testing, Google expires the refresh token every 7 days).
+
+  The content is a description of what this site actually does, not boilerplate:
+  no analytics, no cookies, no forms. Verified against the source before writing.
+  If the site ever gains analytics, an embedded player or a contact form, this page
+  is wrong until it is updated.
+
+  Bilingual the same way the rest of the site is: both languages sit in the DOM and
+  CSS shows one. The base rules in style.css use display:inline, which is wrong for
+  block copy, so .legal-lang overrides them below at higher specificity.
+-->
+<html lang="en" translate="no" class="notranslate">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
+<meta name="robots" content="index, follow">
+<title>Privacy — Ismael OB</title>
+<meta name="description" content="Privacy policy for ismaelob.com. No analytics, no tracking, no cookies.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-16.png">
+<link rel="alternate icon" href="../favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="../assets/favicon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css?v=124">
+<script src="../site.js?v=124"></script>
+<script src="../i18n.js?v=124"></script>
+<style>
+  /* Block-level language switch. style.css sets [data-fr]{display:none} and
+     body.lang-fr [data-fr]{display:inline} — inline is right for the spans it was
+     written for and wrong for whole sections, so these win on specificity. */
+  .legal-lang[data-fr], .legal-lang[data-en] { display: none; }
+  body:not(.lang-fr) .legal-lang[data-en] { display: block; }
+  body.lang-fr .legal-lang[data-fr] { display: block; }
+
+  .legal { max-width: 68ch; margin: 0 auto; padding: 40px 24px 96px; }
+  .legal h1 { font-family: var(--display); font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0 0 8px; }
+  .legal h2 { font-family: var(--display); font-size: 18px; margin: 40px 0 10px; }
+  .legal p, .legal li { color: var(--fg); }
+  .legal ul { padding-left: 20px; }
+  .legal li { margin-bottom: 8px; }
+  .legal a { color: var(--accent); }
+  .legal .updated { color: var(--fg-faint); font-size: 13px; margin: 0 0 32px; }
+  .legal .lede { border-left: 2px solid var(--line); padding-left: 16px; }
+  .legal .backlink { display: inline-block; margin-bottom: 32px; color: var(--fg-dim); text-decoration: none; }
+  .legal .backlink:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="grain-overlay" aria-hidden="true"></div>
+
+<nav class="site-nav">
+  <div class="brand">
+    <a href="../index.html" class="wordmark">ISMAEL<span>OB</span></a>
+    <span class="nav-eyebrow"><span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span></span>
+  </div>
+  <div class="nav-links">
+    <button id="lang-toggle" type="button" aria-label="Toggle language">FR</button>
+  </div>
+</nav>
+
+<main class="legal">
+
+  <a class="backlink" href="../index.html"><span data-en>&larr; Back to work</span><span data-fr>&larr; Retour aux travaux</span></a>
+
+  <!-- ============================ ENGLISH ============================ -->
+  <div class="legal-lang" data-en>
+    <h1>Privacy</h1>
+    <p class="updated">Last updated: 9 September 2026</p>
+
+    <p class="lede"><strong>This site collects nothing about you.</strong> No analytics, no tracking, no advertising, and no cookies are set.</p>
+
+    <h2>What stays in your browser</h2>
+    <p>One thing: your language choice. It is saved under <code>iob-lang</code> so the site opens in the same language next time. It never leaves your browser and is not sent anywhere. Clearing your browsing data removes it.</p>
+
+    <h2>What other companies see</h2>
+    <p>Loading any web page means asking a server for it, and servers keep ordinary logs. Two are involved here, and neither is under my control.</p>
+    <ul>
+      <li><strong>GitHub Pages</strong> hosts this site. GitHub receives your IP address and browser user agent as part of serving the page.</li>
+      <li><strong>Google Fonts</strong> delivers the two typefaces used here. Your browser fetches them from <code>fonts.googleapis.com</code> and <code>fonts.gstatic.com</code>, so Google receives your IP address at that moment.</li>
+    </ul>
+    <p>Neither receives anything about you beyond what your browser sends automatically to any server it contacts.</p>
+
+    <h2>What is deliberately absent</h2>
+    <ul>
+      <li>No analytics of any kind.</li>
+      <li>No advertising and no advertising networks.</li>
+      <li>No social media pixels and no embedded trackers.</li>
+      <li>No contact form. The contact link opens your own email program, and nothing is submitted through this site.</li>
+      <li>Video is served from this site itself rather than from a third-party player.</li>
+    </ul>
+
+    <h2>If you email me</h2>
+    <p>Your message stays in my mailbox, as any email does. I use it to answer you and to carry out the work we discuss. I do not add you to a mailing list, and I do not pass your address to anyone.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes, the date at the top changes with it.</p>
+
+    <h2>Contact</h2>
+    <p>Ismael Ouattara-Baldé, Montreal, Quebec, Canada.<br>
+    <a href="mailto:iouattarabalde@gmail.com">iouattarabalde@gmail.com</a></p>
+  </div>
+
+  <!-- ============================ FRANÇAIS ============================ -->
+  <div class="legal-lang" data-fr>
+    <h1>Confidentialité</h1>
+    <p class="updated">Dernière mise à jour : 9 septembre 2026</p>
+
+    <p class="lede"><strong>Ce site ne recueille rien à votre sujet.</strong> Aucune mesure d'audience, aucun pistage, aucune publicité, et aucun témoin n'est déposé.</p>
+
+    <h2>Ce qui reste dans votre navigateur</h2>
+    <p>Une seule chose : votre choix de langue. Il est enregistré sous <code>iob-lang</code> pour que le site s'ouvre dans la même langue la prochaine fois. Il ne quitte jamais votre navigateur et n'est transmis nulle part. Effacer vos données de navigation le supprime.</p>
+
+    <h2>Ce que voient les autres entreprises</h2>
+    <p>Afficher une page web suppose de la demander à un serveur, et les serveurs conservent des journaux ordinaires. Deux interviennent ici, et aucun n'est sous mon contrôle.</p>
+    <ul>
+      <li><strong>GitHub Pages</strong> héberge ce site. GitHub reçoit votre adresse IP et l'identifiant de votre navigateur pour vous servir la page.</li>
+      <li><strong>Google Fonts</strong> livre les deux polices utilisées ici. Votre navigateur les récupère depuis <code>fonts.googleapis.com</code> et <code>fonts.gstatic.com</code>, donc Google reçoit votre adresse IP à ce moment-là.</li>
+    </ul>
+    <p>Ni l'un ni l'autre ne reçoit quoi que ce soit d'autre que ce que votre navigateur transmet automatiquement à tout serveur qu'il contacte.</p>
+
+    <h2>Ce qui est délibérément absent</h2>
+    <ul>
+      <li>Aucune mesure d'audience, d'aucune sorte.</li>
+      <li>Aucune publicité et aucune régie publicitaire.</li>
+      <li>Aucun pixel de réseau social et aucun traceur intégré.</li>
+      <li>Aucun formulaire de contact. Le lien de contact ouvre votre propre logiciel de courriel, et rien n'est soumis par l'intermédiaire de ce site.</li>
+      <li>La vidéo est servie par ce site lui-même plutôt que par un lecteur tiers.</li>
+    </ul>
+
+    <h2>Si vous m'écrivez</h2>
+    <p>Votre message reste dans ma boîte de courriel, comme tout courriel. Je l'utilise pour vous répondre et pour réaliser le travail dont nous discutons. Je ne vous inscris à aucune liste d'envoi et je ne transmets votre adresse à personne.</p>
+
+    <h2>Modifications</h2>
+    <p>Si cette politique change, la date en haut change avec elle.</p>
+
+    <h2>Coordonnées</h2>
+    <p>Ismael Ouattara-Baldé, Montréal, Québec, Canada.<br>
+    <a href="mailto:iouattarabalde@gmail.com">iouattarabalde@gmail.com</a></p>
+  </div>
+
+</main>
+
+<script>
+  applyDesignSettings();
+  initLangToggle();
+  loadI18n().then(applyStrings);
+</script>
+
+</body>
+</html>
