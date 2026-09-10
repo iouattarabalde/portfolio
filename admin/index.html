@@ -1717,10 +1717,15 @@ function compressImage(file, maxWidth = 1920, quality = 0.85) {
 // le dépôt les convertira si on veut aligner.
 const VARIANT_WIDTHS = [640, 1280];
 
-async function variantChanges(filename, sourceFile) {
+// Path of a still's variant at one width: foo/bar.jpg + 640 -> assets/foo/bar-640.jpg.
+// Mirrors variant_path() in scripts/generate_image_variants.py. The one place the naming
+// lives, used both to create variants and to delete them, so the two cannot drift apart.
+function variantPath(filename, width) {
   const dot = filename.lastIndexOf('.');
-  const stem = filename.slice(0, dot);
-  const ext = filename.slice(dot);
+  return `assets/${filename.slice(0, dot)}-${width}${filename.slice(dot)}`;
+}
+
+async function variantChanges(filename, sourceFile) {
   const changes = [];
   for (const width of VARIANT_WIDTHS) {
     // compressImage ne fait jamais d'agrandissement : une source plus étroite que la
@@ -1729,7 +1734,7 @@ async function variantChanges(filename, sourceFile) {
     // sauf que ça n'arrive pas en pratique, l'upload étant déjà borné à 1920px.
     const blob = await compressImage(sourceFile, width, 0.82);
     const b64 = await blobToBase64(blob);
-    changes.push({ path: `assets/${stem}-${width}${ext}`, content: b64 });
+    changes.push({ path: variantPath(filename, width), content: b64 });
   }
   return changes;
 }
@@ -2621,7 +2626,12 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
     // orphelin plutôt qu'une référence morte — le lot atomique rend l'ordre sans objet.
     const keptFilenames = new Set(editorGallery.map((g) => g.filename).filter(Boolean));
     const removedStills = originalGalleryFilenames.filter((fn) => !keptFilenames.has(fn));
-    for (const fn of removedStills) changes.push({ path: `assets/${fn}`, remove: true });
+    // Each removed still takes its variants with it. Before 2026-09-10 only the original
+    // went, and the variants left behind were most of the orphans Nettoyer later found.
+    for (const fn of removedStills) {
+      changes.push({ path: `assets/${fn}`, remove: true });
+      for (const width of VARIANT_WIDTHS) changes.push({ path: variantPath(fn, width), remove: true });
+    }
 
     // Message de commit résumant l'enregistrement, puisqu'il n'y en a plus qu'un.
     const parts = [];
@@ -2652,12 +2662,13 @@ document.getElementById('save-project-btn').addEventListener('click', async () =
   }
 });
 
-// Removes the project from projects.json only — its uploaded images are left in
-// assets/ (orphaned but harmless) rather than deleted, to keep this simple and safe.
+// Removes the project from projects.json and, in the same commit, its cover, its stills
+// and each still's variants. Paths already absent are filtered out by ghCommitBatch, so
+// a still that never got variants costs nothing.
 document.getElementById('delete-project-btn').addEventListener('click', async () => {
   if (editingIndex === null) return;
   const project = projectsData.projects[editingIndex];
-  if (!(await confirmDialog(`Supprimer « ${project.title} » ? Le projet et toutes ses images (cover + stills) seront effacés du repo.`))) return;
+  if (!(await confirmDialog(`Supprimer « ${project.title} » ? Le projet, sa cover, ses stills et leurs variantes seront effacés du repo.`))) return;
   const statusEl = document.getElementById('save-status');
   const delBtn = document.getElementById('delete-project-btn');
   setBtnLoading(delBtn, true);
@@ -2668,19 +2679,21 @@ document.getElementById('delete-project-btn').addEventListener('click', async ()
 
     // Cover + stills, retirés dans le même commit que le projects.json qui les
     // référençait. Les chemins déjà absents sont filtrés par ghCommitBatch.
+    const stills = project.gallery.filter((g) => g.filename).map((g) => g.filename);
     const filesToDelete = [
       ...(project.thumbnail ? [`assets/${project.thumbnail}`] : []),
-      ...project.gallery.filter((g) => g.filename).map((g) => `assets/${g.filename}`)
+      ...stills.map((fn) => `assets/${fn}`),
+      ...stills.flatMap((fn) => VARIANT_WIDTHS.map((width) => variantPath(fn, width)))
     ];
     await ghCommitBatch(
       [projectsJsonChange(), ...filesToDelete.map((path) => ({ path, remove: true }))],
-      `Admin : suppression ${project.title} — ${filesToDelete.length} fichier(s)`
+      `Admin : suppression ${project.title}, cover, ${stills.length} still(s) et leurs variantes`
     );
     statusEl.textContent = '';
 
     editorEl.classList.remove('open');
     renderDashboard();
-    showToast(`${project.title} supprimé — ${filesToDelete.length} fichier(s) effacé(s).`);
+    showToast(`${project.title} supprimé, avec sa cover, ${stills.length} still(s) et leurs variantes.`);
   } catch (e) {
     projectsData.projects = backup;
     statusEl.textContent = 'Erreur : ' + e.message;
