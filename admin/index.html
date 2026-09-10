@@ -382,6 +382,10 @@
     padding: 24px;
   }
   .confirm-panel p { font-size: 13.5px; line-height: 1.6; color: var(--fg); margin: 0 0 22px; }
+  /* Confirm messages are set with textContent, so \n only shows as a line break with
+     pre-line. The orphan cleanup lists file paths, which are long and unbroken: let them
+     wrap inside the 380px panel instead of overflowing it. */
+  #confirm-message { white-space: pre-line; overflow-wrap: anywhere; }
   .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
   .prompt-input {
     width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
@@ -578,7 +582,7 @@
   <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
     <h2 style="font-size:16px;">Projets</h2>
     <div style="display:flex;gap:8px;">
-      <button class="btn" id="clean-orphans-btn" title="Supprimer les fichiers images non référencés par aucun projet">Nettoyer</button>
+      <button class="btn" id="clean-orphans-btn" title="Supprimer les images des dossiers de projets qui ne sont référencées par aucun projet">Nettoyer</button>
       <button class="btn btn-primary" id="new-project-btn">+ Nouveau projet</button>
     </div>
   </div>
@@ -1193,6 +1197,37 @@ function ghPutFile(path, base64Content, message) {
 // Scans the full assets/ tree via the Git Trees API (bypasses the 1 000-file Contents
 // API listing cap) and returns filenames that exist in the repo but aren't referenced
 // by any project in projects.json. Only looks at .jpg files — favicon.svg etc. are skipped.
+// Decides which assets are safe to delete, with no network involved so it can be checked
+// against a real tree. `treePaths` is every blob path in the repo; `referenced` holds
+// filenames relative to assets/, as projects.json and settings.json write them.
+//
+// Variants are recognised through VARIANT_WIDTHS, the constant variantChanges() uses to
+// generate them, declared further down. Reusing it rather than restating the widths is
+// the point: a width the scanner did not know about would make every variant of that
+// width look unreferenced, which is how 1567 images the live site was serving were
+// deleted on 2026-09-10.
+//
+// Only per-project folders are candidates. Top-level assets/*.jpg (hero-poster,
+// og-image, profile-photo) are used by index.html and the settings, and assets/og/ is
+// rebuilt by the share-pages workflow. projects.json describes neither, so nothing here
+// can tell whether they are in use, and they are never offered for deletion.
+function findOrphanAssets(treePaths, referenced) {
+  const variant = new RegExp(`^(.*)-(?:${VARIANT_WIDTHS.join('|')})(\\.jpg)$`);
+  const orphans = [];
+  for (const path of treePaths) {
+    if (!path.startsWith('assets/') || !path.endsWith('.jpg')) continue;
+    const rel = path.slice('assets/'.length);
+    const slash = rel.indexOf('/');
+    if (slash === -1) continue;                      // top-level assets/*.jpg
+    if (rel.slice(0, slash) === 'og') continue;      // generated share cards
+    if (referenced.has(rel)) continue;
+    const m = rel.match(variant);
+    if (m && referenced.has(m[1] + m[2])) continue;  // variant of a still in use
+    orphans.push(rel);
+  }
+  return orphans;
+}
+
 async function scanOrphans() {
   // Walk: ref → commit → tree (recursive) — one extra hop but avoids needing to know
   // the tree sha ahead of time; works even if the branch was just force-pushed.
@@ -1202,38 +1237,51 @@ async function scanOrphans() {
   );
   if (!commitRes.ok) throw new Error(`Impossible de lire la ref main → ${commitRes.status}`);
   const ref = await commitRes.json();
+  const sha = ref.object.sha;
 
   const treeRes = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${ref.object.sha}?recursive=1`,
+    `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${sha}?recursive=1`,
     { headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' } }
   );
   if (!treeRes.ok) throw new Error(`Impossible de lire le tree → ${treeRes.status}`);
   const tree = await treeRes.json();
+  if (tree.truncated) throw new Error('Arbre du dépôt tronqué par GitHub : analyse annulée');
 
-  // All .jpg filenames present in assets/
-  const inRepo = new Set(
-    tree.tree
-      .filter((f) => f.type === 'blob' && f.path.startsWith('assets/') && f.path.endsWith('.jpg'))
-      .map((f) => f.path.replace('assets/', ''))
-  );
-
-  // All filenames referenced by projects.json
+  // References are read at the same commit as the tree, not from the in-memory
+  // projectsData, which is stale if another tab or a workflow has committed since this
+  // page loaded. A reference missing from a stale copy would look like an orphan.
   const referenced = new Set();
-  for (const p of projectsData.projects) {
+  const projectsFile = await ghGetFile(`data/projects.json?ref=${sha}`);
+  if (!projectsFile || !projectsFile.content) {
+    throw new Error('data/projects.json illisible à ce commit : analyse annulée');
+  }
+  const projects = JSON.parse(decodeURIComponent(escape(atob(projectsFile.content))));
+  for (const p of projects.projects || []) {
     if (p.thumbnail) referenced.add(p.thumbnail);
-    for (const g of p.gallery) { if (g.filename) referenced.add(g.filename); }
+    for (const g of p.gallery || []) {
+      const name = typeof g === 'string' ? g : g && g.filename;
+      if (name) referenced.add(name);
+    }
   }
   // Also include assets referenced by settings.json (e.g. profile photo) — without
   // this the orphan scanner would treat profile-photo.jpg as an orphan and delete it.
-  const settingsFile = await ghGetFile('data/settings.json').catch(() => null);
+  const settingsFile = await ghGetFile(`data/settings.json?ref=${sha}`).catch(() => null);
   if (settingsFile) {
     try {
       const s = JSON.parse(decodeURIComponent(escape(atob(settingsFile.content))));
       if (s.photoFilename) referenced.add(s.photoFilename);
     } catch (e) { /* malformed settings.json — skip */ }
   }
+  // No references at all means projects.json was misread, not that every image is
+  // unused. Refuse rather than offer the whole asset tree for deletion.
+  if (referenced.size === 0) {
+    throw new Error('Aucune image référencée lue dans projects.json : analyse annulée');
+  }
 
-  return [...inRepo].filter((fn) => !referenced.has(fn));
+  return findOrphanAssets(
+    tree.tree.filter((f) => f.type === 'blob').map((f) => f.path),
+    referenced
+  );
 }
 
 // Encodes a JS string to base64 safely for non-ASCII characters (accented French text
@@ -2653,8 +2701,10 @@ document.getElementById('clean-orphans-btn').addEventListener('click', async () 
       showToast('Aucun fichier orphelin trouvé. Assets propres ✓');
       return;
     }
+    const shown = orphans.slice(0, 6).map((fn) => `assets/${fn}`).join('\n');
+    const rest = orphans.length > 6 ? `\n… et ${orphans.length - 6} autre(s)` : '';
     const confirmed = await confirmDialog(
-      `${orphans.length} fichier(s) orphelin(s) trouvé(s) dans assets/ (non référencés par aucun projet).\n\nSupprimer ?`
+      `${orphans.length} fichier(s) orphelin(s) trouvé(s) dans les dossiers de projets, non référencés par aucun projet. Les variantes d'une image utilisée sont conservées.\n\n${shown}${rest}\n\nSupprimer ?`
     );
     if (!confirmed) return;
     setBtnLoading(btn, true, 'Suppression…');
