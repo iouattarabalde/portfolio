@@ -32,13 +32,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=124">
+<link rel="stylesheet" href="style.css?v=125">
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, own
      randomised phase offset per load — so navigating between pages can land at a
      different point in the loop each time), plus esc(), withViewTransition(),
      initLangToggle() and applyDesignSettings() used below. See site.js. -->
-<script src="site.js?v=124"></script>
-<script src="i18n.js?v=124"></script>
+<script src="site.js?v=125"></script>
+<script src="i18n.js?v=125"></script>
 </head>
 <body>
 
@@ -181,6 +181,25 @@
   }
   lightboxImg.addEventListener('load', sizePalette);
 
+  // Full-resolution stills fetched this visit, keyed by URL, and the subset already
+  // decoded. Kept for the life of the page so a still seen once, or preloaded as the
+  // neighbour of the one on screen, opens straight on its full file next time instead of
+  // on a grid variant. A failed or stalled download is dropped from the map so the next
+  // request for it tries again rather than handing back the same broken Image.
+  const fullStills = new Map();
+  const paintableStills = new Set();
+  function preloadFull(url) {
+    if (fullStills.has(url)) return fullStills.get(url);
+    const img = new Image();
+    img.src = url;
+    fullStills.set(url, img);
+    whenPaintable(img, () => {
+      if (img.naturalWidth) paintableStills.add(url);
+      else fullStills.delete(url);
+    });
+    return img;
+  }
+
   // Quietly replaces the grid variant the lightbox opened with by the full-resolution
   // file, once that file is decoded and can be swapped in without a blank frame —
   // whenPaintable() (site.js) is what waits for the decode rather than just the bytes.
@@ -188,8 +207,7 @@
   // lands must not drop a stale photo into the frame.
   function upgradeToFull(url, forIndex) {
     if (lightboxImg.src.endsWith(url)) return; // already the full file
-    const preload = new Image();
-    preload.src = url;
+    const preload = preloadFull(url);
     whenPaintable(preload, () => {
       if (lightboxIndex !== forIndex || !lightbox.classList.contains('open')) return;
       if (!preload.naturalWidth) return; // failed to load; keep the variant on screen
@@ -288,22 +306,48 @@
     // cost nothing. That stopped being true the moment the grid started picking a 640 or
     // 1280 variant: opening would have grown the tile into an empty frame and waited on a
     // fresh ~420KB download. currentSrc is the exact file the browser chose for that tile,
-    // so it is decoded and paints instantly. Its aspect ratio is identical to the
-    // original's, which is what makes this safe — the CSS caps and the ratio decide the
-    // rendered size, so the layout, and the palette width measured from it below, are the
-    // same either way and nothing shifts when the full file swaps in.
+    // so it is decoded and paints instantly.
+    //
+    // A variant only paints at the right size because the box is sized from the still's
+    // aspect ratio (--lb-img-ratio, see .lightbox-content img in style.css), not from the
+    // file's pixels. Until Sept 2026 this relied on the CSS caps alone, which never grow an
+    // image: a 1280 variant rendered 1280px wide, then jumped to full size when the
+    // original swapped in, in the middle of the crossfade. The ratio is read off the
+    // decoded file, which every variant shares with the original.
+    //
+    // When the original is already decoded (seen before, or preloaded as a neighbour
+    // below), it goes straight in instead, and its own width becomes the cap so a still
+    // narrower than 1920px isn't stretched past its pixels. Otherwise the cap stays at
+    // --lb-max-natural and isn't revised when the upgrade lands, since that would bring
+    // the jump back.
     function applyImage() {
       const openingThumb = currentThumb();
       const openingThumbImg = openingThumb && openingThumb.querySelector('img');
       const fullSrc = `assets/${item.filename}`;
-      lightboxImg.src = (openingThumbImg && openingThumbImg.currentSrc) || fullSrc;
+      const full = paintableStills.has(fullSrc) ? fullStills.get(fullSrc) : null;
+      const variant = openingThumbImg && openingThumbImg.naturalWidth ? openingThumbImg : null;
+      const sizedFrom = full || variant;
+      lightboxImg.src = full ? fullSrc : (openingThumbImg && openingThumbImg.currentSrc) || fullSrc;
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
+      if (sizedFrom) {
+        lightboxImg.style.setProperty('--lb-img-ratio', String(sizedFrom.naturalWidth / sizedFrom.naturalHeight));
+      } else {
+        lightboxImg.style.removeProperty('--lb-img-ratio'); // nothing decoded to read it from: the CSS caps size it as before
+      }
+      if (full) lightboxImg.style.setProperty('--lb-img-cap', full.naturalWidth + 'px');
+      else lightboxImg.style.removeProperty('--lb-img-cap');
       applyPalette(item.palette || []);
       lightbox.classList.add('open');
       lightboxPrev.style.display = hasMultiple ? '' : 'none';
       lightboxNext.style.display = hasMultiple ? '' : 'none';
       sizePalette(); // after .open: the overlay is display:none until then, so nothing has a measurable width before this point
       upgradeToFull(fullSrc, lightboxIndex);
+      // The stills either side, so the next arrow press opens on the full file.
+      if (hasMultiple) {
+        [lightboxIndex - 1, lightboxIndex + 1].forEach((i) => {
+          preloadFull(`assets/${gallery[(i + gallery.length) % gallery.length].filename}`);
+        });
+      }
     }
 
     if (isNavigating) {

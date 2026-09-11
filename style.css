@@ -1395,6 +1395,11 @@ body.same-doc-transition .site-nav {
      horizontal-only; this is what actually blocks the vertical gesture at the source
      instead of just ignoring it after the fact. */
   touch-action: pan-x;
+  /* Makes cqw/cqh inside resolve against this overlay's content box, which is what the
+     enlarged still sizes itself from — see .lightbox-content img. Safe as a size
+     container: position:fixed with inset:0 already gives it a size that never depends
+     on its content. */
+  container-type: size;
 }
 .lightbox.open { display: flex; }
 /* Groups the image and the palette strip below it so they get centered as one unit —
@@ -1429,6 +1434,17 @@ body.same-doc-transition .site-nav {
      row) below it always fit, and the top of the image always clears the close button.
      100vh, not 100dvh, to match the position:fixed/inset:0 overlay this sits in. */
   max-height: calc(100vh - var(--lb-top) - var(--lb-bottom) - var(--lb-below));
+  /* The two caps above only ever shrink an image, never grow it, so on their own the
+     rendered size depended on the file loaded: the 640 or 1280 grid variant the lightbox
+     opens on painted at 640 or 1280px, then jumped to full size when the original
+     swapped in, mid-crossfade (reported Sept 2026). This sizes the box from the still's
+     aspect ratio instead, set by applyImage() in project.html, so every file lands in
+     the same box. 100cqw and 100cqh are .lightbox's content box, the same room the caps
+     describe. --lb-img-cap is the original's own width when known. With no ratio set
+     both declarations are invalid at computed-value time and fall back to auto, leaving
+     the caps above in charge exactly as before. */
+  width: min(100cqw, var(--lb-img-cap, var(--lb-max-natural)), calc((100cqh - var(--lb-below)) * var(--lb-img-ratio)));
+  aspect-ratio: var(--lb-img-ratio);
   object-fit: contain; /* never crops the enlarged image, unlike the grid thumbnails */
   view-transition-name: lightbox-img; /* scopes the same-document View Transition (see openLightboxAt in project.html) to just this image crossfading between stills, instead of the browser treating the whole page as one transitioning root */
 }
