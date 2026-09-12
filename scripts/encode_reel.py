@@ -38,17 +38,26 @@ outside -- a solve that far off means the assumptions don't hold.
 
 TWO PHASES, WITH A HUMAN GATE
 -----------------------------
-Phase 1 (~8 min, unattended) probes, solves the CRF, encodes a short excerpt of
-the GRAINIEST section at the solved CRF and +/-2, pulls matched stills against
-the master, and serves a 1:1 A/B review page on localhost.
+Phase 1 (unattended; ~8 min on the old 8-core desktop) probes, solves the CRF,
+encodes a short excerpt of the GRAINIEST section at the solved CRF and +/-2,
+pulls matched stills against the master, and serves a 1:1 A/B review page on
+localhost.
 
 Phase 2 runs only after a CRF is picked (in the page, or via --pick). It does
-the full encode, writes the three files into the working tree, and stops.
-It deliberately does NOT commit or push -- that stays a deliberate human action.
+the full encode, writes the three files into the working tree, updates the AV1
+codec string in index.html, then ASKS before committing and pushing. Nothing is
+published without an explicit yes at the terminal.
+
+RUNS BY HAND, ON THE MAC
+------------------------
+Until Sept 2026 this ran from a Windows scheduled task watching a Google Drive
+drop folder, and published a status file for the admin's Reel tab to read. That
+desktop is gone, and the reel changes about once a year, so all of it went too:
+you run one command in front of the machine doing the work. ffmpeg comes from
+Homebrew (brew install ffmpeg), which ships both encoders used here.
 
 Usage:
-    python3 scripts/encode_reel.py --file "D:/path/to/master.mov"
-    python3 scripts/encode_reel.py --watch          # process the drop folder
+    python3 scripts/encode_reel.py --file "path/to/master.mov"
     python3 scripts/encode_reel.py --file X --pick 29   # skip the review gate
     python3 scripts/encode_reel.py --file X --dry-run   # phase 1 analysis only
 """
@@ -73,28 +82,6 @@ from pathlib import Path
 # --------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-
-# Where a new master gets dropped. Two folders are watched, in this order:
-#
-#   1. A local disk folder -- fastest, nothing can half-sync underneath it.
-#   2. A Google Drive folder -- this is the "from any machine" route. The masters
-#      are already exported to Drive, so dropping one from a laptop or phone via
-#      drive.google.com puts it here with no upload UI to build and no size cap.
-#
-# Drive materializes files progressively, so a watcher pointed there can see a
-# file long before its bytes exist. is_file_settled() handles exactly that: it
-# waits for the size to stop moving and refuses unmaterialized placeholders.
-DROP_DIRS = [
-    Path(os.environ.get("REEL_DROP_DIR", r"E:\_reel-dropbox")),
-    Path(os.environ.get("REEL_DRIVE_DIR",
-                        r"G:\My Drive\Color Grading\Demos\_to-web")),
-]
-
-# Published to the repo so admin/ can show status from any machine. Deliberately
-# tiny and free of local paths -- the repo is public, so only basenames go in it.
-STATUS_FILE = REPO_ROOT / "data" / "reel-status.json"
-
-VIDEO_EXTS = {".mov", ".mp4", ".mxf", ".m4v", ".avi", ".mkv"}
 
 # Size targets. AV1 is the file almost everyone actually downloads, so it
 # carries the quality. Both must clear GitHub's hard limit with room to spare.
@@ -144,10 +131,9 @@ def log(msg):
 
 def find_tool(name):
     """
-    There is no system ffmpeg on this machine; the only build available is the
-    one bundled with Shutter Encoder. Env var wins, then PATH, then the known
-    install path -- so this keeps working if Shutter Encoder moves or a real
-    ffmpeg gets installed later.
+    Env var wins, then PATH, then Homebrew's two prefixes (Apple silicon and
+    Intel). The prefixes are checked by hand because a launcher that skips the
+    shell profile won't have them on PATH even when ffmpeg is installed.
     """
     env = os.environ.get(f"{name.upper()}_BIN")
     if env and Path(env).exists():
@@ -155,13 +141,14 @@ def find_tool(name):
     on_path = shutil.which(name)
     if on_path:
         return on_path
-    bundled = Path(r"C:\Program Files\Shutter Encoder\Library") / f"{name}.exe"
-    if bundled.exists():
-        return str(bundled)
+    for prefix in ("/opt/homebrew/bin", "/usr/local/bin"):
+        candidate = Path(prefix) / name
+        if candidate.exists():
+            return str(candidate)
     sys.exit(
         f"ERROR: could not find {name}.\n"
-        f"  Looked at: ${name.upper()}_BIN, PATH, and {bundled}\n"
-        f"  Install ffmpeg or set {name.upper()}_BIN to its full path."
+        f"  Install it with:  brew install ffmpeg\n"
+        f"  or set {name.upper()}_BIN to its full path."
     )
 
 
@@ -170,7 +157,10 @@ FFPROBE = find_tool("ffprobe")
 
 
 def run(cmd, **kw):
-    return subprocess.run(cmd, capture_output=True, text=True,
+    # stdin closed: ffmpeg otherwise reads the terminal for its interactive keys,
+    # so a q pressed during a 20-minute encode would end it, and anything typed
+    # ahead for the commit prompt got swallowed (found in a Sept 2026 test).
+    return subprocess.run(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                           encoding="utf-8", errors="replace", **kw)
 
 
@@ -233,7 +223,17 @@ def validate(info):
 
 
 def vfilter(info, needs_scale, pix_fmt):
-    parts = []
+    # setparams stamps the colour tags onto the frames themselves. Since ffmpeg 7
+    # the encoder takes its tags from the frames, and the -color_* output options
+    # in color_flags() no longer fill in what an untagged master lacks: a Sept 2026
+    # test on ffmpeg 9 shipped primaries and transfer untagged, and verify()
+    # refused the files. Tagging the frames works on old and new builds alike.
+    parts = [
+        f"setparams=color_primaries={info.get('color_primaries') or 'bt709'}"
+        f":color_trc={info.get('color_transfer') or 'bt709'}"
+        f":colorspace={info.get('color_space') or 'bt709'}"
+        f":range={info.get('color_range') or 'tv'}"
+    ]
     if needs_scale:
         parts.append("scale=1920:-2:flags=lanczos")
     parts.append(f"format={pix_fmt}")
@@ -259,13 +259,15 @@ def color_flags(info):
 # Phase 1: solve the CRF from the file itself
 # --------------------------------------------------------------------------
 
-VIDEO_KB_RE = re.compile(r"video:\s*(\d+)\s*kB")
+# "kB" up to ffmpeg 7, "KiB" since. Both have always meant 1024 bytes; only the
+# label changed, and matching just the old one made the first probe fail outright.
+VIDEO_KB_RE = re.compile(r"video:\s*(\d+)\s*(?:kB|KiB)")
 
 
 def measure_kbps(src, info, needs_scale, start, seconds, crf):
     """
     Encode a slice and throw the packets away (-f null). ffmpeg still reports
-    the encoded payload in its final 'video:NkB' line, so this measures real
+    the encoded payload in its final 'video:NKiB' line, so this measures real
     encoder output without writing anything to disk.
     """
     cmd = [FFMPEG, "-hide_banner", "-nostats",
@@ -280,7 +282,7 @@ def measure_kbps(src, info, needs_scale, start, seconds, crf):
     if not m:
         sys.exit(f"ERROR: could not measure encoder output at CRF {crf}.\n"
                  f"{r.stderr.strip()[-1500:]}")
-    return int(m.group(1)) * 8 / seconds  # kB over N s -> kbps
+    return int(m.group(1)) * 1024 * 8 / 1000 / seconds  # KiB over N s -> kbps
 
 
 def solve_crf(src, info, needs_scale):
@@ -535,7 +537,7 @@ DATA.candidates.forEach(c => {
                     body: JSON.stringify({crf: c.crf})})
       .then(() => { document.body.innerHTML =
         '<header><h1>CRF ' + c.crf + ' selected</h1><div class="sub">' +
-        'Encoding now &mdash; watch the terminal or the log. You can close this tab.' +
+        'Encoding now &mdash; watch the terminal. You can close this tab.' +
         '</div></header>'; });
   };
   pw.appendChild(b);
@@ -671,7 +673,7 @@ def encode_av1(src, info, needs_scale, crf, dest):
         cmd += ["-c:a", "aac", "-b:a", f"{AUDIO_BITRATE_K}k", "-ac", "2", "-ar", "48000"]
     cmd += ["-movflags", "+faststart", str(dest)]
 
-    log(f"  AV1 preset {AV1_PRESET} CRF {crf} -- expect ~25 min, please wait ...")
+    log(f"  AV1 preset {AV1_PRESET} CRF {crf} -- the long step, please wait ...")
     r = run(cmd)
     if r.returncode != 0:
         sys.exit(f"ERROR: AV1 encode failed.\n{r.stderr.strip()[-2000:]}")
@@ -806,232 +808,108 @@ def av1_codec_string(path):
 
 
 # --------------------------------------------------------------------------
-# Drop-folder plumbing
+# Publishing: the codec string in index.html, then commit + push on a yes
 # --------------------------------------------------------------------------
 
-# --------------------------------------------------------------------------
-# Published status -- what admin/ reads
-# --------------------------------------------------------------------------
-#
-# The encode runs on one desktop, but the admin page is opened from anywhere.
-# The only channel between them that costs nothing and needs no server is the
-# repo itself, so the pipeline publishes a small JSON and pushes just that file.
-#
-# Nothing here is secret, but the repo IS public: store basenames only, never
-# full local paths, and never the drop folders' locations.
-
-STATUS_STATES = (
-    "idle",            # nothing to do
-    "waiting_settle",  # file seen, still copying/syncing
-    "probing",         # sampling the file to solve the CRF
-    "awaiting_review", # grain A/B is up, waiting on a human
-    "encoding",        # full AV1 + H.264 pass
-    "verifying",       # size / faststart / colour checks
-    "done",
-    "failed",
-)
+INDEX_HTML = REPO_ROOT / "index.html"
+AV1_SOURCE_RE = re.compile(
+    r"""(<source src="video/reel\.av1\.mp4" type='video/mp4; codecs=")([^"]*)(")""")
 
 
-def read_status():
-    if STATUS_FILE.exists():
-        try:
-            return json.loads(STATUS_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return {}
-
-
-def write_status(state=None, detail=None, source=None, queue=None,
-                 current=None, publish=False):
+def update_codec_string(codec):
     """
-    Merge-and-write. Every field is optional so callers can update just the one
-    thing that changed without having to restate the rest.
+    Writes the AV1 codec string into index.html's <source> tag. It used to be
+    printed for pasting by hand, and a wrong one makes Safari skip AV1 without
+    a word, so it was the step of a replacement most likely to be forgotten.
+    newline="" keeps index.html's line endings exactly as they are.
+    Returns True when the file changed.
     """
-    st = read_status()
-    st["heartbeat"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-    job = st.setdefault("job", {})
-    if state is not None:
-        if state not in STATUS_STATES:
-            raise ValueError(f"unknown status state {state!r}")
-        if job.get("state") != state:
-            job["since"] = st["heartbeat"]
-        job["state"] = state
-    if detail is not None:
-        job["detail"] = detail
-    if source is not None:
-        job["source"] = Path(source).name   # basename only: public repo
-    if queue is not None:
-        st["queue"] = [Path(q).name for q in queue]
-    if current is not None:
-        st["current"] = current
-
-    STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATUS_FILE.write_text(json.dumps(st, indent=2) + chr(10), encoding="utf-8")
-    if publish:
-        publish_status()
-    return st
-
-
-def publish_status():
-    """
-    Commit and push ONLY data/reel-status.json.
-
-    Scoped to that one path on purpose. The encoded reel is never auto-committed
-    -- that stays a deliberate human action -- but the status file is useless
-    unless it actually reaches GitHub, since the whole point is reading it from
-    another machine. [skip ci] keeps it from waking the cache-buster workflow.
-    """
-    rel = str(STATUS_FILE.relative_to(REPO_ROOT)).replace("\\", "/")
-    try:
-        r = run(["git", "-C", str(REPO_ROOT), "status", "--porcelain", "--", rel])
-        if not r.stdout.strip():
-            return  # nothing changed, don't make an empty commit
-        run(["git", "-C", str(REPO_ROOT), "add", "--", rel])
-        run(["git", "-C", str(REPO_ROOT), "commit", "-m",
-             "Reel pipeline status [skip ci]", "--", rel])
-
-        push = run(["git", "-C", str(REPO_ROOT), "push", "origin", "main"])
-        if push.returncode != 0:
-            # Only rebase when the push actually loses a race (the cache-buster
-            # workflow commits to main too). Rebasing unconditionally would mean
-            # --autostash shuffling ~115 MB of freshly encoded, still-unstaged
-            # video in and out of the stash on every single status update.
-            run(["git", "-C", str(REPO_ROOT), "pull", "--rebase", "--autostash",
-                 "origin", "main"])
-            push = run(["git", "-C", str(REPO_ROOT), "push", "origin", "main"])
-        if push.returncode != 0:
-            tail = push.stderr.strip().splitlines()
-            log(f"  (status push failed, continuing: {tail[-1] if tail else '?'})")
-    except Exception as e:
-        # Status publishing must never take the encode down with it.
-        log(f"  (status publish skipped: {e})")
-
-
-def describe_current():
-    """Facts about the reel as it now stands on disk, for the admin panel."""
-    out = {}
-    for key, path in (("av1", OUT_AV1), ("h264", OUT_H264), ("poster", OUT_POSTER)):
-        if path.exists():
-            out[key] = {"name": path.name,
-                        "mb": round(path.stat().st_size / (1024 * 1024), 1)}
-    if OUT_AV1.exists():
-        try:
-            v = probe(OUT_AV1)
-            out["width"] = v["width"]
-            out["height"] = v["height"]
-            out["duration"] = round(v["duration"], 2)
-            out["fps"] = round(v["fps"], 3)
-        except SystemExit:
-            pass
-    return out
-
-
-STATE_FILE = Path(__file__).resolve().parent / ".reel_state.json"
-LOCK_FILE = Path(tempfile.gettempdir()) / "encode_reel.lock"
-
-
-def load_state():
-    if STATE_FILE.exists():
-        try:
-            return json.loads(STATE_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return {"processed": {}}
-
-
-def save_state(state):
-    STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
-
-
-def is_file_settled(path, quiet_seconds=30, poll=5):
-    """
-    A 4 GB master takes a while to copy or sync. Wait until the size stops
-    moving before touching it, and refuse cloud placeholders outright -- on
-    Google Drive an unmaterialized file reports its full size but has no bytes
-    behind it, which would produce a silently truncated encode.
-    """
-    FILE_ATTRIBUTE_OFFLINE = 0x1000
-    FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x400000
-    try:
-        attrs = path.stat().st_file_attributes
-        if attrs & (FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS):
-            log(f"  {path.name} is a cloud placeholder, not downloaded. Skipping.")
-            return False
-    except AttributeError:
-        pass
-
-    last, stable = -1, 0
-    while stable < quiet_seconds:
-        size = path.stat().st_size
-        if size == last and size > 0:
-            stable += poll
-        else:
-            stable, last = 0, size
-        time.sleep(poll)
+    with open(INDEX_HTML, encoding="utf-8", newline="") as f:
+        html = f.read()
+    m = AV1_SOURCE_RE.search(html)
+    if not m:
+        log(f'  !! AV1 <source> not found in index.html -- set codecs="{codec}" by hand.')
+        return False
+    if m.group(2) == codec:
+        log(f'  index.html already declares codecs="{codec}".')
+        return False
+    with open(INDEX_HTML, "w", encoding="utf-8", newline="") as f:
+        f.write(html[:m.start(2)] + codec + html[m.end(2):])
+    log(f'  index.html: codecs="{m.group(2)}" -> "{codec}"')
     return True
 
 
-def acquire_lock():
-    """A full run spans several 5-minute watcher ticks; only one may be live."""
-    if LOCK_FILE.exists():
-        try:
-            pid = int(LOCK_FILE.read_text().strip())
-            r = run(["tasklist", "/FI", f"PID eq {pid}", "/NH"])
-            if str(pid) in r.stdout:
-                log(f"Another run is already active (pid {pid}). Exiting.")
-                return False
-            log(f"Clearing stale lock from dead pid {pid}.")
-        except Exception:
-            pass
-    LOCK_FILE.write_text(str(os.getpid()))
-    return True
+def offer_commit(paths, src, crf):
+    """
+    The only step that publishes, so it asks first, and only when there is a
+    terminal to answer. The commit is scoped to exactly the files this run
+    wrote: a pathspec commit leaves anything else you had staged out of it.
+    """
+    git = ["git", "-C", str(REPO_ROOT)]
+    rels = [str(p.relative_to(REPO_ROOT)) for p in paths]
+    total_mb = sum(p.stat().st_size for p in paths) / (1024 * 1024)
 
-
-def release_lock():
+    if not sys.stdin.isatty():
+        log("Not committed (no terminal to confirm). Review, then commit and push yourself.")
+        return
+    branch = run(git + ["rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
+    if branch != "main":
+        log(f"Not committed: the repo is on {branch!r}, and the site deploys from main.")
+        return
     try:
-        LOCK_FILE.unlink()
-    except FileNotFoundError:
-        pass
+        answer = input(f"\nCommit and push these {len(rels)} files "
+                       f"(~{total_mb:.0f} MB) to main? [y/N] ").strip().lower()
+    except EOFError:
+        answer = ""
+    if answer not in ("y", "yes", "o", "oui"):
+        log("Not committed. Review the files, then commit and push yourself.")
+        return
 
-
-def scan_drops():
-    """
-    Every unprocessed master across all drop folders, oldest first.
-
-    Missing folders are skipped quietly rather than treated as an error: the
-    Drive folder in particular is only present when Drive is mounted, and a
-    laptop-less week shouldn't fill the log with complaints.
-    """
-    state = load_state()
-    found = []
-    for d in DROP_DIRS:
-        if not d.exists():
-            continue
-        for f in sorted(d.iterdir(), key=lambda x: x.stat().st_mtime):
-            if not f.is_file() or f.suffix.lower() not in VIDEO_EXTS:
-                continue
-            if f"{f.name}:{f.stat().st_size}" in state["processed"]:
-                continue
-            found.append(f)
-    return found
-
-
-def find_dropped():
-    pending = scan_drops()
-    if not pending:
-        if not any(d.exists() for d in DROP_DIRS):
-            log("No drop folder exists yet. Run watch_reel_dropbox.ps1 -Setup, "
-                "or set REEL_DROP_DIR / REEL_DRIVE_DIR.")
-        return None
-    # The first is what we work on; the rest are reported as queued so the admin
-    # panel can show that something is stacked up behind the current job.
-    write_status(queue=[f.name for f in pending[1:]])
-    return pending[0]
+    run(git + ["add", "--"] + rels)
+    msg = f"Replace the hero reel ({Path(src).name}, AV1 CRF {crf})"
+    r = run(git + ["commit", "-m", msg, "--"] + rels)
+    if r.returncode != 0:
+        log(f"  !! git commit failed:\n{(r.stdout + r.stderr).strip()}")
+        return
+    log(f"  committed: {msg}")
+    log(f"  pushing ~{total_mb:.0f} MB, this can take a few minutes ...")
+    # Streamed rather than captured, so the upload shows its progress. The GitHub
+    # workflows commit to main too, so a rejected push gets one rebase and a retry.
+    if subprocess.run(git + ["push", "origin", "main"]).returncode != 0:
+        subprocess.run(git + ["pull", "--rebase", "--autostash", "origin", "main"])
+        if subprocess.run(git + ["push", "origin", "main"]).returncode != 0:
+            log("  !! push failed. The commit is local: sort out the error above, then git push.")
+            return
+    log("  pushed. GitHub Pages serves the new reel once its deploy finishes.")
 
 
 # --------------------------------------------------------------------------
 # Orchestration
 # --------------------------------------------------------------------------
+
+def require_encoders():
+    """
+    Checked before anything else, so a build missing one fails in a second with
+    a message naming what's missing, rather than minutes in with an "Unknown
+    encoder" buried in a stderr tail.
+    """
+    r = run([FFMPEG, "-hide_banner", "-encoders"])
+    missing = [e for e in ("libsvtav1", "libx264") if e not in r.stdout]
+    if missing:
+        sys.exit(f"ERROR: {FFMPEG} has no {', '.join(missing)}.\n"
+                 f"  Homebrew's ffmpeg includes both:  brew install ffmpeg")
+
+
+def keep_awake():
+    """
+    A full run takes the better part of an hour on a laptop, and macOS idle
+    sleep would pause it mid-encode. caffeinate -w ties the assertion to this
+    process, so it lifts by itself however the script exits. Closing the lid
+    still sleeps the machine; nothing here can prevent that.
+    """
+    if sys.platform == "darwin" and shutil.which("caffeinate"):
+        subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())])
+
 
 def process(src, pick=None, dry_run=False):
     src = Path(src)
@@ -1055,8 +933,6 @@ def process(src, pick=None, dry_run=False):
         if pick is None:
             log("")
             log("Phase 1 -- solving CRF from the file itself")
-            write_status(state="probing", source=src,
-                         detail="Analyse du grain et calcul du CRF", publish=True)
             crf, worst, fit = solve_crf(src, info, needs_scale)
             if dry_run:
                 log(f"\nDry run: would encode at CRF {crf}. Stopping.")
@@ -1064,24 +940,16 @@ def process(src, pick=None, dry_run=False):
             log("")
             log(f"Phase 1 -- grain shootout at CRF {crf - 2}/{crf}/{crf + 2} "
                 f"on the grainiest section ({worst:.0f}s)")
-            write_status(detail=f"Comparatif de grain a CRF {crf-2}/{crf}/{crf+2}")
             shootout = run_shootout(src, info, needs_scale, crf, worst, work, fit)
             subtitle = (f"{src.name} &middot; {info['width']}x{info['height']} "
                         f"&middot; {info['duration']:.0f}s &middot; excerpt from "
                         f"{shootout['excerpt_start']:.0f}s (grainiest section)")
-            write_status(state="awaiting_review",
-                         detail=f"En attente de ton choix de CRF "
-                                f"(http://127.0.0.1:{REVIEW_PORT}/)", publish=True)
             pick = serve_review(work, shootout, subtitle)
             if pick is None:
-                write_status(state="idle", detail="Revue expiree sans choix",
-                             publish=True)
                 return
 
         log("")
         log(f"Phase 2 -- full encode at CRF {pick}")
-        write_status(state="encoding", source=src,
-                     detail=f"Encodage complet a CRF {pick} (~25 min)", publish=True)
         OUT_AV1.parent.mkdir(parents=True, exist_ok=True)
         OUT_POSTER.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1101,15 +969,12 @@ def process(src, pick=None, dry_run=False):
 
         log("")
         log("Verifying outputs")
-        write_status(state="verifying",
-                     detail="Verification taille / faststart / couleur")
         problems = verify(tmp_av1, info) + verify(tmp_h264, info)
         if problems:
             keep_work = True
             log("")
             log("REFUSING to stage -- fix the above and re-run. "
                 f"Files left in {work}")
-            write_status(state="failed", detail="; ".join(problems), publish=True)
             return
 
         shutil.move(str(tmp_av1), str(OUT_AV1))
@@ -1122,26 +987,19 @@ def process(src, pick=None, dry_run=False):
             log(f"  {p.relative_to(REPO_ROOT)}  "
                 f"{p.stat().st_size / (1024 * 1024):.1f} MB")
         log("")
-        log(f"AV1 codec string for index.html: {av1_codec_string(OUT_AV1)}")
-        log("")
-        log("Not committed. Review the files, then commit and push yourself.")
-        write_status(state="done", current=describe_current(),
-                     detail=f"Encode a CRF {pick}. A relire puis commiter.",
-                     publish=True)
+        changed = [OUT_AV1, OUT_H264, OUT_POSTER]
+        if update_codec_string(av1_codec_string(OUT_AV1)):
+            changed.append(INDEX_HTML)
+        offer_commit(changed, src, pick)
 
-    except BaseException as e:
+    except BaseException:
         keep_work = True    # crashed or interrupted -- leave the evidence
-        try:
-            write_status(state="failed", detail=f"{type(e).__name__}: {e}"[:300],
-                         publish=True)
-        except Exception:
-            pass
         raise
     finally:
         # Keep the work dir ONLY on failure. The earlier "keep if any *.mp4 is
         # present" test was always true, because the three shootout excerpts are
         # themselves .mp4 -- so every run leaked ~126 MB of stills and excerpts
-        # into %TEMP% forever.
+        # into the temp folder forever.
         if work.exists():
             if keep_work:
                 log(f"  work files kept for inspection: {work}")
@@ -1151,49 +1009,15 @@ def process(src, pick=None, dry_run=False):
 
 def main():
     ap = argparse.ArgumentParser(description="Encode the hero reel for the web.")
-    ap.add_argument("--file", help="master to encode")
-    ap.add_argument("--watch", action="store_true",
-                    help="process the next unhandled file in the drop folder")
+    ap.add_argument("--file", required=True, help="master to encode")
     ap.add_argument("--pick", type=int, help="skip the review gate, use this CRF")
     ap.add_argument("--dry-run", action="store_true",
                     help="phase 1 analysis only, no encoding")
     args = ap.parse_args()
 
-    if not args.file and not args.watch:
-        ap.error("give --file <master> or --watch")
-
-    if not acquire_lock():
-        return
-    try:
-        if args.watch:
-            src = find_dropped()
-            if src is None:
-                # Still touch the status file: its heartbeat is how the admin
-                # panel tells "nothing queued" apart from "this desktop is
-                # asleep and your drop is going nowhere".
-                write_status(state="idle", detail="Rien en attente",
-                             queue=[], current=describe_current(), publish=True)
-                log("Nothing new in the drop folders.")
-                return
-            log(f"Found {src.name}; waiting for it to finish copying ...")
-            write_status(state="waiting_settle", source=src,
-                         detail="Copie/synchronisation en cours", publish=True)
-            if not is_file_settled(src):
-                write_status(state="idle",
-                             detail=f"{src.name} pas encore disponible "
-                                    f"(fichier cloud non telecharge)", publish=True)
-                return
-            process(src, pick=args.pick)
-            state = load_state()
-            state["processed"][f"{src.name}:{src.stat().st_size}"] = {
-                "at": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "path": str(src),
-            }
-            save_state(state)
-        else:
-            process(args.file, pick=args.pick, dry_run=args.dry_run)
-    finally:
-        release_lock()
+    require_encoders()
+    keep_awake()
+    process(args.file, pick=args.pick, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":

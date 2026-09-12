@@ -24,7 +24,7 @@ les cas qui sortent de l'admin.
 | Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | L'aperçu reflète aussi tes réglages non enregistrés (halo, grain, fond) |
 | Ajuster l'intensité/taille/étalement du halo du reel, le grain (texture appliquée sur tout le site), ou la couleur de fond | Admin → Design → curseurs en haut de l'onglet | Rien ne se publie tant que tu n'as pas cliqué Enregistrer ; Réinitialiser remet les valeurs par défaut dans l'aperçu (sans publier) |
 | Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
-| Remplacer le reel principal (vidéo hero) | Déposer le fichier dans Drive → `Demos/_to-web` | Depuis n'importe quelle machine. Le pipeline s'occupe du reste et ouvre une page pour valider le grain sur le poste principal. Suivi dans Admin → onglet **Reel**. Voir "Vidéo du reel" |
+| Remplacer le reel principal (vidéo hero) | Terminal sur le Mac : `python3 scripts/encode_reel.py --file "master.mov"` | Ouvre une page pour choisir le grain, encode, met à jour `index.html`, puis demande avant de commit et push. Voir "Vidéo du reel" |
 | Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
 | Changer polices / mise en page | Verrouillé, pas d'éditeur admin | Demander à Claude |
 | Ajouter un tout nouveau texte bilingue à un endroit du site qui n'en a pas encore | Touche 3 fichiers différents | Demander à Claude |
@@ -79,7 +79,7 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `assets/` | Stills et vignettes des projets |
 | `assets/og/` | **Généré**, ne pas éditer à la main : une image de partage 1200×630 par projet |
 | `project/` | **Généré**, ne pas éditer à la main : une coquille HTML par projet, qui porte les balises Open Graph que les crawlers lisent puis redirige vers la vraie page |
-| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément des cache-busters. Contient aussi le pipeline d'encodage du reel (`encode_reel.py` + `watch_reel_dropbox.ps1`), qui tourne en local et pas dans la CI |
+| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément des cache-busters. Contient aussi le script d'encodage du reel (`encode_reel.py`), lancé à la main sur le Mac et pas dans la CI |
 | `.github/workflows/` | Les deux automatisations elles-mêmes — voir "Automatisations" plus bas |
 | `sitemap.xml` | **Généré** à partir de `projects.json` |
 | `.nojekyll`, `robots.txt`, `CNAME`, `favicon.ico` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom, favicon de repli) |
@@ -289,15 +289,8 @@ raisons qui se cumulent :
 - L'encodage prend une vingtaine de minutes de CPU. C'est un vrai calcul, pas une tâche de
   navigateur.
 
-Le remplacement se fait donc **en local, là où le master et le processeur sont déjà**. Le
-transport, lui, passe par Google Drive : déposer le master dans `Demos/_to-web` depuis
-n'importe quelle machine (drive.google.com marche depuis un téléphone), et le poste principal
-le récupère tout seul. Pas d'interface d'envoi à construire, pas de limite de taille, et la
-reprise sur coupure est gratuite.
-
-L'onglet **Reel** de l'admin est la moitié consultable de ce dispositif : il montre où en est
-le pipeline, ce qui est en file, et **si le poste d'encodage répond encore**. Voir
-"Vidéo du reel".
+Le remplacement se fait donc **en local, sur le Mac, là où le master et le processeur sont
+déjà** : une commande, voir "Vidéo du reel".
 
 ## Ajouter/modifier un projet
 
@@ -435,89 +428,69 @@ GitHub Pages (~100 GB/mois).
 
 ### Remplacer le reel
 
-**Déposer le master dans un dossier de dépôt, c'est tout.** Deux dossiers sont surveillés,
-une tâche planifiée les regarde toutes les 5 minutes :
+Une commande, dans le Terminal du Mac, depuis le dossier du site :
 
-| Dossier | Quand |
-|---|---|
-| `E:\_reel-dropbox` | Depuis le poste principal. Disque local, rien ne peut se synchroniser à moitié dessous. |
-| `Google Drive → Color Grading → Demos → _to-web` | **Depuis n'importe quelle machine**, y compris un téléphone, via [drive.google.com](https://drive.google.com). Aucune limite de taille, et l'envoi reprend tout seul s'il est coupé. |
+```bash
+python3 scripts/encode_reel.py --file "chemin/vers/master.mov"
+```
 
-(Chemins modifiables via `REEL_DROP_DIR` et `REEL_DRIVE_DIR`.)
+Astuce : taper le début de la commande, puis glisser le master depuis le Finder dans la
+fenêtre du Terminal colle son chemin complet.
 
-**C'est le poste principal qui encode.** Un fichier déposé pendant qu'il est éteint attend
-sans rien casser ; l'encodage démarre au prochain démarrage. L'onglet **Reel** de l'admin dit
-lequel des deux est le cas — voir plus bas.
+Le master peut rester où il est, y compris dans Google Drive. Pour un fichier de plusieurs
+Go, le rendre **disponible hors ligne** avant (clic droit dans le Finder) évite que l'analyse
+attende le téléchargement.
 
-Ce qui se passe ensuite, sans rien faire :
+Ce qui se passe ensuite :
 
-1. Le pipeline attend que le fichier ait fini de se copier (un master ProRes fait plusieurs Go)
-   et refuse les fichiers cloud non téléchargés.
-2. Il analyse le fichier et **calcule le CRF tout seul** : il encode des échantillons à deux
+1. Il analyse le fichier et **calcule le CRF tout seul** : il encode des échantillons à deux
    CRF, ajuste une courbe débit/CRF, et résout pour la taille visée. Un montage plus ou moins
    granuleux obtient donc automatiquement un réglage différent — rien n'est codé en dur.
-3. Il encode un extrait court **de la section la plus granuleuse** à trois CRF, extrait des
-   images fixes, et **ouvre une page de comparaison à 100 %** dans le navigateur.
-4. Tu regardes, tu cliques sur un CRF. C'est la seule décision demandée.
-5. Il encode l'AV1 et le H.264 en entier, extrait le poster, vérifie tout, et dépose les trois
+2. Il encode un extrait court **de la section la plus granuleuse** à trois CRF, extrait des
+   images fixes, et **ouvre une page de comparaison à 100 %** dans le navigateur
+   (`http://127.0.0.1:8765`).
+3. Tu regardes, tu cliques sur un CRF. C'est la seule décision de qualité demandée.
+4. Il encode l'AV1 et le H.264 en entier, extrait le poster, vérifie tout, et dépose les trois
    fichiers dans le dépôt.
+5. Il écrit la bonne chaîne `codecs="av01…"` dans `index.html`.
+6. Il **demande** s'il doit commit et push sur `main`. Sans « oui » explicite, rien n'est
+   publié : les fichiers restent dans le dossier pour relecture.
 
-Il **ne commit pas et ne pousse pas** le reel : tu relis, puis tu commit toi-même. La seule
-chose qu'il publie tout seul est `data/reel-status.json`, un petit fichier d'état (voir juste
-en dessous) — sans quoi l'admin n'aurait rien à lire.
-
-### Suivre l'avancement depuis n'importe où — onglet « Reel » de l'admin
-
-`ismaelob.com/admin/` → onglet **Reel**. En lecture seule : le fichier vidéo ne transite pas
-par l'admin (l'API Contents de GitHub plafonne vers 100 Mo, un master ProRes fait plusieurs
-Go — c'est tout l'intérêt de passer par Drive). L'onglet affiche :
-
-- **Où en est le pipeline** : au repos, copie en cours, analyse, *attend ton choix de CRF*,
-  encodage, vérification, terminé, échec.
-- **La file d'attente**, si plusieurs masters sont déposés.
-- **Le reel actuellement en ligne** : tailles AV1 / H.264 / poster, format, durée.
-- **Un avertissement si le poste d'encodage ne répond plus.** C'est la partie qui compte le
-  plus : sans ça, « rien en attente » et « le poste est éteint, ton fichier ne sera jamais
-  traité » s'afficheraient exactement pareil — et c'est précisément la question qu'on se pose
-  quand on dépose un fichier depuis un portable.
-
-Le comparatif de grain, lui, s'ouvre sur le poste principal (`http://127.0.0.1:8765`) et
-n'est pas accessible à distance. L'admin signale qu'il attend, mais le choix se fait devant
-l'écran du poste — c'est un jugement sur du grain à 100 %, ça ne se délègue pas à un portable.
+Compter **30 à 40 minutes** pour un reel de 3 minutes sur le MacBook (extrapolé d'un test
+en septembre 2026, à confirmer au premier vrai encodage), dont une pause au milieu pour
+choisir le CRF. Le script empêche la mise en veille automatique (`caffeinate`), mais il faut
+garder le Mac branché, le capot ouvert, et la fenêtre du Terminal ouverte.
 
 Vérifications automatiques avant dépôt : taille sous 100 MB, atome `moov` en tête
 (`+faststart`, sans quoi la lecture progressive bloque), durée conforme à la source, balises
 colorimétriques bt709/tv conservées, piste audio présente. Si quoi que ce soit cloche, il
 refuse de déposer et laisse les fichiers dans son dossier de travail.
 
-En ligne de commande, si besoin :
+Options utiles :
 
 ```bash
-python scripts/encode_reel.py --file "chemin/vers/master.mov"   # manuel
-python scripts/encode_reel.py --file X --dry-run                # analyse seule
-python scripts/encode_reel.py --file X --pick 29                # sauter la validation
+python3 scripts/encode_reel.py --file X --dry-run    # analyse seule, rien n'est encodé
+python3 scripts/encode_reel.py --file X --pick 29    # sauter la page de comparaison
 ```
 
-Installation de la tâche planifiée (une seule fois) :
+Installation (une seule fois) : `brew install ffmpeg`. Le script vérifie au démarrage que
+ffmpeg est là et qu'il contient les deux encodeurs nécessaires (`libsvtav1`, `libx264`).
 
-```
-powershell -ExecutionPolicy Bypass -File scripts\watch_reel_dropbox.ps1 -Setup
-```
-
-Journal : `scripts/reel-encode.log`. **C'est le seul retour d'une tâche planifiée** — c'est là
-qu'il faut regarder si un encodage semble ne pas être parti.
+Jusqu'en septembre 2026, l'encodage tournait sur un poste Windows via une tâche planifiée qui
+surveillait un dossier Google Drive (`Demos/_to-web`), avec un onglet **Reel** dans l'admin
+pour suivre l'avancement à distance. Tout ça est parti avec ce poste : le reel change à peu
+près une fois par an, et une commande lancée devant la machine qui travaille suffit.
 
 ### Notes
 
-- ffmpeg n'est pas installé au niveau système ; le pipeline utilise celui fourni avec Shutter
-  Encoder (`C:\Program Files\Shutter Encoder\Library`). La variable `FFMPEG_BIN` permet de
-  pointer ailleurs.
+- ffmpeg vient de Homebrew (`brew install ffmpeg`). Les variables `FFMPEG_BIN` et
+  `FFPROBE_BIN` permettent de pointer vers un autre build.
 - Toujours repartir du master d'origine, jamais d'une version déjà compressée : réencoder
   depuis un fichier compressé ne restitue pas le détail perdu, ça ne fait que lisser les
   artefacts.
 - La chaîne `codecs="av01..."` dans `index.html` doit correspondre au fichier. Si elle est
-  fausse, Safari ignore l'AV1 sans rien dire et bascule sur le H.264. Le script affiche la
-  bonne chaîne à la fin de chaque encodage.
+  fausse, Safari ignore l'AV1 sans rien dire et bascule sur le H.264. Le script l'écrit
+  lui-même dans `index.html` à la fin de chaque encodage.
 - Chaque remplacement de reel laisse l'ancien fichier dans l'historique git pour toujours. Le
   dépôt grossit donc à chaque mise à jour ; à surveiller sur la durée.
 

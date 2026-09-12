@@ -75,8 +75,8 @@
      fallback for Safari <=16 / iOS <=16, which can't decode AV1.
 
      The codecs="av01..." string is load-bearing: if it doesn't match the file, Safari
-     silently skips AV1 and drops to the fallback. scripts/encode_reel.py prints the
-     correct string for whatever it just encoded — paste it, don't guess it.
+     silently skips AV1 and drops to the fallback. scripts/encode_reel.py writes the
+     correct string for whatever it just encoded into this tag itself — don't guess it.
 
      preload="metadata", NOT "auto" — changed Aug 2026 after an audit. preload="auto"
      invites the browser to fetch as much of the reel as it can the moment the page
