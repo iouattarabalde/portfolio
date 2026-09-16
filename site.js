@@ -545,26 +545,3 @@ function initLangToggle(onChange) {
     if (onChange) onChange(isFr());
   });
 }
-
-// ---------------------------------------------------------------------------
-// Applies the admin-editable visual settings (Design tab -> data/design.json) on top of
-// style.css's defaults: reel halo intensity/size/falloff, grain level, background colour.
-//
-// Silently no-ops if the file doesn't exist yet (first use, before any admin save) —
-// the CSS defaults in :root already match this file's own defaults exactly, so a missing
-// file is indistinguishable from a saved default. The halo variables are inert on pages
-// with no reel (project.html), so all five are applied everywhere rather than
-// maintaining a per-page subset that has to be kept in sync by hand.
-function applyDesignSettings() {
-  return fetch('data/design.json')
-    .then((r) => r.json())
-    .then((d) => {
-      const root = document.documentElement.style;
-      if (d.haloIntensity != null) root.setProperty('--halo-intensity', d.haloIntensity);
-      if (d.haloSize != null) root.setProperty('--halo-size', d.haloSize);
-      if (d.haloFalloff != null) root.setProperty('--halo-falloff', d.haloFalloff);
-      if (d.grainLevel != null) root.setProperty('--grain-level', d.grainLevel);
-      if (d.bg) root.setProperty('--bg', d.bg);
-    })
-    .catch(() => {});
-}

@@ -46,14 +46,15 @@
   --dur-morph: 420ms;      /* the lightbox growing out of its tile; closing uses ~80% of it (see the view-transition rules below) */
   --dur-page: 280ms;       /* crossfade between pages, and the backdrop behind the lightbox */
 
-  /* Admin-adjustable via Design tab sliders (data/design.json, applied by inline script
-     in index.html/project.html) — Aug 2026. Defaults below are 1 (no change) everywhere
-     so the site looks identical to before this existed until an admin value is actually
-     saved. --bg is already above and reused directly, not duplicated here. */
-  --halo-intensity: 1;  /* multiplies the reel halo's shadow opacity */
-  --halo-size: 1;       /* multiplies the reel halo's blur+spread radius (all 3 shadow layers) */
-  --halo-falloff: 1;    /* multiplies only the outermost/faintest shadow layer's extent — how far the tail reaches, independent of overall size */
-  --grain-level: 1;     /* multiplies dither-layer opacity (anti-banding noise around the halo) */
+  /* Reel halo and page grain. These were tuned with sliders in the admin's Design tab
+     (Aug 2026) and loaded from data/design.json on every page, after first paint — so each
+     page first drew the grain at 1 and the halo at its defaults, then switched a moment
+     later. The tab was retired in Sept 2026 once the look had settled; the values it had
+     saved live here now and apply from the first frame. Change them here. */
+  --halo-intensity: 2;    /* multiplies the reel halo's shadow opacity */
+  --halo-size: 0.5;       /* multiplies the reel halo's blur+spread radius (all 3 shadow layers) */
+  --halo-falloff: 1;      /* multiplies only the outermost/faintest shadow layer's extent — how far the tail reaches, independent of overall size */
+  --grain-level: 0.4;     /* opacity of the page-wide grain texture, 0-1 */
 
   /* Shared turbulence-noise texture, now used only by .grain-overlay (defined further
      down, by .sr-only). Previously split across three separate scoped grain layers
@@ -351,13 +352,9 @@ a, button { -webkit-tap-highlight-color: transparent; }
    #work-height-dependent .ambient-glow. z-index:-1, same stacking approach the removed
    layers used — only shows through wherever there's no opaque foreground (photos,
    text, UI), not painted over content, just no longer confined to small bleeds.
-   Two stacked layers (the element itself + its own ::after) rather than one, so the
-   admin's grain slider has real range across its full 0-2: CSS opacity clamps at 1, so
-   a single layer alone would do nothing for the whole top half of that range once
-   --grain-level passed 1. The base layer covers 0-1 (min() clamps it there), the
-   ::after layer fades in from 0 over 1-2 (max() keeps it at 0 below that), offset by
-   half a tile (90px) so the two don't just perfectly overlap — stacking them reads as
-   genuinely denser grain, not merely "the same texture more opaque". */
+   There used to be a second, offset copy of the texture in ::after, so the admin's grain
+   slider could go past 1.0 (opacity alone stops there). The slider is gone (Sept 2026)
+   and the level sits at 0.4, where that layer was always fully transparent. */
 .grain-overlay {
   position: fixed;
   inset: 0;
@@ -366,17 +363,7 @@ a, button { -webkit-tap-highlight-color: transparent; }
   background-image: var(--noise-svg);
   background-repeat: repeat;
   background-size: 180px 180px;
-  opacity: min(var(--grain-level), 1);
-}
-.grain-overlay::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: var(--noise-svg);
-  background-repeat: repeat;
-  background-size: 180px 180px;
-  background-position: 90px 90px;
-  opacity: max(var(--grain-level) - 1, 0);
+  opacity: var(--grain-level);
 }
 
 /* Language toggling — English is default, French shown when body has .lang-fr.
@@ -652,11 +639,10 @@ body.same-doc-transition .site-nav {
 
 /* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle.
    Scale+fade in slightly after the frame itself, like they're snapping into focus once
-   the frame has settled — requested Aug 2026. Animates TO 0.35, the same
-   admin-configurable value the static opacity already used, so the Design tab's
-   grain/halo sliders still control the resting state correctly once the entrance
-   finishes; backwards fill-mode shows the (invisible) from-state during the delay
-   instead of flashing full brackets before the delayed start.
+   the frame has settled — requested Aug 2026. Animates TO 0.35, the resting opacity
+   set just below, so nothing jumps when the entrance finishes; backwards fill-mode shows
+   the (invisible) from-state during the delay instead of flashing full brackets before
+   the delayed start.
    On the shared scale since Sept 2026 (was 0.5s on the `ease-out` keyword, alongside the
    frame's own entrance above). --dur-enter-sm is the same token the lightbox palette
    uses: both are small, secondary things arriving after something larger.

@@ -14,15 +14,16 @@ les cas qui sortent de l'admin.
 |---|---|---|
 | Ajouter un nouveau projet | Admin → Projets → **+ Nouveau projet** | Entre 9 et 30 stills, idéalement un multiple de 3 |
 | Modifier titre / type / réalisation / DP d'un projet | Admin → Projets → cliquer le projet | |
-| Réordonner les projets sur la page d'accueil | Admin → Projets, glisser-déposer | Sauvegarde automatique |
-| Réordonner ou retirer des images dans un projet | Admin → ouvrir le projet, glisser-déposer | Retirer une image ne supprime pas le fichier ; le bouton **Nettoyer** (Admin → Projets) efface ceux qui ne servent plus, voir "fichiers orphelins" plus bas |
+| Réordonner les projets sur la page d'accueil | Admin → Projets, glisser une carte (au doigt : appui long) | Enregistré tout seul dès que tu arrêtes de bouger les cartes, en un seul commit ; **Annuler** dans la notification remet l'ordre d'avant |
+| Ajouter, réordonner, remplacer ou retirer des images dans un projet | Admin → ouvrir le projet ; glisser des fichiers depuis le Finder sur la galerie, glisser les images pour réordonner, boutons sur chaque image | Les fichiers retirés ou remplacés sont effacés du dépôt au même enregistrement, avec leurs variantes |
 | Recadrer/repositionner une vignette (le sujet est mal centré sur la grille) | Admin → ouvrir le projet → clique/glisse sur la vignette | Ne coupe pas l'image, ça déplace juste le point de focus utilisé pour les deux formats du site (16:9 desktop, 1:1 mobile) |
-| Annuler ma dernière modif de projet | Admin → Projets → bouton **Annuler** | Ne touche pas aux images uploadées |
-| Changer courriel / localisation / dispo / Instagram / photo / bio de contact | Admin → Coordonnées | La bio est de nouveau affichée sur le site depuis la refonte de septembre 2026 |
-| Changer un texte du site (nav, titres, étiquettes) | Admin → Textes du site | |
-| Ajouter ou retirer un type de projet (AD, MV, etc.) | Admin → Textes du site → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
-| Vérifier le rendu mobile avant de publier | Admin → Design → bascule Desktop/Mobile | L'aperçu reflète aussi tes réglages non enregistrés (halo, grain, fond) |
-| Ajuster l'intensité/taille/étalement du halo du reel, le grain (texture appliquée sur tout le site), ou la couleur de fond | Admin → Design → curseurs en haut de l'onglet | Rien ne se publie tant que tu n'as pas cliqué Enregistrer ; Réinitialiser remet les valeurs par défaut dans l'aperçu (sans publier) |
+| Supprimer un projet | Admin → ouvrir le projet → **Supprimer le projet** | Pas de confirmation : **Annuler** dans la notification pendant 6 secondes, la suppression n'est faite qu'après |
+| Utiliser une image de la galerie comme vignette | Admin → ouvrir le projet → bouton « Définir comme vignette » sur l'image | L'image quitte la galerie (une vignette n'est pas aussi dans sa galerie) |
+| Changer courriel / localisation / dispo / Instagram / photo / bio de contact | Admin → Réglages | La bio est de nouveau affichée sur le site depuis la refonte de septembre 2026 |
+| Changer un texte du site (nav, titres, étiquettes) | Admin → Réglages → Avancé | |
+| Ajouter ou retirer un type de projet (AD, MV, etc.) | Admin → Réglages → Avancé → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
+| Savoir si une modification est en ligne | L'étiquette à côté de « Admin » | « Publication… » puis « En ligne ✓ » quand le site sert la nouvelle version |
+| Ajuster le halo du reel, le grain ou la couleur de fond | **Pas dans l'admin** (depuis sept. 2026) | Variables `--halo-*`, `--grain-level` et `--bg` en tête de `style.css` — demander à Claude |
 | Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
 | Remplacer le reel principal (vidéo hero) | Terminal sur le Mac : `python3 scripts/encode_reel.py --file "master.mov"` | Ouvre une page pour choisir le grain, encode, met à jour `index.html`, puis demande avant de commit et push. Voir "Vidéo du reel" |
 | Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
@@ -68,10 +69,9 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `project.html` | Gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json` |
 | `data/projects.json` | Source de vérité pour tous les projets : titre, type, réalisation, DP, vignette, galerie ordonnée |
 | `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram |
-| `data/design.json` | Réglages visuels éditables depuis Admin → Design : intensité/taille/étalement du halo du reel, niveau de grain, couleur de fond. Absent = valeurs par défaut (identiques aux valeurs codées dans `style.css`) |
 | `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
 | `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin. Versionné en cache-buster (`?v=N`), sur le même numéro que `style.css` et `site.js` |
-| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()`, `initLangToggle()` et `applyDesignSettings()`. Chacun existait auparavant en deux ou trois copies recopiées à la main. Versionné en cache-buster (`?v=N`) comme `style.css` et `i18n.js`, sur le même numéro |
+| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()` et `initLangToggle()`. Chacun existait auparavant en deux ou trois copies recopiées à la main. Versionné en cache-buster (`?v=N`) comme `style.css` et `i18n.js`, sur le même numéro |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
 | `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`, le même numéro que `site.js` et `i18n.js`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
 | `video/reel.av1.mp4` | Reel auto-hébergé, **source principale** (AV1 10 bits — voir "Vidéo du reel") |
@@ -176,7 +176,7 @@ suivent toujours le doigt mais changent d'image ou se referment sans animation.
 
 ## Catégories de projet
 
-Liste actuelle (éditable dans l'admin, sous "Textes du site → Types de projet") :
+Liste actuelle (éditable dans l'admin, sous « Réglages → Avancé → Types de projet ») :
 
 | Code | Acronyme EN / FR | Libellé EN / FR |
 |---|---|---|
@@ -260,22 +260,20 @@ l'admin — entièrement dérivé de `projects.json`, comme la grille elle-même
   distincte, absente de la galerie — portée par des champs d'upload séparés dans l'admin,
   mais rien ne vérifie activement qu'elles diffèrent
 
-**Note sur les fichiers orphelins** : retirer une image de la galerie d'un projet dans
-l'admin ne supprime pas le fichier de `assets/`, seulement la référence dans `projects.json`.
-(Supprimer un projet entier, en revanche, efface bien ses images.) Ces fichiers orphelins
-sont invisibles sur le site mais s'accumulent : en août 2026 ils représentaient 669 fichiers
-et 122 MB, presque la moitié des images du repo, hérités des galeries ramenées à 30 stills.
-
-Le bouton **Nettoyer** (Admin → Projets) fait le ménage : il compare `assets/` aux fichiers
-réellement référencés dans `projects.json` et propose d'effacer le reste. À lancer de temps
-en temps, surtout après avoir beaucoup retiré d'images.
+**Note sur les fichiers orphelins** : retirer, remplacer ou déplacer une image, changer une
+vignette ou supprimer un projet efface les fichiers concernés (et leurs variantes) dans le
+même commit que le `projects.json` qui cesse de les référencer. Il ne se crée donc plus de
+fichiers orphelins. Ce n'était pas le cas avant septembre 2026 : en août ils représentaient
+669 fichiers et 122 MB. Le bouton **Nettoyer** qui faisait le ménage a été retiré en septembre
+2026 — il n'avait plus rien à trouver, et une de ses deux utilisations avait effacé 1567
+images encore servies par le site (restaurées depuis l'historique).
 
 ## Bilinguisme et textes éditables
 
 Anglais par défaut, français activé via le bouton FR/EN (mémorisé en `localStorage`,
 partagé entre les pages). Tout le texte du site — navigation, titres, étiquettes de
 types de projet — vient de `data/strings.json` et est éditable dans l'admin
-sous "Textes du site", sans toucher au code.
+sous « Réglages → Avancé », sans toucher au code.
 
 Mécanique : chaque élément bilingue dans le HTML a une paire `<span data-fr data-key="...">`
 / `<span data-en data-key="...">`. Au chargement, `applyStrings()` (dans `i18n.js`) va
@@ -307,22 +305,45 @@ septembre 2026 l'admin passait par l'API Contents, qui n'écrit qu'un fichier pa
 une soirée de curation produisait plus de deux cents commits. Voir le commentaire en tête
 de la couche d'écriture dans `admin/index.html`.)
 
-Section "Projets" en premier sur la page (ajout, recherche, réordonnancement), "Textes
-du site" ensuite. Largeur du tableau de bord : 1400px sur desktop.
+Deux onglets depuis septembre 2026, **Projets** et **Réglages**, après un tri fait sur
+l'historique Git (ce qui servait vraiment) : la recherche, le tri, la vue liste, les flèches
+↑/↓, le bouton d'annulation, **Nettoyer** et tout l'onglet **Design** ont été retirés.
 
-Permet de :
-- Ajouter / modifier / supprimer des projets (titre, type, réalisation, DP)
-- Rechercher/filtrer la liste de projets par titre ou type
-- Ouvrir un projet sur le site en direct depuis sa ligne ("Voir")
-- Glisser-déposer pour réordonner les projets sur la page d'accueil (sauvegarde automatique)
-- Uploader des images, compressées automatiquement (canvas, JPEG qualité 0.85, taille max
-  selon l'usage : 1200px pour les vignettes de projet, 1920px pour les stills de galerie,
-  800px pour la photo de contact — chacune n'est jamais affichée plus grande que ça)
-- Glisser-déposer pour réordonner la galerie d'un projet
-- Modifier tous les textes du site — coordonnées, navigation, titres, et les
-  acronymes/libellés de chaque type de projet, en français et en anglais
-- Annuler le dernier changement sur les projets (relit l'historique Git de `projects.json`
-  et republie la version précédente comme nouveau commit — ne touche pas aux images)
+**Projets** : une grille dans l'ordre de la page d'accueil. Cliquer une carte ouvre le
+projet ; la petite flèche l'ouvre sur le site. Glisser une carte la déplace (au doigt : appui
+long ; au clavier : Alt + flèches), et le nouvel ordre part en **un seul commit** quand les
+cartes arrêtent de bouger — il en partait un par déplacement avant.
+
+**L'éditeur de projet** occupe presque tout l'écran : détails et vignette à gauche, galerie à
+droite, barre d'enregistrement toujours visible.
+- Glisser des images depuis le Finder sur la galerie pour les ajouter, ou sur la vignette pour
+  la remplacer.
+- Chaque image est préparée dès qu'elle est ajoutée (une petite roue tourne sur la vignette) :
+  **Enregistrer** n'a plus qu'à envoyer.
+- **Un JPEG déjà prêt pour le web est envoyé tel quel**, sans recompression : 1920px de large
+  au plus et 700 Ko au plus pour un still (1200px et 400 Ko pour une vignette). Les autres
+  fichiers sont redimensionnés (JPEG qualité 0.9). Les variantes -640/-1280 sont toujours
+  générées.
+- Boutons sur chaque image : **Remplacer** (même position), **Définir comme vignette**,
+  **Retirer** (avec Annuler).
+- ⌘S enregistre, Échap ferme. Quitter avec des changements non enregistrés demande
+  confirmation, y compris en fermant l'onglet.
+
+**Réglages** : coordonnées en haut, types de projet et libellés du site repliés sous
+« Avancé ». Un seul bouton Enregistrer, qui indique s'il reste quelque chose à enregistrer.
+
+**Plusieurs appareils** : l'admin peut être ouvert sur le Mac et le téléphone en même temps
+sans que l'un efface le travail de l'autre. Chaque enregistrement de projets est rejoué sur
+la version de `projects.json` présente au moment du commit ; si le projet ouvert (ou les
+réglages) a changé ailleurs entre-temps, l'admin demande avant de remplacer. En revenant sur
+un onglet resté ouvert, la grille se met à jour toute seule.
+
+**Publication** : l'étiquette à côté du titre suit chaque enregistrement jusqu'à ce que le site
+en ligne serve la nouvelle version (« Publication… » puis « En ligne ✓ »).
+
+**Token** : utiliser un token *fine-grained* limité au dépôt `portfolio`, permission
+« Contents : Read and write » seulement (l'écran de connexion explique comment). Un token
+classique (`ghp_…`) donne accès à tous les dépôts du compte ; l'admin le signale en bas de page.
 
 Pas de bouton "dupliquer" un projet — volontairement retiré, "+ Nouveau projet" suffit.
 
@@ -387,38 +408,25 @@ La validation est un vrai garde-fou : si `projects.json` est cassé (deux projet
 id, une image référencée qui n'existe pas), le robot s'arrête avant de générer quoi que ce
 soit et le lien de partage des projets n'est pas régénéré à partir de données douteuses.
 
-## Aperçu et réglages visuels (onglet Design de l'admin)
+## Halo, grain et couleur de fond
 
-L'admin est organisé en trois onglets (Projets, Textes du site, Design), onglet actif
-mémorisé entre les visites. L'onglet "Design" a eu un premier panneau d'édition visuelle
-complet (couleurs, typographie, grille, mise en page, etc., persistées dans `data/design.json`
-via un fichier `design.js`), retiré le 9 juillet 2026 : trop chargé pour l'usage réel, jugé plus
-overwhelming qu'utile.
+Réglés dans `style.css`, en tête du fichier : `--halo-intensity`, `--halo-size`,
+`--halo-falloff`, `--grain-level` et `--bg`. Ils se réglaient dans l'onglet Design de l'admin
+(août 2026) et étaient chargés depuis `data/design.json` sur chaque page, après le premier
+affichage — le grain et le halo changeaient donc visiblement une fraction de seconde après
+l'ouverture d'une page, et les pages Confidentialité/Conditions ne les recevaient jamais
+(chemin relatif erroné). L'onglet a été retiré en septembre 2026, une fois le rendu fixé ; les
+valeurs qu'il avait enregistrées sont maintenant écrites dans `style.css` (halo 2 / 0.5 / 1,
+grain 0.4) et s'appliquent dès la première image, sur toutes les pages.
 
-Un panneau plus ciblé l'a remplacé depuis (Aug 2026) : curseurs pour l'intensité, la taille et
-l'étalement du halo du reel, le niveau de grain, et un sélecteur de couleur de fond. Les
-changements s'appliquent en direct dans l'aperçu (le vrai site en iframe, bascule
-Desktop/Mobile qui réduit l'iframe à 390px de large pour déclencher les mêmes media queries
-qu'un vrai téléphone) sans rien publier. Seul un clic sur **Enregistrer** écrit dans
-`data/design.json` ; **Réinitialiser** remet les valeurs par défaut dans l'aperçu, sans publier
-non plus.
-
-Le grain a changé de nature en cours de route (Aug 2026) : d'abord un correctif anti-banding
-scopé au halo du reel (`.halo-dither`) et au bas de la section Contact (`.bottom-glow-noise`),
-il est devenu une texture appliquée uniformément sur toute la page (`.grain-overlay`), visible
-sur `index.html` et `project.html`. Le curseur va maintenant jusqu'à 2.0 (au lieu de 1.0) :
-au-delà de 1.0, une seconde couche de la même texture se superpose (décalée d'une demi-tuile)
-pour donner un vrai surplus de densité — une opacité CSS seule plafonne à 1.0 et n'aurait rien
-donné sur la moitié supérieure du curseur sans ce détour.
+Le grain est une texture appliquée uniformément sur toute la page (`.grain-overlay`), qui a
+remplacé en août 2026 les correctifs anti-banding scopés au halo du reel et au bas de la
+section Contact.
 
 Les propriétés de mise en page plus larges (colonnes de grille, ratio des vignettes,
-espacements, typographie, etc.) restent hors de portée de ce panneau. `style.css` gardait
-pour elles l'infrastructure de l'ancien éditeur complet — une trentaine de `var(--nom,
-valeur-d-origine)` que plus rien ne définissait, donc le repli faisait toujours foi. Ces
-variables fantômes ont été retirées en août 2026 et leurs valeurs écrites directement : le
-rendu est identique (vérifié en comparant les styles calculés à 1440/900/680/390 px), mais
-le CSS est nettement plus direct à lire. Si un éditeur visuel plus ciblé redevient utile un
-jour, `git show 0538c4d` remet l'indirection en place.
+espacements, typographie, etc.) sont écrites directement dans `style.css`. Les variables
+fantômes de l'ancien éditeur visuel complet ont été retirées en août 2026 ; `git show
+0538c4d` remet l'indirection en place si un éditeur redevient utile un jour.
 
 ## Carte de partage et favicon
 
