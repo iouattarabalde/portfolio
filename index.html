@@ -35,10 +35,19 @@
 <meta property="og:locale" content="en_CA">
 <meta property="og:locale:alternate" content="fr_CA">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- serves the actual font files, not just the CSS -->
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- The two faces used above the fold, fetched alongside the stylesheet rather than once it has
+     been parsed. Self-hosted since Sept 2026; see "Typefaces" in style.css. -->
+<link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/ibm-plex-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css?v=126">
+<!-- The JSON this page renders from, fetched while the HTML is still parsing rather than
+     once the scripts at the bottom of <body> get round to it (Sept 2026). crossorigin is
+     what makes the preload's request match fetch()'s default same-origin credentials
+     mode; without it the browser would download each file twice. -->
+<link rel="preload" href="data/projects.json" as="fetch" crossorigin>
+<link rel="preload" href="data/strings.json" as="fetch" crossorigin>
+<link rel="preload" href="data/settings.json" as="fetch" crossorigin>
+<link rel="preload" href="data/design.json" as="fetch" crossorigin>
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, which
      is why this loads here in <head> rather than at the end of <body>), plus esc(),
      prefersReducedMotion(), observeReveals(), initLangToggle() and applyDesignSettings()
@@ -46,6 +55,19 @@
      but is only used by project.html's lightbox now.) See site.js for the story on each. -->
 <script src="site.js?v=126"></script>
 <script src="i18n.js?v=126"></script>
+<!-- Prerenders a project page from its card (Sept 2026). In Chrome and Edge, hovering a
+     card for a moment (or starting to tap it) loads that page
+     invisibly, so the click shows it at once instead of waiting on its data and stills.
+     Other browsers ignore this block. Every project is the same template with a different
+     ?project=, so one rule on the pathname covers them all. The gallery's entrance waits for
+     the page to actually be shown; see whenActivated() in site.js. -->
+<script type="speculationrules">
+{
+  "prerender": [
+    { "where": { "href_matches": { "pathname": "/project.html" } }, "eagerness": "moderate" }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -221,13 +243,16 @@
   // ---------------------------------------------------------------
 
   const body = document.body;
-  // Toggle itself lives in site.js; the callback re-renders the three things on this
+  // Toggle itself lives in site.js; the callback refreshes the three things on this
   // page built in JS, which would otherwise keep their old-language labels: the filter
   // bar, the card type tags (AD/PUB, MV/CLIP...), and the footer's category links.
+  // The cards are relabelled in place rather than re-rendered (Sept 2026): rebuilding
+  // the grid threw every card away, so switching language blanked all 32 and replayed
+  // their entrance, for what is a change to one short tag per card.
   initLangToggle(() => {
     renderCategoryFilter();
     renderFooterNav();
-    renderWorkGrid();
+    updateCardLabels();
   });
 
   // Sizes the reel so it exactly fills the space below the sticky nav, fully visible
@@ -280,7 +305,37 @@
   // We re-run the scroll manually from every call site that can move #work or
   // #contact, once each has settled. Idempotent and cheap, so calling it more than
   // once (in case two finish close together) is harmless — the last call wins.
+  //
+  // Coming back through history is different (Sept 2026) — the back button, and "Back to
+  // projects" now too (initBackToGrid() in site.js). The visitor should land where they
+  // left, not at the top of #work. Usually the browser's back/forward cache restores the
+  // page whole and none of this runs. When it can't, the page reloads, and the browser's
+  // own scroll restoration fires before the grid has been built: the page is still too
+  // short to reach the old position, so it stops short (46px in testing) and doesn't try
+  // again. The position is saved per history entry on the way out, and put back here once
+  // each late layout change lands — unless the visitor has already started scrolling.
+  const arrivedThroughHistory = (performance.getEntriesByType('navigation')[0] || {}).type === 'back_forward';
+  function historyScrollKey() {
+    const entry = window.navigation && navigation.currentEntry;
+    return 'iob-scroll:' + (entry ? entry.key : location.href);
+  }
+  window.addEventListener('pagehide', () => {
+    try { sessionStorage.setItem(historyScrollKey(), String(window.scrollY)); } catch (err) { /* storage unavailable: nothing to restore later */ }
+  });
+  let visitorScrolled = false;
+  ['wheel', 'touchstart', 'keydown'].forEach((type) => {
+    window.addEventListener(type, () => { visitorScrolled = true; }, { once: true, passive: true });
+  });
+
   function scrollToHashTarget() {
+    if (arrivedThroughHistory) {
+      let saved = NaN;
+      try { saved = parseFloat(sessionStorage.getItem(historyScrollKey())); } catch (err) { /* see pagehide above */ }
+      if (!visitorScrolled && isFinite(saved) && Math.abs(window.scrollY - saved) > 1) {
+        window.scrollTo({ top: saved, behavior: 'instant' });
+      }
+      return;
+    }
     if (!location.hash) return;
     const target = document.querySelector(location.hash);
     if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
@@ -305,9 +360,14 @@
   // every viewport. Both properties are compositor-only, and both are deliberately the
   // independent transform properties rather than opacity or the transform shorthand,
   // which hero-enter owns for the first 0.8s — see .reel-frame in style.css.
+  //
+  // Only the fallback now (Sept 2026): where scroll-driven animations exist, style.css runs
+  // the same parallax on a view timeline instead and this listener is never registered.
+  // See the note above @keyframes hero-parallax.
   let refreshHeroParallax = () => {};
   const reelFrameEl = document.querySelector('.reel-frame');
-  if (reelFrameEl && !prefersReducedMotion()) {
+  const cssParallax = window.CSS && CSS.supports && CSS.supports('animation-timeline: view()');
+  if (reelFrameEl && !prefersReducedMotion() && !cssParallax) {
     const heroEl = document.querySelector('.hero');
     let parallaxDistance = 1;
     let parallaxTicking = false;
@@ -348,9 +408,22 @@
   // (e.g. a fast cache hit) — 'loadeddata' wouldn't fire again for it. The 'error'
   // fallback keeps a failed load from leaving the poster stuck grayscale forever.
   // Aug 2026.
+  //
+  // Once that fade has finished, .is-settled takes the filter off entirely (Sept 2026).
+  // grayscale(0) looks identical to no filter, but it is still a filter: the browser keeps
+  // running every decoded frame of the reel through it, and a filtered <video> can't be
+  // handed to the system's hardware video path. The timeout is the backstop for a
+  // transitionend that never arrives (a background tab, say).
   const reelVideoEl = document.getElementById('reel-video');
   if (reelVideoEl) {
-    const revealReelColor = () => reelVideoEl.classList.add('is-ready');
+    const settleReelColor = () => reelVideoEl.classList.add('is-settled');
+    const revealReelColor = () => {
+      reelVideoEl.classList.add('is-ready');
+      reelVideoEl.addEventListener('transitionend', (e) => {
+        if (e.propertyName === 'filter') settleReelColor();
+      });
+      setTimeout(settleReelColor, 2000);
+    };
     if (reelVideoEl.readyState >= 2) { // HAVE_CURRENT_DATA — a frame is already available
       revealReelColor();
     } else {
@@ -367,6 +440,34 @@
   const iconMuted = document.getElementById('icon-muted');
   const iconUnmuted = document.getElementById('icon-unmuted');
 
+  // Pauses the reel while the hero is off screen, and picks it back up when it returns
+  // (Sept 2026).
+  //
+  // A muted autoplaying video keeps playing when it's scrolled out of view, and this one
+  // is 1080p 10-bit AV1: measured on the live site, it went on advancing a full second per
+  // second behind the work grid. Chrome decodes AV1 in software on Macs without a
+  // hardware AV1 decoder (every M1 and M2), so browsing the grid meant scrolling on top of
+  // a video decode nobody could see. Paused, it also stops pulling bytes it doesn't need.
+  //
+  // Only while muted. With the sound on, the visitor is watching — or listening while they
+  // browse — and pausing would cut them off. Never in fullscreen either, where the page's
+  // own layout says nothing about whether the video is visible.
+  let reelOnScreen = true;
+  function reelIsFullscreen() {
+    return document.fullscreenElement === reelVideo || (reelVideo && reelVideo.webkitDisplayingFullscreen);
+  }
+  const heroSection = document.querySelector('.hero');
+  if (reelVideo && heroSection && 'IntersectionObserver' in window) {
+    new IntersectionObserver((entries) => {
+      reelOnScreen = entries[entries.length - 1].isIntersecting;
+      if (reelOnScreen) {
+        if (reelVideo.paused) reelVideo.play().catch(() => {});
+      } else if (reelVideo.muted && !reelIsFullscreen()) {
+        reelVideo.pause();
+      }
+    }).observe(heroSection);
+  }
+
   // Explicit play() call, reinforcing the autoplay attribute rather than relying on it
   // alone — reported not autoplaying on mobile, Aug 2026. Re-setting .muted as a live
   // property (not just trusting the initial HTML attribute) matters here: some mobile
@@ -382,7 +483,7 @@
     if (playAttempt && playAttempt.catch) {
       playAttempt.catch(() => {
         const resumeOnInteraction = () => {
-          reelVideo.play().catch(() => {});
+          if (reelOnScreen) reelVideo.play().catch(() => {}); // off screen, the observer above starts it on the way back
         };
         // touchstart/scroll cover the common cases; click and pointerdown are added so a
         // direct tap on the native "tap to play" icon Low Power Mode stamps on the poster
@@ -455,35 +556,36 @@
   }
 
   // Work grid: fetched once from data/projects.json and cached, then rendered into
-  // #work-grid. Re-render (renderWorkGrid) is called again on language toggle above,
-  // which is why the fetched list is cached in a variable instead of only used once.
-  // activeFilter holds a project type code (e.g. 'TV') to show only that category, or
-  // null to show everything — set by clicking a button in the category filter bar.
-  // Each card carries its type/title/credit/index in data-* attributes so the shared
-  // #work-info-bar (desktop-only, see below) can read them straight off whichever card
-  // is hovered without needing its own copy of the project list.
+  // #work-grid. activeFilter holds a project type code (e.g. 'TV') to show only that
+  // category, or null to show everything — set by clicking a button in the category
+  // filter bar. Each card carries its type/title/credit/index in data-* attributes so the
+  // shared #work-info-bar (desktop-only, see below) can read them straight off whichever
+  // card is hovered without needing its own copy of the project list.
   let cachedProjects = null;
   let activeFilter = null;
 
-  // Every render — first load, language toggle, filter change — builds cards that opt
-  // into the shared scroll reveal, so they lift into place instead of appearing. There
-  // used to be a reveal:false path for the filter, because that ran as a View Transition
-  // whose crossfade would have layered on top of the per-card entrance; the filter no
-  // longer uses one, so there's nothing left to opt out of. See observeReveals() in
-  // site.js.
+  // Builds every card, once. Cards opt into the shared scroll reveal, so they lift into
+  // place the first time they're reached — see observeReveals() in site.js.
+  //
+  // Once, and never again for the life of the page (Sept 2026). The filter and the
+  // language toggle both used to call this, and both paid for it the same way: innerHTML
+  // throws every card away, the replacements start at opacity 0, and the whole grid
+  // blanked and lifted back in — including the cards that were on screen before and after
+  // and hadn't changed at all. The filter now hides the cards that don't match
+  // (applyFilter), the toggle relabels them in place (updateCardLabels), and each card
+  // stays the same element from first render to last.
   function renderWorkGrid() {
     const grid = document.getElementById('work-grid');
     if (!grid || !cachedProjects) return;
     const isFr = body.classList.contains('lang-fr');
-    const visible = activeFilter ? cachedProjects.filter((p) => p.type === activeFilter) : cachedProjects;
-    grid.innerHTML = visible.map((p, i) => {
+    grid.innerHTML = cachedProjects.map((p) => {
       const acronym = projectTypeAcronym(p.type, isFr);
       const creditName = p.artist || p.client || '';
       const credit = creditName ? `${creditName} · ${p.director || ''}` : (p.director || '');
       return `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}"
          data-reveal
-         data-index="${i + 1}" data-total="${visible.length}"
+         data-type-code="${esc(p.type)}"
          data-type="${esc(acronym)}" data-title="${esc(p.title)}" data-credit="${esc(credit)}">
         <img class="thumb" src="assets/${esc(p.thumbnail)}" alt="${esc(p.title)}" loading="lazy" style="object-position:${esc(p.thumbnailFocus || '50% 50%')};">
         <div class="work-card-meta">
@@ -494,21 +596,60 @@
       </a>
     `;
     }).join('');
+    applyFilter();
     observeReveals(grid);
+  }
+
+  // Shows the cards matching activeFilter and hides the rest, then renumbers the visible
+  // ones for the info bar's "06 / 32". A hidden card is display:none (see
+  // .work-card[hidden] in style.css), so it takes no grid cell, no tab stop and no
+  // IntersectionObserver entry until it comes back.
+  function applyFilter() {
+    const cards = document.querySelectorAll('#work-grid .work-card:not(.work-card-ghost)');
+    let shown = 0;
+    cards.forEach((card) => {
+      const match = !activeFilter || card.dataset.typeCode === activeFilter;
+      card.hidden = !match;
+      if (match) card.dataset.index = String(++shown);
+    });
+    cards.forEach((card) => { card.dataset.total = String(shown); });
+  }
+
+  // Rewrites each card's type tag for the current language, on the existing elements.
+  function updateCardLabels() {
+    const isFr = body.classList.contains('lang-fr');
+    document.querySelectorAll('#work-grid .work-card:not(.work-card-ghost)').forEach((card) => {
+      const acronym = projectTypeAcronym(card.dataset.typeCode, isFr);
+      card.dataset.type = acronym;
+      const tag = card.querySelector('.type');
+      if (tag) tag.textContent = acronym;
+    });
   }
 
   // Shared bottom info bar (desktop/hover-capable only — hidden entirely on touch via
   // CSS, see .work-info-bar in style.css): replaces the old always-in-DOM per-card
   // caption on non-touch devices, showing whichever card is currently hovered/focused
-  // instead. Wired once via event delegation on #work-grid, so it survives every
-  // re-render (filter change, language toggle) without needing to be rewired. The bar
-  // itself (background/border) always stays visible — only #info-bar-content fades in
-  // and out, so the black strip along the bottom edge never flickers away between cards.
+  // instead. Wired once via event delegation on #work-grid. The bar itself
+  // (background/border) always stays visible — only #info-bar-content fades in and out,
+  // so the black strip along the bottom edge never flickers away between cards.
+  //
+  // The same delegation drives the hover dim (Sept 2026): .is-dimming on the grid and
+  // .is-current on the card being looked at, instead of the pure-CSS :hover pair this
+  // used to be. The CSS version couldn't tell "between two cards" from "off the grid":
+  // crossing the 6px gap from one card to the next matched .work-grid:hover with no card
+  // hovered, so every card dimmed for a frame or two and the info bar started fading out,
+  // then both reversed. Here the current card only changes when the pointer reaches
+  // another card, and everything clears only when it leaves the grid itself.
   const workGridEl = document.getElementById('work-grid');
   const infoBarContent = document.getElementById('info-bar-content');
+  let currentCard = null;
   function updateWorkInfoBar(card) {
+    if (currentCard && currentCard !== card) currentCard.classList.remove('is-current');
+    currentCard = card;
+    if (workGridEl) workGridEl.classList.toggle('is-dimming', !!card);
     if (!infoBarContent) return;
     if (!card) { infoBarContent.classList.remove('visible'); return; }
+    card.classList.add('is-current');
     document.getElementById('info-bar-type').textContent = card.dataset.type || '';
     document.getElementById('info-bar-title').textContent = card.dataset.title || '';
     document.getElementById('info-bar-credit').textContent = card.dataset.credit || '';
@@ -516,21 +657,24 @@
     infoBarContent.classList.add('visible');
   }
   if (workGridEl) {
-    workGridEl.addEventListener('mouseover', (e) => {
+    // Mouse only: a touch or pen "hover" is the tap itself, and touch devices have no bar.
+    workGridEl.addEventListener('pointerover', (e) => {
+      if (e.pointerType !== 'mouse') return;
       const card = e.target.closest('.work-card');
-      if (card) updateWorkInfoBar(card);
+      if (card && card !== currentCard) updateWorkInfoBar(card);
     });
-    workGridEl.addEventListener('mouseout', (e) => {
-      const card = e.target.closest('.work-card');
-      if (card && !card.contains(e.relatedTarget)) updateWorkInfoBar(null);
+    workGridEl.addEventListener('pointerleave', (e) => {
+      if (e.pointerType === 'mouse') updateWorkInfoBar(null);
     });
+    // Keyboard focus only. A mouse click focuses the link too, and would otherwise leave
+    // the grid dimmed around that card when the visitor comes back to this page.
     workGridEl.addEventListener('focusin', (e) => {
       const card = e.target.closest('.work-card');
-      if (card) updateWorkInfoBar(card);
+      if (card && card.matches(':focus-visible')) updateWorkInfoBar(card);
     });
     workGridEl.addEventListener('focusout', (e) => {
       const card = e.target.closest('.work-card');
-      if (card && !card.contains(e.relatedTarget)) updateWorkInfoBar(null);
+      if (card && !workGridEl.contains(e.relatedTarget)) updateWorkInfoBar(null);
     });
   }
 
@@ -574,6 +718,121 @@
     );
   }
 
+  // Animates a filter change on the cards themselves (Sept 2026), the same FLIP as the
+  // info bar above: read where every on-screen card is, apply the change, read where each
+  // landed, and play the difference back.
+  //
+  // Three kinds of card come out of one change, and each gets its own motion:
+  //   - Stayed visible: slides from its old cell to its new one. Nothing about it fades,
+  //     because nothing about it changed — it just moved.
+  //   - Left: hidden cards take no layout, so they can't fade in place. A detached copy is
+  //     left over the cell it occupied, fading and shrinking slightly while the survivors
+  //     slide in under it, then removed. That lets the change happen on the click frame
+  //     rather than after an exit animation has finished — the grid starts answering
+  //     immediately.
+  //   - Arrived on screen (newly shown, or moved up from below the fold): fades and
+  //     settles in from 96% on a short stagger. It's claimed from the scroll reveal first
+  //     (settleReveal() in site.js) so it doesn't also lift in a moment later.
+  //
+  // Only cards on screen before or after are animated; the rest simply take their places.
+  // A click that lands mid-animation reads the cards where they visibly are and cancels
+  // what was running, so rapid filter changes redirect smoothly rather than jumping.
+  const gridAnimations = new WeakMap();
+  function withGridFlip(applyChange) {
+    const grid = document.getElementById('work-grid');
+    if (!grid || prefersReducedMotion()) {
+      applyChange();
+      return;
+    }
+    const viewportH = window.innerHeight;
+    const onScreen = (r) => r.bottom > 0 && r.top < viewportH && r.width > 0;
+    const cards = Array.from(grid.querySelectorAll('.work-card:not(.work-card-ghost)'));
+
+    const before = new Map();
+    cards.forEach((card) => {
+      if (card.hidden) return;
+      const rect = card.getBoundingClientRect();
+      if (onScreen(rect)) before.set(card, { rect, opacity: getComputedStyle(card).opacity });
+    });
+    cards.forEach((card) => {
+      (gridAnimations.get(card) || []).forEach((a) => a.cancel());
+      gridAnimations.delete(card);
+    });
+    grid.querySelectorAll('.work-card-ghost').forEach((ghost) => ghost.remove());
+
+    applyChange();
+
+    const rootStyles = getComputedStyle(document.documentElement);
+    const easeOut = rootStyles.getPropertyValue('--ease-out').trim() || 'ease-out';
+    const moveMs = parseFloat(rootStyles.getPropertyValue('--dur-grid-move')) || 360;
+    const enterMs = parseFloat(rootStyles.getPropertyValue('--dur-ui')) || 320;
+    const gridRect = grid.getBoundingClientRect();
+    let entering = 0;
+
+    cards.forEach((card) => {
+      const old = before.get(card);
+      if (card.hidden) {
+        if (!old) return;
+        const ghost = card.cloneNode(true);
+        ghost.hidden = false;
+        ghost.removeAttribute('href');
+        ghost.removeAttribute('data-reveal');
+        ghost.classList.remove('is-current');
+        ghost.classList.add('work-card-ghost');
+        ghost.setAttribute('aria-hidden', 'true');
+        Object.assign(ghost.style, {
+          left: (old.rect.left - gridRect.left) + 'px',
+          top: (old.rect.top - gridRect.top) + 'px',
+          width: old.rect.width + 'px',
+          height: old.rect.height + 'px'
+        });
+        grid.appendChild(ghost);
+        ghost.animate(
+          [{ opacity: old.opacity, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }],
+          { duration: enterMs * 0.6, easing: easeOut, fill: 'forwards' }
+        ).finished.then(() => ghost.remove(), () => {});
+        return;
+      }
+      const rect = card.getBoundingClientRect();
+      // A card that stayed visible animates if it was on screen before or is after, so
+      // one pushed down past the fold slides out of view rather than vanishing.
+      if (!old && !onScreen(rect)) return;
+      let animation;
+      if (old) {
+        const dx = old.rect.left - rect.left;
+        const dy = old.rect.top - rect.top;
+        if (!dx && !dy) return;
+        animation = card.animate(
+          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
+          { duration: moveMs, easing: easeOut }
+        );
+      } else {
+        // A card whose photo isn't ready yet is left to the scroll reveal, which waits for
+        // the decode; fading in here would fade in an empty frame.
+        const img = card.querySelector('img');
+        const ready = card.classList.contains('is-revealed') || (img && img.complete && img.naturalWidth);
+        if (!ready) return;
+        settleReveal(card);
+        animation = card.animate(
+          [{ opacity: 0, transform: 'scale(0.96)' }, { opacity: 1, transform: 'none' }],
+          { duration: enterMs, easing: easeOut, delay: 60 + entering++ * 20, fill: 'backwards' }
+        );
+      }
+      gridAnimations.set(card, [animation]);
+    });
+  }
+
+  // Returning to this page from the back/forward cache (Sept 2026 — the usual way back from
+  // a project now, see initBackToGrid() in site.js). The page comes back exactly as it was
+  // left, which includes two things that shouldn't survive the trip: the hover state of the
+  // card that was clicked, with the rest of the grid still dimmed around it, and a reel the
+  // browser paused on the way out.
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    updateWorkInfoBar(null);
+    if (reelVideo && reelOnScreen && reelVideo.paused) reelVideo.play().catch(() => {});
+  });
+
   // Resize handling is rAF-throttled to match the scroll listener's pattern above —
   // without this, sizeReel ran once per resize event with no limit, unlike the scroll
   // handler which is deliberately throttled. Aug 2026.
@@ -613,8 +872,9 @@
 
   // Category filter bar: rendered from buildFilterItems() as a slash-separated list of
   // plain text buttons (no chip/pill styling) — rebuilt on language toggle since the
-  // labels are bilingual. Clicking one just sets activeFilter and re-renders the grid;
-  // it doesn't refetch anything, filtering happens against the already-cached list.
+  // labels are bilingual. Clicking one sets activeFilter, moves the .active mark in place
+  // and animates the grid into its filtered state; it doesn't refetch or rebuild anything.
+  // The bar and the cards FLIP inside the same change, so both read one layout.
   function renderCategoryFilter() {
     const container = document.getElementById('category-filter');
     if (!container) return;
@@ -626,10 +886,18 @@
     `).join('');
     container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
-        activeFilter = btn.dataset.filter || null;
-        renderCategoryFilter();
-        withInfoBarSlide(renderWorkGrid);
+        const next = btn.dataset.filter || null;
+        if (next === activeFilter) return;
+        activeFilter = next;
+        syncFilterButtons();
+        withInfoBarSlide(() => withGridFlip(applyFilter));
       });
+    });
+  }
+
+  function syncFilterButtons() {
+    document.querySelectorAll('#category-filter button').forEach((btn) => {
+      btn.classList.toggle('active', (btn.dataset.filter || null) === activeFilter);
     });
   }
 
@@ -655,8 +923,8 @@
     container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeFilter = btn.dataset.filter || null;
-        renderCategoryFilter(); // keeps the bar at the top showing the same active choice
-        renderWorkGrid();
+        syncFilterButtons(); // keeps the bar at the top showing the same active choice
+        applyFilter();
         document.getElementById('work').scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
       });
     });

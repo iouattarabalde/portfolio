@@ -1,8 +1,8 @@
 # ismaelob.com
 
 Portfolio d'Ismael OB, coloriste basé à Montréal. Site statique, hébergé sur GitHub Pages,
-sans build step ni dépendances npm — tout ce qui n'est pas HTML/CSS/JS maison (les polices)
-est chargé depuis un CDN au moment de l'exécution.
+sans build step ni dépendances npm, et sans ressource externe : même les polices sont servies
+par le site lui-même (dossier `fonts/`, depuis septembre 2026).
 
 ## Tâches courantes — par où commencer
 
@@ -77,6 +77,7 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `video/reel.av1.mp4` | Reel auto-hébergé, **source principale** (AV1 10 bits — voir "Vidéo du reel") |
 | `video/reel.mp4` | Même reel en H.264, filet de compatibilité pour Safari ≤16 / iOS ≤16 |
 | `assets/` | Stills et vignettes des projets |
+| `fonts/` | Les deux polices du site (Space Grotesk, IBM Plex Mono) en WOFF2, sous-ensembles latin et latin-ext, licence SIL OFL. Déclarées dans `style.css` (section « Typefaces »). Servies depuis le site plutôt que Google Fonts depuis septembre 2026 : une connexion de moins au premier chargement, et plus aucun décalage du texte quand la police arrive. Pour remplacer une police, changer aussi le nom du fichier (ces fichiers n'ont pas de cache-buster) |
 | `assets/og/` | **Généré**, ne pas éditer à la main : une image de partage 1200×630 par projet |
 | `project/` | **Généré**, ne pas éditer à la main : une coquille HTML par projet, qui porte les balises Open Graph que les crawlers lisent puis redirige vers la vraie page |
 | `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément des cache-busters. Contient aussi le script d'encodage du reel (`encode_reel.py`), lancé à la main sur le Mac et pas dans la CI |
@@ -122,6 +123,13 @@ visible, la sienne est donc déjà à portée de clic.
 Un ancien formulaire (`intake-form.html`) a été retiré : sans backend, il ne faisait que
 construire un lien `mailto:`, sans réel avantage sur un lien courriel direct.
 
+**Retour aux projets** (sept. 2026) : sur une page projet, « ← Retour aux projets » et le lien
+« Projets » de la barre de navigation reviennent en arrière dans l'historique quand la grille
+y est déjà (même après plusieurs « Projet suivant »), au lieu de recharger l'accueil. La page
+revient telle qu'elle a été quittée : même position dans la grille, reel au même endroit. Si
+la grille n'est pas dans l'historique (lien partagé, nouvel onglet), le lien se comporte
+normalement. Voir `initBackToGrid()` dans `site.js`.
+
 ## Zones tactiles
 
 Tous les contrôles des pages publiques (navigation, bascule FR/EN, filtres de la grille,
@@ -140,6 +148,31 @@ L'espacement de cette rangée diffère selon la langue (30px en anglais, 24px en
 les acronymes n'ont pas la même longueur, donc ni le minimum (ne pas faire se chevaucher
 deux cibles) ni le maximum (tenir sur une ligne) ne tombent au même endroit. Le tableau
 des valeurs est dans `style.css` — à recalculer si un acronyme change dans l'admin.
+
+## Animations et fluidité (sept. 2026)
+
+Toutes les durées et courbes d'animation sont des variables en tête de `style.css` (`--dur-*`,
+`--ease-*`, `--reveal-*`). Quelques règles tiennent le site fluide et sont faciles à défaire
+sans le savoir :
+
+- **Couleur d'accent** : mise à jour 4 fois par seconde, et jamais pendant un défilement.
+  Chaque changement oblige le navigateur à recalculer le style de toute la page (~4 ms sur un
+  MacBook, davantage sur un téléphone). Voir `site.js`.
+- **Parallaxe du reel** : animation CSS liée au défilement là où le navigateur la supporte, donc
+  parfaitement synchronisée avec le scroll ; l'ancienne version JS ne sert plus que de repli.
+- **Survol** : les effets de survol ne s'appliquent qu'aux appareils qui ont un vrai survol
+  (souris, trackpad). Sur écran tactile, ils restaient « collés » après un tap.
+- **Appui** : chaque bouton réagit dès qu'on appuie (léger enfoncement, ou atténuation pour les
+  liens texte). Les vignettes ne s'enfoncent qu'à la souris : au doigt, presque chaque
+  défilement commence sur une vignette.
+- **Lightbox et changements de page** : durées et courbes propres au site plutôt que celles par
+  défaut du navigateur (section « Timing for every view transition » de `style.css`).
+- **Apparition au défilement** : 560 ms, 12 px de montée, décalage de 40 ms entre éléments.
+
+Pour les visiteurs qui ont activé « Réduire les animations » dans leur système, les apparitions,
+la parallaxe, les zooms, les glissements du filtre et les transitions du lightbox sont
+désactivés. Restent le léger retour d'appui sur les boutons et les gestes au doigt, qui
+suivent toujours le doigt mais changent d'image ou se referment sans animation.
 
 ## Catégories de projet
 
@@ -173,6 +206,12 @@ le HTML, masqué, pour les lecteurs d'écran et les moteurs de recherche). Gén�
 (`renderCategoryFilter` dans `index.html`) à partir des mêmes types de projet, pas de
 configuration séparée.
 
+**Changer de filtre ou de langue** (sept. 2026) : la grille est construite une seule fois.
+Un filtre masque les vignettes qui ne correspondent pas ; celles qui restent glissent vers leur
+nouvelle place, celles qui partent s'estompent, et les nouvelles apparaissent en fondu. La
+bascule FR/EN ne fait que réécrire les étiquettes. Avant, les deux reconstruisaient toute la
+grille, qui disparaissait et réapparaissait d'un bloc.
+
 **Barre d'infos** (Aug 2026, ordinateur seulement) : survoler une vignette assombrit
 légèrement toutes les autres et affiche son type, son titre, ses crédits et sa position
 (`06 / 32`) dans une barre noire fixée en bas de la grille. Elle remplace la légende qui
@@ -191,7 +230,17 @@ dans les crédits.
 
 **Lightbox** : flèches à l'écran + flèches du clavier (←/→) pour naviguer entre les stills,
 boucle entre la première et la dernière image. Le curseur reste normal partout dans le
-lightbox sauf sur les boutons cliquables (Close, flèches).
+lightbox sauf sur les boutons cliquables (Close, flèches). La page derrière ne défile plus
+pendant que le lightbox est ouvert (sept. 2026).
+
+Au doigt (sept. 2026), l'image suit le geste : glisser sur le côté passe à l'image voisine (ou
+revient en place si le geste est trop court), glisser vers le bas referme le lightbox et
+l'image rétrécit jusqu'à sa vignette, comme dans l'app Photos.
+
+**Ouverture instantanée** (sept. 2026, Chrome et Edge) : survoler une vignette de la grille
+ou la carte « Projet suivant » prépare la page projet en arrière-plan, et le clic l'affiche
+aussitôt. Les autres navigateurs ignorent simplement la règle (`<script type="speculationrules">`
+dans `index.html` et `project.html`).
 
 **Projet suivant** (Aug 2026) : carte cliquable en bas de page, à droite des crédits (empilée
 sous les crédits et alignée à droite sur mobile), pour sauter directement au projet suivant
@@ -396,7 +445,12 @@ dans `style.css`). Si ce n'était pas exactement l'image de départ, le passage 
 lecture ferait un saut visible.
 
 Le reel démarre muet (l'autoplay l'exige dans tous les navigateurs) ; le bouton son active un
-vrai son sur mobile comme sur ordinateur. Le mix n'est jamais normalisé au réencodage — c'est
+vrai son sur mobile comme sur ordinateur. Tant qu'il est muet, il se met en pause quand il sort
+de l'écran et reprend quand on remonte (sept. 2026) : sinon le navigateur continue de décoder
+la vidéo pendant qu'on parcourt la grille. Avec le son activé, il continue de jouer.
+
+Sur téléphone en portrait, le hero s'ajuste à la hauteur du reel, affiché d'un bord à l'autre,
+pour que les filtres et la première rangée de projets soient visibles dès l'arrivée. Le mix n'est jamais normalisé au réencodage — c'est
 un choix artistique, on le transporte tel quel.
 
 ### Pourquoi deux fichiers, et pourquoi de l'AV1

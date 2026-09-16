@@ -61,18 +61,50 @@
     return '#' + hex2(r) + hex2(g) + hex2(bl);
   }
 
-  var UPDATE_INTERVAL_MS = 120; // ~8x/sec — imperceptibly different from every frame for a 60s cycle, but ~8x less work (each update triggers a style recalc everywhere --accent is used)
-  var lastUpdate = -Infinity;
+  // Pacing, reworked Sept 2026 after measuring what each update costs.
+  //
+  // Writing a custom property on <html> makes the browser recompute style for the whole
+  // document, whether or not anything uses the property: 3.7-4.1ms per write on a MacBook
+  // for these ~325-element pages, several times that on a phone. The loop used to write
+  // ~8 times a second from a requestAnimationFrame callback that also woke up on every
+  // single frame in between, forever — so a scroll regularly lost a quarter of a frame's
+  // budget to a colour change nobody could see happen.
+  //
+  // Now:
+  //   - 4 writes a second, from a timer rather than a per-frame callback. Each step is
+  //     1.5° of hue at this lightness and chroma, far below a visible difference, so the
+  //     cycle still reads as continuous.
+  //   - No writes while the page is scrolling (or a finger is dragging, e.g. a swipe in
+  //     the lightbox), and none while the tab is hidden. That's exactly when a frame
+  //     matters most, and a colour that pauses for the length of a scroll is invisible.
+  //   - The hue follows its own clock, which only advances on the steps that actually
+  //     write. A wall-clock version would jump by however much hue built up during a long
+  //     scroll — 18° after three seconds, which IS visible — the moment the page came to
+  //     rest. This one just resumes where it stopped.
+  var STEP_MS = 250;
+  var QUIET_MS = 250; // how long after the last scroll/drag event a step may write again
+  var clock = startOffset;
+  var lastMotion = -Infinity;
 
-  function tick(now) {
-    if (now - lastUpdate >= UPDATE_INTERVAL_MS) {
-      var elapsed = (now + startOffset) % CYCLE_MS;
-      html.style.setProperty('--accent', oklchToHex((elapsed / CYCLE_MS) * 360));
-      lastUpdate = now;
-    }
-    requestAnimationFrame(tick);
+  function write() {
+    html.style.setProperty('--accent', oklchToHex(((clock % CYCLE_MS) / CYCLE_MS) * 360));
   }
-  requestAnimationFrame(tick);
+  function step() {
+    if (!document.hidden && performance.now() - lastMotion >= QUIET_MS) {
+      clock += STEP_MS;
+      write();
+    }
+    setTimeout(step, STEP_MS);
+  }
+  function noteMotion() { lastMotion = performance.now(); }
+
+  // Capture phase, so scrolls inside an element (the filter row on a phone) count as well
+  // as the page's own; scroll events don't bubble. Passive: this never blocks a scroll.
+  window.addEventListener('scroll', noteMotion, { capture: true, passive: true });
+  window.addEventListener('touchmove', noteMotion, { capture: true, passive: true });
+
+  write(); // the first colour lands before first paint, as the rAF version's did
+  setTimeout(step, STEP_MS);
 })();
 
 // ---------------------------------------------------------------------------
@@ -117,7 +149,13 @@ function esc(value) {
 // onDone, when given, runs once the transition has finished (or immediately when there
 // was no transition to run) — for cleanup that must not happen while the browser is
 // still animating, such as releasing a view-transition-name back to another element.
-function withViewTransition(updateFn, onDone) {
+//
+// types, when given, labels the transition (Sept 2026) so style.css can time each kind
+// on its own: the lightbox opening, closing and stepping between stills all animate the
+// same named element, but a morph out of a small tile wants to take longer than a
+// crossfade while arrowing through a gallery. Browsers that can't label a transition
+// (before Chrome 125 / Safari 18.2) run it unlabelled, on the shared timing in style.css.
+function withViewTransition(updateFn, onDone, types) {
   // The comment above already treated prefers-reduced-motion as a case where the browser
   // skips the animation and only the DOM update lands. It isn't: nothing in the API
   // consults that preference, so these transitions were in fact animating for users who
@@ -131,7 +169,10 @@ function withViewTransition(updateFn, onDone) {
     return;
   }
   document.body.classList.add('same-doc-transition');
-  const transition = document.startViewTransition(updateFn);
+  const canLabel = types && typeof ViewTransition !== 'undefined' && 'types' in ViewTransition.prototype;
+  const transition = canLabel
+    ? document.startViewTransition({ update: updateFn, types: types })
+    : document.startViewTransition(updateFn);
   transition.ready.catch(() => {});
   transition.finished
     .catch(() => {})
@@ -286,7 +327,7 @@ function revealBatch(els) {
   if (!batch.length) return;
   // Direct callers can reach this without going through observeReveals()' own check.
   if (prefersReducedMotion()) {
-    batch.forEach(function (el) { el.classList.add('is-revealed'); });
+    batch.forEach(function (el) { el.classList.add('is-revealed', 'reveal-done'); });
     return;
   }
   var timing = getRevealTiming();
@@ -305,8 +346,40 @@ function revealBatch(els) {
       el.style.setProperty('--reveal-index', i);
       el.style.setProperty('--reveal-stagger', step + 'ms');
       el.classList.add('is-revealed');
+      retireRevealWhenDone(el);
     });
   });
+}
+
+// Takes the entrance animation off an element once it has played (Sept 2026).
+//
+// A CSS animation restarts whenever its element goes from display:none back to being
+// rendered. The work grid's filter now hides and re-shows the same card elements instead
+// of rebuilding them, so without this every card coming back into a filter would lift in
+// all over again. .reveal-done swaps the animation for `none` (style.css), which changes
+// nothing visible — the animation has already finished — and leaves nothing to replay.
+//
+// animationcancel counts too: a card hidden part-way through its lift never reaches
+// animationend, and would otherwise replay the lift from the start when it came back.
+function retireRevealWhenDone(el) {
+  function retire(e) {
+    if (e.target !== el || e.animationName !== 'reveal-in') return;
+    el.classList.add('reveal-done');
+    el.removeEventListener('animationend', retire);
+    el.removeEventListener('animationcancel', retire);
+  }
+  el.addEventListener('animationend', retire);
+  el.addEventListener('animationcancel', retire);
+}
+
+// Marks an element as revealed without the entrance: for a caller that is animating the
+// element in by other means and needs the scroll reveal to keep its hands off it (the
+// work grid's filter, in index.html). Same claim revealBatch() makes, so neither the
+// observer nor a pending wave will touch it afterwards.
+function settleReveal(el) {
+  el.setAttribute('data-revealing', '');
+  if (revealObserver) revealObserver.unobserve(el);
+  el.classList.add('is-revealed', 'reveal-done');
 }
 
 // Runs cb once img is ready to paint, or immediately when there is no img.
@@ -368,9 +441,81 @@ function revealNow(root) {
   var scope = root || document;
   Array.prototype.forEach.call(
     scope.querySelectorAll('[data-reveal]:not(.is-revealed):not([data-revealing])'),
-    function (el) { el.classList.add('is-revealed'); }
+    function (el) { el.classList.add('is-revealed', 'reveal-done'); }
   );
 }
+
+// ---------------------------------------------------------------------------
+// Runs fn once the visitor is actually looking at this page (Sept 2026).
+//
+// Project pages are prerendered from the links that lead to them (the speculationrules
+// script in index.html and project.html): Chrome loads the page invisibly when a link is
+// hovered, and the click then swaps it in instantly. A prerendered page runs its scripts
+// ahead of time, so anything that animates on arrival — the gallery's opening wave — would
+// play to an empty room and be finished before anyone saw it. Wrapping it in this defers
+// it to the moment of activation. Everywhere else (not prerendered, or a browser without
+// prerendering) it just runs.
+function whenActivated(fn) {
+  if (document.prerendering) {
+    document.addEventListener('prerenderingchange', fn, { once: true });
+  } else {
+    fn();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// "Back to projects" goes back, rather than forward to a fresh copy of the grid (Sept 2026).
+//
+// Those links (the project page's back link and its nav "Projects") point at
+// index.html#work, which as a plain navigation reloads the homepage: the hero replays its
+// entrance, the reel restarts from the top, the grid rebuilds, and the visitor lands at the
+// top of #work instead of on the card they opened. When the grid is already in this tab's
+// history, traversing back to it restores that exact page from the browser's back/forward
+// cache instead — instantly, at the same scroll position, with the reel still where it was.
+//
+// The Navigation API can find the most recent homepage entry even several project pages
+// back (grid -> project -> next project -> next project). Without it, the referrer covers
+// the common case of one step. Anything else — opened in a new tab, arrived from a shared
+// link, or a modified click that means "open elsewhere" — follows the link as before.
+// Links opt in with data-back-to-grid.
+function initBackToGrid() {
+  function isGrid(url) {
+    try {
+      var u = new URL(url, location.href);
+      return u.origin === location.origin && /\/(index\.html)?$/.test(u.pathname);
+    } catch (err) {
+      return false;
+    }
+  }
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest && e.target.closest('a[data-back-to-grid]');
+    if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (window.navigation && navigation.currentEntry && typeof navigation.entries === 'function') {
+      var entries = navigation.entries();
+      for (var i = navigation.currentEntry.index - 1; i >= 0; i--) {
+        if (isGrid(entries[i].url)) {
+          e.preventDefault();
+          navigation.traverseTo(entries[i].key);
+          return;
+        }
+      }
+      return;
+    }
+    if (document.referrer && isGrid(document.referrer) && history.length > 1) {
+      e.preventDefault();
+      history.back();
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Lets :active apply on iOS (Sept 2026).
+//
+// iOS Safari only matches :active on a touch when some touchstart listener exists on the
+// element or an ancestor; with none, pressing a button shows nothing at all until the
+// page reacts to the click. An empty passive listener on the document is the standard
+// way to turn it on everywhere. Passive, so it can never delay a scroll.
+document.addEventListener('touchstart', function () {}, { passive: true });
 
 // ---------------------------------------------------------------------------
 // Wires the FR/EN toggle: restores the remembered choice, keeps the button label

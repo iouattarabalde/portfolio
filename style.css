@@ -12,8 +12,8 @@
   --accent: #8A9A5B;          /* olive accent, used for links/highlights/active states */
   --line: #232320;            /* hairline borders and grid gaps */
   --grid-gap: 6px;            /* shared gap for the work grid and project gallery — small visible gap, ShotDeck-inspired, Aug 2026 */
-  --display: "Space Grotesk", sans-serif;  /* headings, titles, card captions */
-  --mono: "IBM Plex Mono", monospace;      /* body copy, labels, nav — technical/utility feel */
+  --display: "Space Grotesk", "Space Grotesk Fallback", sans-serif;  /* headings, titles, card captions */
+  --mono: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;      /* body copy, labels, nav — technical/utility feel */
 
   /* Motion system, Sept 2026 — one timing scale and two curves for the whole site.
      Before this every transition picked its own duration by hand (0.2s, 0.25s, 0.3s,
@@ -23,20 +23,28 @@
      of the standard set, which is exactly what made things feel mushy; both curves
      below decelerate harder and settle, which is what reads as fluid.
      NOTE: never put a transition on a property whose RESTING value is var(--accent) —
-     site.js rewrites that ~8x/sec, and each rewrite would restart the transition and
-     visibly drag the colour cycle. Accent transitions belong on hover states only. */
+     site.js rewrites that 4x/sec, and each rewrite would restart the transition and
+     keep that element animating permanently. Accent transitions belong on hover states only. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* expo-out — entrances, anything that "arrives" */
   --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);  /* cubic-out — hover/UI responses */
   --dur-hover: 220ms;   /* colour, border and opacity responses to a pointer */
   --dur-ui: 320ms;      /* scrims, fades and small transforms */
   --dur-zoom: 450ms;    /* the slower image zooms on card/next-project hover */
   --dur-bar-travel: 220ms; /* the work info bar's slide on a filter change — read from :root by withInfoBarSlide() in index.html */
-  --dur-reveal: 700ms;  /* scroll-triggered entrance (see .js-reveal below) */
-  --reveal-stagger: 55ms;  /* per item; site.js narrows it for an unusually large batch */
-  --reveal-window: 500ms;  /* ceiling on one batch's total stagger, however many arrive at once */
-  --reveal-lift: 18px;
+  --dur-grid-move: 360ms;  /* cards sliding to their new cells on a filter change — read by withGridFlip() in index.html */
+  --dur-press: 100ms;      /* the way DOWN into a press (:active); the release uses --dur-hover, so a tap reads as a quick dip and a soft return */
+  /* The entrance was tightened in Sept 2026, from 700ms / 18px / 55ms / 500ms. Same motion
+     and curve, less of it: on a grid of 32 the old values made scrolling feel as though
+     the page was catching up with you, and 18px of travel read as a slide rather than a
+     settle. The hero's load-in uses the same two tokens, so it tightened with it. */
+  --dur-reveal: 560ms;  /* scroll-triggered entrance (see .js-reveal below) */
+  --reveal-stagger: 40ms;  /* per item; site.js narrows it for an unusually large batch */
+  --reveal-window: 320ms;  /* ceiling on one batch's total stagger, however many arrive at once */
+  --reveal-lift: 12px;
   --dur-enter-sm: 420ms;   /* secondary entrances: lightbox swatches, the reel's corner brackets */
-  --palette-stagger: 28ms; /* x13 swatches ~= 750ms, one beat with --dur-reveal */
+  --palette-stagger: 28ms; /* x13 swatches ~= 750ms */
+  --dur-morph: 420ms;      /* the lightbox growing out of its tile; closing uses ~80% of it (see the view-transition rules below) */
+  --dur-page: 280ms;       /* crossfade between pages, and the backdrop behind the lightbox */
 
   /* Admin-adjustable via Design tab sliders (data/design.json, applied by inline script
      in index.html/project.html) — Aug 2026. Defaults below are 1 (no change) everywhere
@@ -73,6 +81,105 @@
 
 * { box-sizing: border-box; }
 
+/* ---------- Typefaces ---------- */
+/* Served from this site since Sept 2026, not from Google Fonts. Two reasons, both about
+   the first second of a visit:
+   - The Google Fonts stylesheet was render-blocking and lived on another origin, so every
+     first visit waited on two extra connections (fonts.googleapis.com for the CSS, then
+     fonts.gstatic.com for the files) before anything could paint. Same-origin files reuse
+     the connection the page itself arrived on, and the two faces used above the fold are
+     preloaded from each page's <head>.
+   - When a web font arrives after first paint, text re-lays itself in the new metrics. The
+     nav changes height when that happens, which is why index.html measures it into --nav-h.
+     The "Fallback" faces below are local system fonts rescaled to this site's typefaces
+     (size-adjust for width, the overrides for vertical metrics), so the swap, if it's seen
+     at all, changes letterforms but moves nothing.
+   The fallback numbers were measured in Chrome against the real fonts, from canvas text
+   metrics at 1000-2000px: Space Grotesk's ascent/descent are 0.984/0.292 of the em and Plex
+   Mono's 1.025/0.275, neither with a line gap, and each override is that value divided by
+   the face's size-adjust. Widths were matched over the site's own titles, separately for
+   regular Arial (standing in for Space Grotesk 500) and Arial Bold (600-700), since the two
+   differ from Space Grotesk in opposite directions. Menlo and Courier New both advance
+   ~0.60em like Plex Mono, so one face serves either. Helvetica shares Arial's metrics and
+   Liberation Sans is built to match them, so macOS without Arial and Linux fit too.
+   Files: fonts/, WOFF2, latin and latin-ext subsets — latin covers French in full, and
+   latin-ext is there for crew names from further afield. Space Grotesk is a single
+   variable file serving 500 to 700. Licence: SIL Open Font License for both families. */
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("fonts/space-grotesk-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("fonts/space-grotesk-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/ibm-plex-mono-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/ibm-plex-mono-500-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Space Grotesk Fallback";
+  font-weight: 100 500;
+  src: local("Arial"), local("ArialMT"), local("Helvetica"), local("Liberation Sans");
+  size-adjust: 107.33%;
+  ascent-override: 91.68%;
+  descent-override: 27.21%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Space Grotesk Fallback";
+  font-weight: 600 900;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Bold"), local("Helvetica-Bold"), local("Liberation Sans Bold");
+  size-adjust: 97%;
+  ascent-override: 101.44%;
+  descent-override: 30.1%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "IBM Plex Mono Fallback";
+  src: local("Menlo"), local("Menlo-Regular"), local("Courier New");
+  size-adjust: 99.66%;
+  ascent-override: 102.85%;
+  descent-override: 27.59%;
+  line-gap-override: 0%;
+}
+
 /* Crossfades between full page navigations (clicking a work-card, Next Project, Back
    to Projects) instead of the default hard cut — requested Aug 2026. This is the
    cross-document View Transitions API: purely declarative, no JS at all, and needs to
@@ -90,6 +197,48 @@
   navigation: auto;
 }
 
+/* Timing for every view transition on the site, Sept 2026. Until then all of them ran on
+   the browser's defaults — 250ms on `ease` — so the lightbox, the one place the site does a
+   real spatial morph, moved on a generic curve unrelated to anything else here, and read
+   as abrupt.
+
+   - Page to page, and the backdrop fading in or out behind the lightbox (both are the
+     root crossfade): --dur-page on the soft curve.
+   - The still growing out of its tile: --dur-morph on the expo-out, which covers most of
+     its distance early and then settles, the way a zoom on iOS does. Closing runs a little
+     quicker than opening; a dismissal shouldn't make you wait.
+   - Stepping between stills is a crossfade you may trigger several times a second, so it
+     stays short.
+   The three lightbox cases are told apart by the transition type project.html passes to
+   withViewTransition() (site.js). A browser that can't label transitions gets the
+   unlabelled lightbox-img rule, which is the opening timing.
+   The old/new image rules are listed with the group so the crossfade inside a morph
+   follows the same curve as the movement rather than the UA's own. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-page);
+  animation-timing-function: var(--ease-out-soft);
+}
+::view-transition-group(lightbox-img),
+::view-transition-old(lightbox-img),
+::view-transition-new(lightbox-img) {
+  animation-duration: var(--dur-morph);
+  animation-timing-function: var(--ease-out);
+}
+html:active-view-transition-type(lightbox-close)::view-transition-group(lightbox-img),
+html:active-view-transition-type(lightbox-close)::view-transition-old(lightbox-img),
+html:active-view-transition-type(lightbox-close)::view-transition-new(lightbox-img) {
+  animation-duration: calc(var(--dur-morph) * 0.8);
+}
+html:active-view-transition-type(lightbox-nav)::view-transition-group(lightbox-img),
+html:active-view-transition-type(lightbox-nav)::view-transition-old(lightbox-img),
+html:active-view-transition-type(lightbox-nav)::view-transition-new(lightbox-img),
+html:active-view-transition-type(lightbox-nav)::view-transition-old(root),
+html:active-view-transition-type(lightbox-nav)::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out-soft);
+}
+
 /* overflow-x: clip, not hidden — hidden here (and on body below) was silently promoting
    overflow-y to auto (the exact quirk the comment on body below already describes,
    just not caught here too), turning html/body into their own scroll containers. Since
@@ -99,6 +248,18 @@
    overflow the same way hidden did, without ever creating a scrollport. Fixed here and
    on body below in the same pass, same underlying bug in two places. */
 html { scroll-behavior: smooth; overflow-x: clip; }
+
+/* Page scroll is locked while the lightbox is open (Sept 2026) — project.html adds the
+   class when it opens and removes it on close. The overlay covers the page, but a mouse
+   wheel or trackpad over it still scrolled the document underneath, 900px for one flick
+   in testing, so the gallery had moved by the time the lightbox closed and the still
+   collapsed back toward a tile that was no longer where it came from.
+   scrollbar-gutter keeps the space for the scrollbar reserved while it's hidden, so on
+   systems with classic always-visible scrollbars (Windows) the page doesn't shift sideways
+   by the scrollbar's width at the moment the lightbox opens. macOS overlay scrollbars
+   take no space, so nothing changes there. */
+html { scrollbar-gutter: stable; }
+html.lightbox-open { overflow: hidden; }
 
 body {
   margin: 0;
@@ -124,6 +285,12 @@ body {
 }
 
 a { color: inherit; text-decoration: none; }
+
+/* No grey/blue flash over whatever was tapped on a phone (Sept 2026). Mobile browsers
+   paint that highlight by default, as a translucent box around the whole element — over a
+   work card it covered the photo. Every control on these pages has its own :active state
+   now (see "Press feedback" further down), so the stock flash is only noise. */
+a, button { -webkit-tap-highlight-color: transparent; }
 
 /* Visually hidden but present for screen readers/SEO — used for index.html's h1
    (the visible "brand" in nav is a link, not a heading, so the page had no h1 at
@@ -168,6 +335,10 @@ a { color: inherit; text-decoration: none; }
   animation: reveal-in var(--dur-reveal) var(--ease-out) backwards;
   animation-delay: calc(var(--reveal-index, 0) * var(--reveal-stagger));
 }
+/* Set by site.js once the lift has played. A CSS animation restarts whenever its element
+   comes back from display:none, which is exactly what a work card does when a filter
+   brings it back; without this it would lift in a second time. See retireRevealWhenDone(). */
+.js-reveal [data-reveal].reveal-done { animation: none; }
 
 /* Page-wide grain texture — requested Aug 2026, replaces two earlier layers scoped to
    specific glows (.halo-dither around the reel, .bottom-glow-noise at the bottom of
@@ -312,7 +483,14 @@ body.same-doc-transition .site-nav {
   opacity: 0.75;
   transition: opacity var(--dur-hover) var(--ease-out-soft);
 }
-.nav-links a:hover { opacity: 1; color: var(--accent); }
+/* Hover states on these pages sit inside @media (hover: hover), Sept 2026. On a touch
+   screen :hover is emulated — the tapped element keeps it until something else is tapped
+   — so a card tapped on the way to a project page was still zoomed, and a nav link still
+   accent-coloured and underlined, when the visitor came back. Touch gets :active press
+   feedback instead (see "Press feedback" near the end of this file). */
+@media (hover: hover) {
+  .nav-links a:hover { opacity: 1; color: var(--accent); }
+}
 /* Thin underline that grows in from the left on hover, requested Aug 2026 — a second,
    smaller cue alongside the existing color change rather than a replacement for it.
    Drawn at full width and scaled from 0 rather than animating `width` from 0 (which it
@@ -330,7 +508,9 @@ body.same-doc-transition .site-nav {
   transform-origin: left;
   transition: transform var(--dur-hover) var(--ease-out-soft);
 }
-.nav-links a:hover::after { transform: scaleX(1); }
+@media (hover: hover) {
+  .nav-links a:hover::after { transform: scaleX(1); }
+}
 
 #lang-toggle {
   font-family: var(--mono);
@@ -344,7 +524,9 @@ body.same-doc-transition .site-nav {
   cursor: pointer;
   transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
 }
-#lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
+@media (hover: hover) {
+  #lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
+}
 
 /* ---------- Hero ---------- */
 /* Fills the screen below the sticky nav (100dvh minus the nav's own height, ~73px)
@@ -366,7 +548,7 @@ body.same-doc-transition .site-nav {
    uses the separate scale and translate properties instead, so the two don't fight over
    the same property.
    Moved onto the shared motion scale in Sept 2026: this is now exactly the reveal the
-   rest of the site uses — same 18px lift, same duration, same curve — just triggered by
+   rest of the site uses — same lift, same duration, same curve (the --reveal-* tokens) — just triggered by
    the page loading rather than by scrolling, since the hero is above the fold by
    definition. It ran at 800ms on the `ease-out` KEYWORD until then, which is
    cubic-bezier(0, 0, 0.58, 1) — the flattest deceleration of the standard set, and the
@@ -429,6 +611,45 @@ body.same-doc-transition .site-nav {
     0 0 calc(clamp(170px, 18vw, 340px) * var(--halo-size) * var(--halo-falloff)) calc(clamp(45px, 4.5vw, 100px) * var(--halo-size) * var(--halo-falloff)) rgba(255, 255, 255, calc(0.03 * var(--halo-intensity)));
 }
 
+/* The same parallax as a scroll-driven animation, wherever the browser has them (Chrome
+   and Edge 115+, Safari 26+) — Sept 2026. The --parallax-* properties above remain the
+   fallback, still set from a scroll listener in index.html, which now only registers where
+   this block doesn't apply (Firefox at the time of writing).
+
+   Why move it: a scroll listener runs on the main thread, so its update lands a frame or
+   so after the page has already scrolled, and it competes for that frame with everything
+   else the page is doing. A scroll-driven animation is sampled against the scroll offset
+   the browser is about to draw, so the reel shrinks in exact step with the page, including
+   during momentum scrolling on a trackpad or phone.
+
+   The timeline is the hero passing out of view: exit-crossing runs from the hero's top
+   edge reaching the top of the scrollport to its bottom edge reaching it. The top inset
+   moves that line down to the bottom of the sticky nav, which is where the hero actually
+   starts on load, so 0% is scrollY 0 and 100% is one hero-height of scroll — the exact
+   mapping updateHeroParallax() computes. It measures the hero itself, so there's nothing
+   to refresh on resize, orientation change or a collapsing mobile URL bar.
+
+   The `animation` shorthand resets the timeline and range, which is why those two follow
+   it. The reduced-motion block at the end of the file sets `animation: none` on
+   .reel-frame, which covers this as well. */
+@keyframes hero-parallax {
+  from { scale: 1; translate: 0 0; }
+  to { scale: 0.9; translate: 0 48px; }
+}
+@supports (animation-timeline: view()) {
+  .hero {
+    view-timeline: --hero block;
+    view-timeline-inset: var(--nav-h, 70px) 0px;
+  }
+  .reel-frame {
+    animation:
+      hero-enter var(--dur-reveal) var(--ease-out),
+      hero-parallax linear both;
+    animation-timeline: auto, --hero;
+    animation-range: normal, exit-crossing 0% exit-crossing 100%;
+  }
+}
+
 /* Thin corner brackets on the reel frame — decorative, evokes a viewfinder/scope reticle.
    Scale+fade in slightly after the frame itself, like they're snapping into focus once
    the frame has settled — requested Aug 2026. Animates TO 0.35, the same
@@ -458,6 +679,32 @@ body.same-doc-transition .site-nav {
 }
 .reel-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+/* Portrait phones: the hero fits the reel instead of the screen (Sept 2026).
+   A 16:9 reel on a 375px-wide phone is ~210px tall, and the hero around it was a full
+   screen tall (100dvh minus the nav), so the first thing a visitor saw was ~540px of empty
+   dark with a small video floating in the middle and no hint of anything below. Here the
+   hero shrinks to the reel plus a little air, the reel runs edge to edge, and the filter
+   row and the first row of work show on the first screen, inviting the scroll.
+   The side borders go because they would sit against the glass edge; the corner brackets
+   move in by the 1px they used to overhang, or body's overflow-x: clip would shave them.
+   The halo needs nothing: sideways it runs off screen, so what remains is its bleed above
+   and below. Landscape phones and anything wider than 700px keep the full-screen hero.
+   sizeReel() in index.html still runs but never binds here, since the height it allows is
+   far more than a phone's width asks for; and the scroll-driven parallax measures the
+   hero itself, so it simply completes over the shorter distance. */
+@media (max-width: 700px) and (orientation: portrait) {
+  .hero {
+    min-height: 0;
+    padding: 16px 0 28px;
+  }
+  .reel-frame {
+    border-left: none;
+    border-right: none;
+  }
+  .reel-frame::before { left: 0; }
+  .reel-frame::after { right: 0; }
+}
 
 /* .halo-dither, the reel-scoped anti-banding grain sub-layer, was removed Aug 2026 and
    folded into .grain-overlay (defined near the top of this file, by .sr-only) — grain
@@ -503,6 +750,12 @@ body.same-doc-transition .site-nav {
 #reel-video.is-ready {
   filter: grayscale(0);
 }
+/* After the fade to colour: no filter at all, so the playing reel isn't run through one on
+   every frame. See the note on revealReelColor in index.html. */
+#reel-video.is-ready.is-settled {
+  filter: none;
+  transition: none;
+}
 
 /* Buttons floated over the reel: sound top-left (paired with the top-left bracket),
    fullscreen bottom-right (paired with the bottom-right bracket) */
@@ -523,11 +776,13 @@ body.same-doc-transition .site-nav {
 }
 #sound-toggle { top: 14px; left: 14px; }
 #fullscreen-toggle { bottom: 14px; right: 14px; }
-#fullscreen-toggle:hover,
-#sound-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(12, 12, 12, 0.9);
+@media (hover: hover) {
+  #fullscreen-toggle:hover,
+  #sound-toggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(12, 12, 12, 0.9);
+  }
 }
 
 /* ---------- Work grid ---------- */
@@ -630,17 +885,27 @@ body.same-doc-transition .site-nav {
   color: var(--fg-dim);
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--dur-hover) var(--ease-out-soft);
 }
-.work-filter button:hover,
+/* The colour transition is kept off the active button (Sept 2026). Its resting colour is
+   var(--accent), which the accent cycle rewrites several times a second, and each rewrite
+   started a fresh transition — the one element on the page that was animating
+   permanently, exactly what the note in :root warns about. Becoming active is therefore
+   instant; hover and the step back out of active still ease. */
+.work-filter button:not(.active) {
+  transition: opacity var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft); /* opacity: the press, see "Press feedback" */
+}
 .work-filter button.active {
   color: var(--accent);
+}
+@media (hover: hover) {
+  .work-filter button:hover { color: var(--accent); }
 }
 .filter-sep {
   color: var(--line);
 }
 
 .work-grid {
+  position: relative; /* containing block for the fading copies a filter change leaves behind — see .work-card-ghost */
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--grid-gap);
@@ -661,9 +926,23 @@ body.same-doc-transition .site-nav {
   flex-direction: column;
   justify-content: flex-end; /* pins the caption to the bottom of the card */
   padding: 14px;
-  /* For the hover-dim in the (hover: hover) block further down. On the base rule, not
-     inside the :hover one, so it applies in both directions — see the note there. */
-  transition: filter var(--dur-ui) var(--ease-out-soft);
+  /* The press on hover-capable devices, see "Press feedback" near the end of the file. */
+  transition: scale var(--dur-hover) var(--ease-out);
+}
+
+/* Cards outside the active filter (Sept 2026). The grid is built once and filtering only
+   toggles the hidden attribute, but the UA's [hidden] { display: none } loses to
+   .work-card's own display: flex above, so it has to be restated here. */
+.work-card[hidden] { display: none; }
+
+/* A detached copy of a card that just left the filter, laid over the cell it occupied
+   while it fades out and the remaining cards slide in beneath it. Built and removed by
+   withGridFlip() in index.html; positioned from the card's measured rect, against
+   .work-grid. */
+.work-card-ghost {
+  position: absolute;
+  margin: 0;
+  pointer-events: none;
 }
 
 /* The load-triggered card-enter animation and its 12 nth-child delay rules used to live
@@ -690,7 +969,9 @@ body.same-doc-transition .site-nav {
   object-fit: cover; /* was background-size:cover on a div — now an <img> so loading="lazy" actually works, Aug 2026 */
   transition: transform var(--dur-zoom) var(--ease-out-soft);
 }
-.work-card:hover .thumb { transform: scale(1.04); }
+@media (hover: hover) {
+  .work-card:hover .thumb { transform: scale(1.04); }
+}
 
 /* Dark gradient scrim behind the caption text. */
 .work-card::after {
@@ -712,30 +993,31 @@ body.same-doc-transition .site-nav {
    #work-info-bar below the grid shows whichever card is hovered instead (Aug 2026
    redesign). Hovering any card also dims every other card in the grid, drawing the eye
    to the one you're looking at; the hovered card itself is excluded from that dim so it
-   reads at full opacity while the rest recede. Pure CSS (:hover on the grid, an
-   adjacent-card selector for the dim) — no JS state needed for this part. */
-@media (hover: hover) {
-  /* Two Sept 2026 fixes to what was one four-line rule.
-     1. The transition lives on .work-card itself, not in here. Declared inside the
-        :hover rule it only existed while the pointer was over the grid — so leaving the
-        grid dropped the declaration along with the rule, and the dimmed cards snapped
-        back to full instead of easing.
-     2. The dim is filter: brightness(), not opacity: 0.82. Over a #0C0C0C page the two
-        are visually indistinguishable, but opacity is the property the scroll reveal
-        animates, and a transition beats an animation in the cascade — so a card
-        revealing while the grid happened to be hovered would have had its entrance
-        overridden for the transition's duration and then jumped when it ended. Giving
-        the two effects separate properties means they can never contend at all.
-        filter: none is the resting value rather than brightness(1): interpolation from
-        `none` is well-defined (it's read as the identity for the other side's function
-        list) and it avoids promoting all 32 cards to filtered layers when nobody is
-        hovering. */
-  .work-grid:hover .work-card {
-    filter: brightness(0.82);
-  }
-  .work-grid:hover .work-card:hover {
-    filter: none;
-  }
+   reads at full brightness while the rest recede.
+
+   Reworked Sept 2026, on two counts:
+   1. The state comes from JS (.is-dimming on the grid, .is-current on the card — see the
+      #work-grid delegation in index.html) rather than from :hover. A pure :hover version
+      matched "grid hovered, no card hovered" while the pointer crossed the 6px gap between
+      two cards, so every card dimmed for a moment on each crossing.
+   2. The dim is a black layer at 18% over the photo, faded with opacity, instead of
+      filter: brightness(0.82) on the card. The two look the same over #0C0C0C, but a
+      filter transition on 32 cards has the browser re-run the filter over every photo on
+      each frame of the fade, while an opacity fade is handed to the GPU as-is. It also
+      still keeps off the card's own opacity, which the scroll reveal animates — the
+      reason the dim moved away from opacity in the first place. */
+.work-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-ui) var(--ease-out-soft);
+}
+.work-grid.is-dimming .work-card:not(.is-current)::before {
+  opacity: 0.18;
 }
 
 /* Touch devices can't hover, so the reveal-on-hover pattern above would never trigger —
@@ -1031,7 +1313,9 @@ body.same-doc-transition .site-nav {
   padding-bottom: 6px;
   overflow-wrap: break-word; /* safety net: long unbroken strings (emails) never overflow */
 }
-.contact-link:hover { color: var(--accent); }
+@media (hover: hover) {
+  .contact-link:hover { color: var(--accent); }
+}
 
 .contact-meta {
   margin: 32px 0 0;
@@ -1152,9 +1436,11 @@ body.same-doc-transition .site-nav {
   white-space: nowrap;
   transition: color var(--dur-hover) var(--ease-out-soft);
 }
-.contact-footer-nav button:hover,
-.contact-top:hover {
-  color: var(--accent);
+@media (hover: hover) {
+  .contact-footer-nav button:hover,
+  .contact-top:hover {
+    color: var(--accent);
+  }
 }
 
 @media (max-width: 700px) {
@@ -1226,7 +1512,9 @@ body.same-doc-transition .site-nav {
   display: block;
   transition: transform var(--dur-zoom) var(--ease-out-soft);
 }
-.gallery-item:hover img { transform: scale(1.03); }
+@media (hover: hover) {
+  .gallery-item:hover img { transform: scale(1.03); }
+}
 
 @media (max-width: 700px) {
   .gallery-item { aspect-ratio: 1 / 1; } /* same squarer-on-mobile treatment as the work grid */
@@ -1270,7 +1558,9 @@ body.same-doc-transition .site-nav {
   display: inline-block;
   margin-bottom: 20px;
 }
-.project-back:hover { color: var(--accent); }
+@media (hover: hover) {
+  .project-back:hover { color: var(--accent); }
+}
 
 .project-title { font-size: clamp(calc(22px * 1), 3.5vw, calc(32px * 1)); max-width: 24ch; margin-bottom: 18px; }
 
@@ -1320,14 +1610,18 @@ body.same-doc-transition .site-nav {
   background: var(--bg-raised); /* shows while the image loads */
   transition: transform var(--dur-zoom) var(--ease-out-soft);
 }
-.next-project:hover .next-project-thumb { transform: scale(1.04); }
+@media (hover: hover) {
+  .next-project:hover .next-project-thumb { transform: scale(1.04); }
+}
 .next-project-title {
   margin: 10px 0 0;
   font-size: 13px;
   color: var(--fg);
   transition: color var(--dur-hover) var(--ease-out-soft);
 }
-.next-project:hover .next-project-title { color: var(--accent); }
+@media (hover: hover) {
+  .next-project:hover .next-project-title { color: var(--accent); }
+}
 
 @media (max-width: 700px) {
   .project-info { flex-direction: column; gap: 32px; }
@@ -1345,7 +1639,11 @@ body.same-doc-transition .site-nav {
 .lightbox {
   position: fixed;
   inset: 0;
-  background: rgba(12, 12, 12, 0.96);
+  /* --lb-dismiss runs 0 -> 1 while a still is dragged down to close it (project.html), fading
+     the backdrop with the drag. The transition eases it back when the drag springs back;
+     .is-dragging switches it off so it tracks the finger directly while the drag is live. */
+  background: rgba(12, 12, 12, calc(0.96 * (1 - var(--lb-dismiss, 0))));
+  transition: background-color var(--dur-ui) var(--ease-out);
   display: none;
   align-items: center;
   justify-content: center;
@@ -1388,13 +1686,12 @@ body.same-doc-transition .site-nav {
   --lb-max-natural: 1920px;
 
   padding: var(--lb-top) var(--lb-side) var(--lb-bottom);
-  /* Only horizontal panning is a real gesture here (swiping between stills, see the
-     touchstart/touchend listeners in project.html) — pan-x stops the browser's default
-     vertical scroll/rubber-band from firing on an up/down touch and dragging the page
-     behind the overlay, reported Aug 2026. The swipe handler itself was already
-     horizontal-only; this is what actually blocks the vertical gesture at the source
-     instead of just ignoring it after the fact. */
-  touch-action: pan-x;
+  /* Every touch gesture over the lightbox belongs to project.html's drag handlers since
+     Sept 2026: sideways to change stills, down to close. `none` keeps the browser from
+     claiming any of it for a scroll, a page zoom or a double-tap zoom — any of which would
+     cancel the drag part-way. (It was pan-x until then, for the same reason on the vertical
+     axis only, back when a vertical swipe dragged the page behind the overlay.) */
+  touch-action: none;
   /* Makes cqw/cqh inside resolve against this overlay's content box, which is what the
      enlarged still sizes itself from — see .lightbox-content img. Safe as a size
      container: position:fixed with inset:0 already gives it a size that never depends
@@ -1402,6 +1699,8 @@ body.same-doc-transition .site-nav {
   container-type: size;
 }
 .lightbox.open { display: flex; }
+.lightbox.is-dragging,
+.lightbox.is-dragging .lightbox-close { transition: none; }
 /* Groups the image and the palette strip below it so they get centered as one unit —
    added Aug 2026 alongside the palette strip itself. Content-sized (not stretched),
    so its own width naturally matches whichever of its children is widest — in
@@ -1520,11 +1819,14 @@ body.same-doc-transition .site-nav {
      line-height for form controls, which differs between browsers. Same rendered size. */
   height: var(--lb-close-h);
   padding: 0 14px;
+  opacity: calc(1 - 3 * var(--lb-dismiss, 0)); /* gone a third of the way into a swipe-down, see .lightbox */
   display: inline-flex;
   align-items: center;
   cursor: pointer;
 }
-.lightbox-close:hover { color: var(--accent); border-color: var(--accent); }
+@media (hover: hover) {
+  .lightbox-close:hover { color: var(--accent); border-color: var(--accent); }
+}
 
 /* Prev/next arrows, one fixed to each edge, vertically centered regardless of image size */
 .lightbox-nav {
@@ -1545,7 +1847,9 @@ body.same-doc-transition .site-nav {
   transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
   z-index: 1; /* stays above the full-bleed image */
 }
-.lightbox-nav:hover { color: var(--accent); border-color: var(--accent); }
+@media (hover: hover) {
+  .lightbox-nav:hover { color: var(--accent); border-color: var(--accent); }
+}
 /* Closer to the screen edge than the clamp(10px, 3vw, 28px) used until Aug 2026: the
    arrows now have to be fully outside the image rather than overlapping it, and paying
    for that clearance out of the arrows' own inset keeps --lb-side at the 64px the
@@ -1602,6 +1906,87 @@ body.same-doc-transition .site-nav {
    redevient utile un jour, `git show` sur ce commit remet l'indirection en place. */
 @media (max-width: 700px) {
   body { font-size: 15px; }
+}
+
+/* ---------- Press feedback ---------- */
+/* Every control answers the moment it's pressed, not only once the click lands (Sept
+   2026). Before this there wasn't a single :active rule on the public pages: on a phone a
+   tap showed nothing until the page reacted, which is what made buttons read as dead for
+   that first instant.
+
+   Two kinds of response, matched to the control:
+   - Framed buttons (FR/EN, the reel's sound and fullscreen, the lightbox's arrows and
+     close) sink to 94%. `scale` is the standalone property, not transform, so it
+     composes with the translateY(-50%) that centres the desktop lightbox arrows instead of
+     replacing it.
+   - Text links and text buttons dim, the way a text button does on iOS. Scaling a line of
+     text reads as a wobble rather than a press.
+   Down is fast (--dur-press) and the release eases back on --dur-hover, which is what makes
+   a tap feel like a physical click instead of a flicker.
+
+   Cards (work grid, gallery tiles, next project) press to 98% on mouse devices only. On a
+   touchscreen the cards cover most of the page, so nearly every scroll starts with a finger
+   on one; iOS applies :active the moment the finger lands and only removes it once the
+   gesture turns out to be a scroll, so a pressed state there would pulse whichever card
+   each scroll began on. The page change or the lightbox opening is the feedback on touch.
+
+   Kept under prefers-reduced-motion: a few percent of scale for a tenth of a second is
+   feedback, not the kind of travel that setting is about.
+
+   The :active state on iOS depends on the empty touchstart listener in site.js. */
+#lang-toggle,
+#sound-toggle,
+#fullscreen-toggle,
+.lightbox-nav,
+.lightbox-close {
+  transition:
+    border-color var(--dur-hover) var(--ease-out-soft),
+    color var(--dur-hover) var(--ease-out-soft),
+    background-color var(--dur-hover) var(--ease-out-soft),
+    opacity var(--dur-ui) var(--ease-out),
+    scale var(--dur-hover) var(--ease-out);
+}
+#lang-toggle:active,
+#sound-toggle:active,
+#fullscreen-toggle:active,
+.lightbox-nav:active,
+.lightbox-close:active {
+  scale: 0.94;
+  transition-duration: var(--dur-press);
+}
+
+.nav-links a,
+.wordmark,
+.contact-link,
+.project-back {
+  transition: opacity var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
+}
+.contact-footer-nav button,
+.contact-top {
+  transition: opacity var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
+}
+.nav-links a:active,
+.wordmark:active,
+.contact-link:active,
+.project-back:active,
+.work-filter button:active,
+.contact-footer-nav button:active,
+.contact-top:active {
+  opacity: 0.55;
+  transition-duration: var(--dur-press);
+}
+
+.gallery-item,
+.next-project {
+  transition: scale var(--dur-hover) var(--ease-out);
+}
+@media (hover: hover) {
+  .work-card:active,
+  .gallery-item:active,
+  .next-project:active {
+    scale: 0.98;
+    transition-duration: var(--dur-press);
+  }
 }
 
 /* Reduced motion: honors the OS-level accessibility setting for people sensitive to
