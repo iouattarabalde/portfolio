@@ -1,6 +1,6 @@
-// i18n.js — shared across index.html, project.html, and admin/index.html.
+// i18n.js — shared across index.html, project.html, privacy/, terms/ and admin/index.html.
 //
-// Everything editable from the admin's "Textes du site" panel lives in data/strings.json:
+// Everything editable from the admin's Réglages → Avancé section lives in data/strings.json:
 // general UI copy (nav labels, headings, form labels) plus project type acronyms/labels.
 // The constants below are the fallback defaults, used if that fetch fails or a key is
 // missing, so the site never shows blank text even if something goes wrong.
@@ -49,12 +49,20 @@ let PROJECT_TYPES = Object.assign({}, DEFAULT_TYPES);
 
 let _i18nPromise = null; // cached so several callers on the same page share one fetch
 
+// Resolved against this script's own URL rather than the page's (Sept 2026). The pages in
+// a subfolder (privacy/, terms/) load ../i18n.js, and a page-relative 'data/strings.json'
+// sent them to /privacy/data/strings.json — a 404 on every visit, after which their
+// labels quietly fell back to the defaults above, ignoring anything edited in the admin.
+// From a root page this is the same URL as before, so the preload in index.html and
+// project.html still matches it.
+const STRINGS_URL = new URL('data/strings.json', document.currentScript ? document.currentScript.src : location.href).href;
+
 // Fetches data/strings.json and merges it over the defaults (a key missing from the
 // file — e.g. a brand new one added later that hasn't been edited yet — just falls
 // back to its default rather than disappearing). Safe to call more than once per page.
 function loadI18n() {
   if (_i18nPromise) return _i18nPromise;
-  _i18nPromise = fetch('data/strings.json')
+  _i18nPromise = fetch(STRINGS_URL)
     .then((r) => r.json())
     .then((data) => {
       if (data.strings) STRINGS = Object.assign({}, DEFAULT_STRINGS, data.strings);
