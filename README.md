@@ -445,13 +445,16 @@ dans `style.css`). Si ce n'était pas exactement l'image de départ, le passage 
 lecture ferait un saut visible.
 
 Le reel démarre muet (l'autoplay l'exige dans tous les navigateurs) ; le bouton son active un
-vrai son sur mobile comme sur ordinateur. Tant qu'il est muet, il se met en pause quand il sort
-de l'écran et reprend quand on remonte (sept. 2026) : sinon le navigateur continue de décoder
-la vidéo pendant qu'on parcourt la grille. Avec le son activé, il continue de jouer.
-
-Sur téléphone en portrait, le hero s'ajuste à la hauteur du reel, affiché d'un bord à l'autre,
-pour que les filtres et la première rangée de projets soient visibles dès l'arrivée. Le mix n'est jamais normalisé au réencodage — c'est
+vrai son sur mobile comme sur ordinateur. Le mix n'est jamais normalisé au réencodage — c'est
 un choix artistique, on le transporte tel quel.
+
+Tant qu'il est muet, le reel se met en pause quand il sort de l'écran et reprend quand on
+remonte (sept. 2026) : sinon le navigateur continue de décoder la vidéo pendant qu'on parcourt
+la grille. Avec le son activé, il continue de jouer.
+
+Sur téléphone en portrait, le hero s'ajuste à la hauteur du reel, avec la même marge latérale
+que la navigation pour garder la forme de l'écran et le halo visibles : les filtres et la
+première rangée de projets sont visibles dès l'arrivée.
 
 ### Pourquoi deux fichiers, et pourquoi de l'AV1
 

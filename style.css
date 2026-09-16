@@ -681,29 +681,27 @@ body.same-doc-transition .site-nav {
 .reel-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 /* Portrait phones: the hero fits the reel instead of the screen (Sept 2026).
-   A 16:9 reel on a 375px-wide phone is ~210px tall, and the hero around it was a full
+   A 16:9 reel on a 375px-wide phone is ~190px tall, and the hero around it was a full
    screen tall (100dvh minus the nav), so the first thing a visitor saw was ~540px of empty
    dark with a small video floating in the middle and no hint of anything below. Here the
-   hero shrinks to the reel plus a little air, the reel runs edge to edge, and the filter
-   row and the first row of work show on the first screen, inviting the scroll.
-   The side borders go because they would sit against the glass edge; the corner brackets
-   move in by the 1px they used to overhang, or body's overflow-x: clip would shave them.
-   The halo needs nothing: sideways it runs off screen, so what remains is its bleed above
-   and below. Landscape phones and anything wider than 700px keep the full-screen hero.
-   sizeReel() in index.html still runs but never binds here, since the height it allows is
-   far more than a phone's width asks for; and the scroll-driven parallax measures the
-   hero itself, so it simply completes over the shorter distance. */
+   hero shrinks to the reel plus a little air, so the filter row and the first row of work
+   show on the first screen, inviting the scroll.
+   The reel keeps the page's side gutter rather than running edge to edge. Edge to edge was
+   tried first and lost the frame: with no side borders and the brackets pushed against the
+   glass, it read as a strip of video instead of a screen, and the halo only showed above
+   and below. Inset to the same clamp(20px, 4vw, 48px) as the nav and the filter row, the
+   whole screen shape, its corner brackets and the halo on all four sides stay visible, and
+   the reel lines up with everything else on the page. The vertical padding leaves the halo
+   room to bleed above and below.
+   Landscape phones and anything wider than 700px keep the full-screen hero. sizeReel() in
+   index.html still runs but never binds here, since the height it allows is far more than
+   a phone's width asks for; and the scroll-driven parallax measures the hero itself, so it
+   simply completes over the shorter distance. */
 @media (max-width: 700px) and (orientation: portrait) {
   .hero {
     min-height: 0;
-    padding: 16px 0 28px;
+    padding: 24px clamp(20px, 4vw, 48px) 36px;
   }
-  .reel-frame {
-    border-left: none;
-    border-right: none;
-  }
-  .reel-frame::before { left: 0; }
-  .reel-frame::after { right: 0; }
 }
 
 /* .halo-dither, the reel-scoped anti-banding grain sub-layer, was removed Aug 2026 and
