@@ -141,11 +141,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ismaelob.com/project.html?project=pendulum</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://ismaelob.com/project.html?project=ville-de-montmagny-portrait-de-citoyen</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
