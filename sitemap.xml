@@ -16,11 +16,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ismaelob.com/project.html?project=grit</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://ismaelob.com/project.html?project=a-matter-of-life-and-death</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -52,6 +47,11 @@
   </url>
   <url>
     <loc>https://ismaelob.com/project.html?project=gatees-pourries</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ismaelob.com/project.html?project=grit</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
