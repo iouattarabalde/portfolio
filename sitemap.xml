@@ -51,7 +51,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ismaelob.com/project.html?project=the-bones</loc>
+    <loc>https://ismaelob.com/project.html?project=boa</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -87,6 +87,11 @@
   </url>
   <url>
     <loc>https://ismaelob.com/project.html?project=completement-lycee</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ismaelob.com/project.html?project=the-bones</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -162,11 +167,6 @@
   </url>
   <url>
     <loc>https://ismaelob.com/project.html?project=journee-internationale-de-la-prevention-du-suicide</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://ismaelob.com/project.html?project=boa</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
