@@ -145,7 +145,8 @@ function esc(value) {
 // handler attached logs "InvalidStateError: Transition was aborted because of invalid
 // state" to the console, and .ready is easy to miss because this function otherwise never
 // touches it. Both are swallowed explicitly. Catching before .finally() also guarantees
-// the cleanup still runs, which is the part that actually matters.
+// the cleanup still runs, which is the part that actually matters. The third promise,
+// .updateCallbackDone, needs different treatment — see the comment on it below.
 // onDone, when given, runs once the transition has finished (or immediately when there
 // was no transition to run) — for cleanup that must not happen while the browser is
 // still animating, such as releasing a view-transition-name back to another element.
@@ -174,6 +175,27 @@ function withViewTransition(updateFn, onDone, types) {
     ? document.startViewTransition({ update: updateFn, types: types })
     : document.startViewTransition(updateFn);
   transition.ready.catch(() => {});
+  // .updateCallbackDone is the third promise this object carries, and it was the one
+  // promise here nobody touched (Sept 2026). It rejects for two very different reasons,
+  // so unlike the two above it can't simply be swallowed:
+  //
+  //   - the transition was skipped before updateFn ran, which is the same expected,
+  //     nothing-to-recover-from case the comment above describes;
+  //   - updateFn itself threw, which is a real bug in a caller.
+  //
+  // The second is why this needs a handler at all. .finished's catch does not cover it:
+  // these are sibling promises, not a chain, so an error thrown inside applyImage() (say,
+  // reaching for a gallery tile that isn't there) surfaced as a bare "Uncaught (in
+  // promise)" with no indication of which transition it came from, and would trip any
+  // window.onunhandledrejection reporting alongside it. Re-thrown asynchronously instead,
+  // it reaches the console as an ordinary uncaught error, with its stack intact and
+  // outside this promise chain — so a genuine bug still gets reported loudly rather than
+  // being hidden by the guard that exists for the skip case.
+  transition.updateCallbackDone.catch((err) => {
+    const skipped = err && (err.name === 'AbortError' || err.name === 'InvalidStateError');
+    if (skipped) return;
+    setTimeout(() => { throw err; });
+  });
   transition.finished
     .catch(() => {})
     .finally(() => {
