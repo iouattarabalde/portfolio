@@ -198,9 +198,82 @@
   // of the stagger. Same reasoning as sizeReel()'s synchronous first call in index.html.
   // The completeness check matters: without a decoded frame there are no intrinsic
   // dimensions yet, so offsetWidth would measure a collapsed box.
+  // The image box is pinned per gallery rather than sized per still (see
+  // measureGalleryRatios below), so offsetWidth is the frame's width and the strip is
+  // stable across an arrow press for free — in a single-ratio gallery, which is every
+  // project as of Sept 2026, the frame hugs the photo and this is exactly the width it
+  // has always been. In a mixed-ratio one the strip tracks the frame, not the letterboxed
+  // photo inside it: a strip that resized with each still would put back the one thing
+  // pinning the frame is meant to remove.
   function sizePalette() {
     if (!lightboxImg.complete || !lightboxImg.naturalWidth) return;
     lightboxPalette.style.width = lightboxImg.offsetWidth + 'px';
+  }
+
+  // The gallery's ratio bounds, which is what the pinned frame is sized from
+  // (see .lightbox-content img in style.css). Read off the tiles rather than stored in
+  // projects.json — gallery tiles are eager, not lazy, so by the time anything can be
+  // opened they have all decoded, and a variant carries the same ratio as its original.
+  // `current` folds in the still being opened, so a tile that somehow hasn't decoded
+  // can't leave its own image overflowing the frame.
+  function measureGalleryRatios(current) {
+    let lo = Infinity;
+    let hi = 0;
+    // Preferred source: the true dimensions stored per entry in projects.json (w/h),
+    // stamped at upload time. Exact, available before a single pixel is decoded, and the
+    // only way the frame can hug its image to the pixel — see the note on the variant
+    // rounding below for why measuring the tiles cannot.
+    const stored = (currentProject && currentProject.gallery) || [];
+    let capW = 0;
+    stored.forEach((item) => {
+      if (!item.w || !item.h) return;
+      const r = item.w / item.h;
+      if (r < lo) lo = r;
+      if (r > hi) hi = r;
+      if (item.w > capW) capW = item.w;
+    });
+    // The widest still in the gallery: past this the frame would be scaling every file in
+    // it beyond its own pixels. Only meaningful on a display wide enough to reach it.
+    if (capW) lightbox.style.setProperty('--lb-cap-w', capW + 'px');
+    else lightbox.style.removeProperty('--lb-cap-w');
+    // Fallback for entries written before w/h existed: read the tiles. Gallery tiles are
+    // eager, not lazy, so by the time anything can be opened they have all decoded.
+    if (!hi) {
+      document.querySelectorAll('.gallery-item img').forEach((img) => {
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        const r = img.naturalWidth / img.naturalHeight;
+        if (r < lo) lo = r;
+        if (r > hi) hi = r;
+      });
+    }
+    // Only fold the on-screen still into the bounds when they came from the tiles: its
+    // ratio is read off a variant too, so against exact stored dimensions it would do
+    // nothing but widen the frame by the variant's own rounding error.
+    if (current && !stored.some((item) => item.w && item.h)) {
+      lo = Math.min(lo, current);
+      hi = Math.max(hi, current);
+    }
+    // The ratios above come off resized variants, so a gallery that is really one shape
+    // still reports a spread: rounding a 1920x1080 still to 640 wide lands on 640x358 or
+    // 640x359, which is 1.78 give or take half a percent. Left alone that makes the frame
+    // a few pixels wider or taller than the photo in every existing single-ratio project
+    // — invisible, but it is a frame that no longer hugs its image, and the palette strip
+    // inherits the error. Anything inside 2% is treated as one shape and collapsed to the
+    // mean. Real ratio families are much further apart than that (1.78 vs 1.85 is 4%), so
+    // this can't merge two shapes that genuinely differ.
+    //
+    // It leaves a residual offset of up to ~0.5% (about 4px at this size) because the mean
+    // of the variants still isn't the original's exact ratio. Removing that last bit needs
+    // the true dimensions, i.e. storing w/h per entry in projects.json at upload time —
+    // the admin already decodes every still to compress it, so they're free to capture.
+    if (hi && isFinite(lo) && hi / lo < 1.02) { lo = hi = (lo + hi) / 2; }
+    if (!hi || !isFinite(lo)) { // nothing decoded: leave the per-image fallback in charge
+      lightbox.style.removeProperty('--lb-r-min');
+      lightbox.style.removeProperty('--lb-r-max');
+      return;
+    }
+    lightbox.style.setProperty('--lb-r-min', String(lo));
+    lightbox.style.setProperty('--lb-r-max', String(hi));
   }
   lightboxImg.addEventListener('load', sizePalette);
 
@@ -356,11 +429,13 @@
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
       if (sizedFrom) {
         lightboxImg.style.setProperty('--lb-img-ratio', String(sizedFrom.naturalWidth / sizedFrom.naturalHeight));
+        measureGalleryRatios(sizedFrom.naturalWidth / sizedFrom.naturalHeight);
       } else {
         lightboxImg.style.removeProperty('--lb-img-ratio'); // nothing decoded to read it from: the CSS caps size it as before
       }
-      if (full) lightboxImg.style.setProperty('--lb-img-cap', full.naturalWidth + 'px');
-      else lightboxImg.style.removeProperty('--lb-img-cap');
+      // No per-image --lb-img-cap any more: the upscale cap is a gallery-level value now
+      // (--lb-cap-w, set in measureGalleryRatios), because a cap that changed with each
+      // still would resize the frame that pinning it is meant to hold still.
       applyPalette(item.palette || []);
       lightbox.classList.add('open');
       document.documentElement.classList.add('lightbox-open'); // locks page scroll behind the overlay, see html.lightbox-open in style.css

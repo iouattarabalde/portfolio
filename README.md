@@ -80,7 +80,7 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `fonts/` | Les deux polices du site (Space Grotesk, IBM Plex Mono) en WOFF2, sous-ensembles latin et latin-ext, licence SIL OFL. Déclarées dans `style.css` (section « Typefaces »). Servies depuis le site plutôt que Google Fonts depuis septembre 2026 : une connexion de moins au premier chargement, et plus aucun décalage du texte quand la police arrive. Pour remplacer une police, changer aussi le nom du fichier (ces fichiers n'ont pas de cache-buster) |
 | `assets/og/` | **Généré**, ne pas éditer à la main : une image de partage 1200×630 par projet |
 | `project/` | **Généré**, ne pas éditer à la main : une coquille HTML par projet, qui porte les balises Open Graph que les crawlers lisent puis redirige vers la vraie page |
-| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément des cache-busters. Contient aussi le script d'encodage du reel (`encode_reel.py`), lancé à la main sur le Mac et pas dans la CI |
+| `scripts/` | Scripts Python lancés par les automatisations : validation de `projects.json`, génération des coquilles de partage + du sitemap, incrément des cache-busters. Contient aussi deux scripts lancés à la main sur le Mac et pas dans la CI : l'encodage du reel (`encode_reel.py`) et le rattrapage des dimensions de stills (`backfill_gallery_dimensions.py`, idempotent — à relancer si une image est remplacée hors admin) |
 | `.github/workflows/` | Les deux automatisations elles-mêmes — voir "Automatisations" plus bas |
 | `sitemap.xml` | **Généré** à partir de `projects.json` |
 | `.nojekyll`, `robots.txt`, `CNAME`, `favicon.ico` | Housekeeping GitHub Pages (désactive Jekyll, bloque l'indexation de `/admin/`, domaine custom, favicon de repli) |
@@ -236,6 +236,27 @@ pendant que le lightbox est ouvert (sept. 2026).
 Au doigt (sept. 2026), l'image suit le geste : glisser sur le côté passe à l'image voisine (ou
 revient en place si le geste est trop court), glisser vers le bas referme le lightbox et
 l'image rétrécit jusqu'à sa vignette, comme dans l'app Photos.
+
+**Formats d'image mélangés** (sept. 2026) : la grille des stills ne bouge pas, quel que soit
+le format des images. Chaque tuile est une boîte 16:9 fixe (carrée sous 700px) remplie en
+`object-fit: cover`, donc un still 4:3 perd 25% de sa hauteur au recadrage et un 2.39 perd 26%
+de sa largeur — mais l'alignement reste parfait. Contrairement à la vignette d'accueil, les
+tuiles de galerie n'ont pas de point focal réglable : le recadrage est toujours centré.
+
+Le lightbox, lui, montre chaque image entière (`object-fit: contain`). Son cadre est **fixé
+par projet** et non par image : il est calculé à partir du format le plus large et du format
+le plus haut de la galerie, chaque dimension prise séparément. Aucune image n'est donc réduite
+par rapport à avant, mais le cadre et la bande de palette cessent de changer de taille d'une
+flèche à l'autre. Dans un projet à format unique — c'est le cas des 32 projets actuels — le
+cadre épouse l'image exactement, comme avant.
+
+Cela repose sur les dimensions réelles (`w` / `h`) stockées pour chaque entrée de galerie dans
+`projects.json` : l'admin les inscrit à l'upload, et `scripts/backfill_gallery_dimensions.py`
+les a rattrapées une fois pour les 711 stills antérieurs. Elles ne peuvent pas être mesurées
+sur les tuiles à l'affichage, parce qu'une tuile est une variante -640/-1280 dont le
+redimensionnement arrondit la hauteur (1920x1080 devient 640x358 ou 640x359, soit un demi
+pour cent d'écart) — assez pour que le cadre flotte de trois ou quatre pixels autour de
+l'image. Une entrée sans `w`/`h` retombe sur la mesure des tuiles.
 
 **Ouverture instantanée** (sept. 2026, Chrome et Edge) : survoler une vignette de la grille
 ou la carte « Projet suivant » prépare la page projet en arrière-plan, et le clic l'affiche

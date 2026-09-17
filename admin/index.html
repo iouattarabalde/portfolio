@@ -1924,18 +1924,20 @@ async function variantData(sourceFile) {
   return out;
 }
 
-// An image's pixel width, without keeping a decoded copy around.
-async function imageWidth(file) {
+// An image's pixel dimensions, without keeping a decoded copy around. Was imageWidth()
+// until Sept 2026, returning the width alone — the height is now wanted too, so the
+// stored w/h can go into projects.json (see prepareOriginal below).
+async function imageSize(file) {
   if ('createImageBitmap' in window) {
     const bitmap = await createImageBitmap(file);
-    const width = bitmap.width;
+    const size = { w: bitmap.width, h: bitmap.height };
     bitmap.close();
-    return width;
+    return size;
   }
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img.naturalWidth); };
+    img.onload = () => { URL.revokeObjectURL(url); resolve({ w: img.naturalWidth, h: img.naturalHeight }); };
     img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
     img.src = url;
   });
@@ -1960,14 +1962,26 @@ const COVER_MAX_WIDTH = 1200;
 const COVER_MAX_BYTES = 400 * 1024;
 const RESIZE_QUALITY = 0.9;
 
+// Returns w/h alongside the bytes: the dimensions of the file that actually gets
+// committed, which projects.json stores per gallery entry so the lightbox knows each
+// still's true shape without decoding anything. They have to be computed here rather than
+// measured off the grid tiles later, because a tile is a -640/-1280 variant and resizing
+// to a round width rounds the height — a 1920x1080 still becomes 640x358 or 640x359, half
+// a percent off the real ratio, which is enough to stop the lightbox frame hugging its
+// image. See measureGalleryRatios() in project.html.
+//
+// The resized branch mirrors compressImage()'s own arithmetic exactly (it only ever scales
+// down, and only when the source is wider than maxWidth), so these are the committed
+// file's real pixels, not an estimate.
 async function prepareOriginal(file, maxWidth, maxBytes) {
-  const width = await imageWidth(file);
+  const { w, h } = await imageSize(file);
   const isJpeg = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name || '');
-  if (isJpeg && width <= maxWidth && file.size <= maxBytes) {
-    return { b64: await blobToBase64(file), passThrough: true };
+  if (isJpeg && w <= maxWidth && file.size <= maxBytes) {
+    return { b64: await blobToBase64(file), passThrough: true, w, h };
   }
   const blob = await compressImage(file, maxWidth, RESIZE_QUALITY);
-  return { b64: await blobToBase64(blob), passThrough: false };
+  const scaled = w > maxWidth ? { w: maxWidth, h: Math.round(h * (maxWidth / w)) } : { w, h };
+  return { b64: await blobToBase64(blob), passThrough: false, w: scaled.w, h: scaled.h };
 }
 
 /* ---------- Color palette extraction ----------
@@ -2696,7 +2710,7 @@ function openEditor(id) {
   // Existing stills are shown from their 640px variant: thirty 1920px originals is a lot
   // of image for tiles this size.
   editorGallery = project
-    ? project.gallery.map((g) => ({ key: nextKey(), filename: g.filename, palette: g.palette, url: '../' + variantPath(g.filename, 640), file: null, status: 'ready' }))
+    ? project.gallery.map((g) => ({ key: nextKey(), filename: g.filename, palette: g.palette, w: g.w, h: g.h, url: '../' + variantPath(g.filename, 640), file: null, status: 'ready' }))
     : [];
   originalGalleryFilenames = editorGallery.map((g) => g.filename).filter(Boolean);
   renderGalleryEditor();
@@ -2936,7 +2950,7 @@ function refreshTileIndices() {
 }
 
 function newStill(file) {
-  return { key: nextKey(), filename: null, palette: undefined, url: URL.createObjectURL(file), file, prepared: null, status: 'processing', error: null, job: null };
+  return { key: nextKey(), filename: null, palette: undefined, w: undefined, h: undefined, url: URL.createObjectURL(file), file, prepared: null, status: 'processing', error: null, job: null };
 }
 
 function prepareStill(item) {
@@ -3245,10 +3259,12 @@ async function saveProject() {
         const filename = `${slug}/${slug}-${stamp}-${i}.jpg`;
         changes.push({ path: `assets/${filename}`, content: item.prepared.b64 });
         item.prepared.variants.forEach((v) => changes.push({ path: variantPath(filename, v.width), content: v.b64 }));
-        gallery.push({ filename, palette: item.prepared.palette });
+        gallery.push({ filename, palette: item.prepared.palette, w: item.prepared.w, h: item.prepared.h });
         addedStills++;
       } else {
-        gallery.push({ filename: item.filename, palette: item.palette });
+        // w/h are absent only for a still committed before Sept 2026 that has not been
+        // through the backfill; project.html falls back to measuring the tiles for those.
+        gallery.push({ filename: item.filename, palette: item.palette, ...(item.w && item.h ? { w: item.w, h: item.h } : {}) });
       }
     });
 

@@ -1723,12 +1723,33 @@ body.same-doc-transition .site-nav {
      swapped in, mid-crossfade (reported Sept 2026). This sizes the box from the still's
      aspect ratio instead, set by applyImage() in project.html, so every file lands in
      the same box. 100cqw and 100cqh are .lightbox's content box, the same room the caps
-     describe. --lb-img-cap is the original's own width when known. With no ratio set
-     both declarations are invalid at computed-value time and fall back to auto, leaving
-     the caps above in charge exactly as before. */
-  width: min(100cqw, var(--lb-img-cap, var(--lb-max-natural)), calc((100cqh - var(--lb-below)) * var(--lb-img-ratio)));
-  aspect-ratio: var(--lb-img-ratio);
-  object-fit: contain; /* never crops the enlarged image, unlike the grid thumbnails */
+     describe. With no ratio set both declarations are invalid at computed-value time and
+     fall back to auto, leaving the caps above in charge exactly as before. */
+  /* Pinned frame, Sept 2026. This was sized per image from --lb-img-ratio, which meant the
+     frame reshaped itself on every arrow press in a gallery that mixes ratios. It now
+     sizes from the gallery's ratio *bounds* instead, set once per project by
+     measureGalleryRatios() in project.html:
+
+       --lb-r-max  the widest still's ratio   -> decides the frame's width
+       --lb-r-min  the tallest still's ratio  -> decides the frame's height
+
+     Each dimension is maximised independently, so the frame is the union of every
+     still's natural box: nothing renders any smaller than it did before, the box simply
+     stops moving. An off-ratio still is letterboxed or pillarboxed inside it by
+     object-fit below. In a single-ratio gallery r-max == r-min and this collapses to
+     exactly the old behaviour.
+
+     Both dimensions are definite, so aspect-ratio has nothing left to do and is dropped.
+
+     --lb-cap-w replaces the per-image --lb-img-cap that used to keep a sub-1920px still
+     from being scaled past its own pixels. A per-image cap is one more thing that would
+     move the frame, so it is now the widest still in the gallery — read from the stored
+     dimensions, so unlike the old one it is known before anything is fetched rather than
+     only once the original lands. Falls back to --lb-max-natural for a gallery with no
+     stored dimensions yet. */
+  width: min(100cqw, var(--lb-cap-w, var(--lb-max-natural)), calc((100cqh - var(--lb-below)) * var(--lb-r-max, var(--lb-img-ratio))));
+  height: min(calc(100cqh - var(--lb-below)), calc(min(100cqw, var(--lb-cap-w, var(--lb-max-natural))) / var(--lb-r-min, var(--lb-img-ratio))));
+  object-fit: contain; /* never crops the enlarged image, and now also letterboxes it inside the pinned frame */
   view-transition-name: lightbox-img; /* scopes the same-document View Transition (see openLightboxAt in project.html) to just this image crossfading between stills, instead of the browser treating the whole page as one transitioning root */
 }
 /* Color palette strip below the enlarged still, requested Aug 2026 (ShotDeck-style
