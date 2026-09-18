@@ -198,16 +198,35 @@
   // of the stagger. Same reasoning as sizeReel()'s synchronous first call in index.html.
   // The completeness check matters: without a decoded frame there are no intrinsic
   // dimensions yet, so offsetWidth would measure a collapsed box.
-  // The image box is pinned per gallery rather than sized per still (see
-  // measureGalleryRatios below), so offsetWidth is the frame's width and the strip is
-  // stable across an arrow press for free — in a single-ratio gallery, which is every
-  // project as of Sept 2026, the frame hugs the photo and this is exactly the width it
-  // has always been. In a mixed-ratio one the strip tracks the frame, not the letterboxed
-  // photo inside it: a strip that resized with each still would put back the one thing
-  // pinning the frame is meant to remove.
-  function sizePalette() {
-    if (!lightboxImg.complete || !lightboxImg.naturalWidth) return;
-    lightboxPalette.style.width = lightboxImg.offsetWidth + 'px';
+  // The strip is exactly as wide as the photograph it describes — a palette that ran
+  // wider than its own still read as chrome rather than as part of the image.
+  //
+  // That is not the same as the image box's width any more. The box is pinned per gallery
+  // (see measureGalleryRatios below), so in a gallery that mixes formats an off-ratio
+  // still is letterboxed inside it and offsetWidth is the frame, not the picture. What
+  // object-fit: contain actually paints is the smaller of the box and the still's own
+  // ratio against the box's height, which is what this computes. In a single-ratio
+  // gallery the two are identical, so this is the width the strip has always had.
+  //
+  // The width therefore changes on every arrow press in a mixed gallery; style.css
+  // animates it rather than letting it jump. See .lightbox-palette there.
+  // ratio, when given, is the still's own aspect ratio from projects.json — exact, and
+  // known before the file has decoded. That matters for more than precision: waiting on
+  // the decode (which is all this could do before the dimensions were stored) meant the
+  // width change started on the load event, whole frames after the image crossfade it is
+  // supposed to move with, so the strip visibly trailed the picture. The box itself is
+  // sized by CSS from the gallery's bounds, not from the image, so it can be measured
+  // immediately and only the ratio was ever missing.
+  //
+  // Falls back to the decoded file for the load listener below, and for an entry with no
+  // stored dimensions.
+  function sizePalette(ratio) {
+    const r = ratio || (lightboxImg.naturalWidth && lightboxImg.naturalHeight
+      ? lightboxImg.naturalWidth / lightboxImg.naturalHeight
+      : 0);
+    if (!r) return;
+    const photoWidth = Math.min(lightboxImg.offsetWidth, lightboxImg.offsetHeight * r);
+    lightboxPalette.style.width = Math.round(photoWidth) + 'px';
   }
 
   // The gallery's ratio bounds, which is what the pinned frame is sized from
@@ -425,11 +444,16 @@
       const full = paintableStills.has(fullSrc) ? fullStills.get(fullSrc) : null;
       const variant = openingThumbImg && openingThumbImg.naturalWidth ? openingThumbImg : null;
       const sizedFrom = full || variant;
+      // projects.json carries this still's true w/h; prefer it over anything measured off
+      // a decoded file, which may be a -640/-1280 variant whose resize rounded the height.
+      const storedRatio = item.w && item.h ? item.w / item.h : 0;
       lightboxImg.src = full ? fullSrc : (openingThumbImg && openingThumbImg.currentSrc) || fullSrc;
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
-      if (sizedFrom) {
-        lightboxImg.style.setProperty('--lb-img-ratio', String(sizedFrom.naturalWidth / sizedFrom.naturalHeight));
-        measureGalleryRatios(sizedFrom.naturalWidth / sizedFrom.naturalHeight);
+      const knownRatio = storedRatio
+        || (sizedFrom ? sizedFrom.naturalWidth / sizedFrom.naturalHeight : 0);
+      if (knownRatio) {
+        lightboxImg.style.setProperty('--lb-img-ratio', String(knownRatio));
+        measureGalleryRatios(knownRatio);
       } else {
         lightboxImg.style.removeProperty('--lb-img-ratio'); // nothing decoded to read it from: the CSS caps size it as before
       }
@@ -441,7 +465,7 @@
       document.documentElement.classList.add('lightbox-open'); // locks page scroll behind the overlay, see html.lightbox-open in style.css
       lightboxPrev.style.display = hasMultiple ? '' : 'none';
       lightboxNext.style.display = hasMultiple ? '' : 'none';
-      sizePalette(); // after .open: the overlay is display:none until then, so nothing has a measurable width before this point
+      sizePalette(knownRatio); // after .open: the overlay is display:none until then, so nothing has a measurable width before this point
       upgradeToFull(fullSrc, lightboxIndex);
       // The stills either side, so the next arrow press opens on the full file.
       if (hasMultiple) {
@@ -453,7 +477,24 @@
 
     if (isNavigating) {
       if (options && options.instant) applyImage();
-      else withViewTransition(applyImage, null, ['lightbox-nav']);
+      else {
+        // Only for navigation, and only for as long as it lasts. Without a name of its own
+        // the strip rides the root snapshot, which crossfades it — fine while every still
+        // in a gallery was the same width, but a crossfade between a wide strip and a
+        // narrow one is a fade, not a move. Named, the browser interpolates the box and
+        // still crossfades the colours inside it, both on --dur-lb-nav.
+        //
+        // Released in onDone rather than left on: the open and close transitions want the
+        // strip back in the root snapshot, where .is-entering's stagger belongs, and a
+        // name left behind would quietly cost those transitions instead (see
+        // releaseThumbNames above for the same hazard on the tiles).
+        lightboxPalette.style.viewTransitionName = 'lightbox-palette';
+        withViewTransition(
+          applyImage,
+          () => { lightboxPalette.style.viewTransitionName = ''; },
+          ['lightbox-nav']
+        );
+      }
       return;
     }
 

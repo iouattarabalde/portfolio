@@ -246,9 +246,18 @@ tuiles de galerie n'ont pas de point focal réglable : le recadrage est toujours
 Le lightbox, lui, montre chaque image entière (`object-fit: contain`). Son cadre est **fixé
 par projet** et non par image : il est calculé à partir du format le plus large et du format
 le plus haut de la galerie, chaque dimension prise séparément. Aucune image n'est donc réduite
-par rapport à avant, mais le cadre et la bande de palette cessent de changer de taille d'une
-flèche à l'autre. Dans un projet à format unique — c'est le cas des 32 projets actuels — le
-cadre épouse l'image exactement, comme avant.
+par rapport à avant, mais le cadre cesse de changer de taille d'une flèche à l'autre. Dans un
+projet à format unique, le cadre épouse l'image exactement, comme avant.
+
+La bande de palette, elle, fait toujours exactement la largeur de la **photo**, pas du cadre —
+une palette plus large que son propre still se lisait comme un élément d'interface plutôt que
+comme une partie de l'image. Dans une galerie à formats mélangés cette largeur change donc à
+chaque flèche, et elle est animée sur `--dur-lb-nav` (240 ms), le même jeton que le fondu de
+l'image : pendant une transition la bande reçoit son propre `view-transition-name` et c'est le
+navigateur qui interpole sa boîte ; la transition CSS sur `width` couvre les cas où aucune
+transition ne tourne (navigateur sans View Transitions, onglet masqué, deuxième flèche en
+cours d'animation). À l'ouverture elle n'anime pas : `.is-entering` coupe la transition, sinon
+la bande partirait de la largeur du still précédent.
 
 Cela repose sur les dimensions réelles (`w` / `h`) stockées pour chaque entrée de galerie dans
 `projects.json` : l'admin les inscrit à l'upload, et `scripts/backfill_gallery_dimensions.py`
