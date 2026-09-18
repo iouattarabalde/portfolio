@@ -1,6 +1,0 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    { "name": "portfolio-mirror", "runtimeExecutable": "python3", "runtimeArgs": ["-I", "/private/tmp/claude-501/-Users-ismael-Documents-Claude-Code-portfolio/6105a710-2372-4ef0-b646-46516a1780df/scratchpad/serve.py"], "port": 8731 }
-  ]
-}

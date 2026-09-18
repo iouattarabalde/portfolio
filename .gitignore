@@ -23,3 +23,7 @@ drafts/
 # Python
 __pycache__/
 *.pyc
+
+# Local tooling scratch. launch.json points at a session-specific scratchpad path,
+# so it is only ever valid on the machine and session that wrote it.
+.claude/
