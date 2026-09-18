@@ -660,6 +660,27 @@
   }
   const DISMISS_DISTANCE = 110;   // px of downward drag that closes on release
   const FLICK_SPEED = 0.35;       // px/ms, measured over the last ~80ms of the drag
+  const SWIPE_OUT_MS = 140;       // ms the thrown still takes to leave
+  const SWIPE_IN_MS = 320;        // ms the next one takes to settle in
+  // A still that was thrown rather than dragged across leaves with a little blur -- the one
+  // place on the site where movement itself is blurred (everywhere else blur means depth:
+  // the nav and the lightbox chrome blur what passes behind them). Two things gate it, so
+  // it only ever appears on a gesture that really is fast:
+  //   - the release has to count as a flick, so a deliberate page-turn dragged past the
+  //     distance threshold stays perfectly sharp;
+  //   - the radius follows how fast the still will actually be travelling as it leaves, not
+  //     how fast the finger was going. A flick released after 20px has most of the slide
+  //     still to cover and smears; one released 100px in has almost nowhere left to go, and
+  //     blurring something that is barely moving would just look like a soft image.
+  // Capped at 3px: filter re-rasterizes the layer every frame and the cost grows with radius
+  // x blurred area, which here is a viewport-wide still.
+  const BLUR_MAX = 3;             // px of blur at BLUR_FULL_RATE and above
+  const BLUR_FULL_RATE = 1.5;     // px/ms of outgoing travel that earns the full radius
+  const BLUR_MIN = 0.4;           // below this it isn't visible, so don't pay for the filter
+  function motionBlur(rate) {
+    const px = BLUR_MAX * Math.min(Math.max(rate / BLUR_FULL_RATE, 0), 1);
+    return px < BLUR_MIN ? 0 : +px.toFixed(2);
+  }
   const lightboxContent = lightbox.querySelector('.lightbox-content');
   let drag = null;
   let dragFrame = 0;
@@ -712,7 +733,7 @@
       { duration: 380, easing: easeOut }
     );
   }
-  function swipeTo(step) {
+  function swipeTo(step, flicked) {
     const { easeOut, reduced } = motionTiming();
     if (reduced) {
       clearDragStyles();
@@ -721,21 +742,43 @@
     }
     const travel = lightbox.clientWidth * 0.3;
     const from = lightboxContent.style.translate || '0px 0px';
+    const target = -step * travel;
+    // Doubled because the easing below accelerates the whole way out, so the still is moving
+    // at roughly twice its average rate by the time it leaves.
+    const rate = Math.abs(target - (parseFloat(from) || 0)) / SWIPE_OUT_MS * 2;
+    const blur = flicked ? motionBlur(rate) : 0;
     clearDragStyles();
+    // Full radius by 30% of the way out, ahead of the still's own fade: the easing starts
+    // slow, so the blur has been seen by the time the opacity drops far enough to hide it.
+    // An ordinary swipe (blur 0) keeps the plain two-keyframe form and rasterizes nothing.
+    const frames = blur
+      ? [{ translate: from, opacity: 1, filter: 'blur(0px)' },
+         { filter: `blur(${blur}px)`, offset: 0.3 },
+         { translate: `${target}px 0px`, opacity: 0, filter: `blur(${blur}px)` }]
+      : [{ translate: from, opacity: 1 }, { translate: `${target}px 0px`, opacity: 0 }];
     gestureAnimation = lightboxContent.animate(
-      [{ translate: from, opacity: 1 }, { translate: `${-step * travel}px 0px`, opacity: 0 }],
-      { duration: 140, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
+      frames,
+      { duration: SWIPE_OUT_MS, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
     );
     const outgoing = gestureAnimation;
     outgoing.finished.then(() => {
       openLightboxAt(lightboxIndex + step, { instant: true });
-      outgoing.cancel();
+      outgoing.cancel(); // drops the blur the fill was holding, so the next still arrives sharp
       // A finger already down for the next swipe (it landed mid-slide and finished this
       // one early) owns the still now; sliding in on top would fight the drag.
       if (drag) { gestureAnimation = null; return; }
+      // The arriving still carries half the radius and is sharp by 30% of the way in, which
+      // an ease-out reaches in well under a third of the 320ms -- long enough to read as the
+      // same movement as the one that just left, short enough not to soften what lands.
+      const inBlur = blur ? +(blur / 2).toFixed(2) : 0;
+      const inFrames = inBlur
+        ? [{ translate: `${step * travel}px 0px`, opacity: 0, filter: `blur(${inBlur}px)` },
+           { filter: 'blur(0px)', offset: 0.3 },
+           { translate: '0px 0px', opacity: 1, filter: 'blur(0px)' }]
+        : [{ translate: `${step * travel}px 0px`, opacity: 0 }, { translate: '0px 0px', opacity: 1 }];
       gestureAnimation = lightboxContent.animate(
-        [{ translate: `${step * travel}px 0px`, opacity: 0 }, { translate: '0px 0px', opacity: 1 }],
-        { duration: 320, easing: easeOut }
+        inFrames,
+        { duration: SWIPE_IN_MS, easing: easeOut }
       );
     }, () => {});
   }
@@ -774,7 +817,8 @@
     if (ended.axis === 'x') {
       const flicked = Math.abs(velocity.x) > FLICK_SPEED && Math.sign(velocity.x) === Math.sign(ended.dx) && Math.abs(ended.dx) > 12;
       if (hasNeighbours && (Math.abs(ended.dx) >= swipeThreshold() || flicked)) {
-        swipeTo(ended.dx < 0 ? 1 : -1); // right-to-left advances, as in any photo viewer
+        // right-to-left advances, as in any photo viewer; only a flick carries a blur
+        swipeTo(ended.dx < 0 ? 1 : -1, flicked);
       } else {
         springBack();
       }
