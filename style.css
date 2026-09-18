@@ -51,6 +51,13 @@
      on exactly the same clock as the image, or the two read as separate events. One token
      rather than two literals is what keeps that true if the timing is ever retuned. */
   --dur-lb-nav: 240ms;
+  /* The palette's re-entry when a still changes FORMAT mid-gallery. Deliberately tighter
+     than the opening wave above (--dur-enter-sm / --palette-stagger, ~750ms end to end):
+     an entrance can take its time because nothing else is moving, but this one plays over
+     the image crossfade and has to be finished about as soon as it is. 12 x 11ms + 280ms
+     lands at ~410ms — it starts with the crossfade and settles just after. */
+  --dur-palette-rise: 280ms;
+  --palette-nav-stagger: 11ms;
 
   /* Reel halo and page grain. These were tuned with sliders in the admin's Design tab
      (Aug 2026) and loaded from data/design.json on every page, after first paint — so each
@@ -240,9 +247,6 @@ html:active-view-transition-type(lightbox-close)::view-transition-new(lightbox-i
 html:active-view-transition-type(lightbox-nav)::view-transition-group(lightbox-img),
 html:active-view-transition-type(lightbox-nav)::view-transition-old(lightbox-img),
 html:active-view-transition-type(lightbox-nav)::view-transition-new(lightbox-img),
-html:active-view-transition-type(lightbox-nav)::view-transition-group(lightbox-palette),
-html:active-view-transition-type(lightbox-nav)::view-transition-old(lightbox-palette),
-html:active-view-transition-type(lightbox-nav)::view-transition-new(lightbox-palette),
 html:active-view-transition-type(lightbox-nav)::view-transition-old(root),
 html:active-view-transition-type(lightbox-nav)::view-transition-new(root) {
   animation-duration: var(--dur-lb-nav);
@@ -1775,24 +1779,9 @@ body.same-doc-transition .site-nav {
   margin-top: var(--lb-palette-gap);
   flex-shrink: 0;
   /* The width is set in JS to the still's own rendered width (sizePalette() in
-     project.html). In a gallery that mixes formats that width changes on every arrow
-     press, and jumping straight to the new one is the one motion the pinned frame was
-     meant to get rid of.
-
-     Two mechanisms, because they cover different paths. A still-to-still transition gives
-     this element a view-transition-name (set in openLightboxAt), so the browser
-     interpolates the box itself, on the same token as the image's crossfade — that is
-     what runs normally. This declaration is the fallback for every path where no
-     transition runs at all: a browser without View Transitions, or one that skipped it
-     (a hidden tab, a second arrow press landing mid-animation). Without it those paths
-     would snap. */
-  transition: width var(--dur-lb-nav) var(--ease-out-soft);
-}
-/* Opening is not a width change, it's an arrival: the strip has no previous width to move
-   from, and .is-entering's own stagger is the motion that belongs to it. Transitioning
-   here would animate out from whatever the last-viewed still left behind. */
-.lightbox-palette.is-entering {
-  transition: none;
+     project.html), so in a gallery that mixes formats it changes whenever the format
+     does. It is NOT animated: see .is-reshaping below for what happens instead, and why
+     interpolating the width was the wrong instrument. */
 }
 /* Each swatch rises from the strip's baseline on a short stagger rather than the whole
    row appearing at once, requested Aug 2026 — on a colorist's site the palette is the
@@ -1835,6 +1824,37 @@ body.same-doc-transition .site-nav {
 .lightbox-palette.is-entering > div {
   animation: palette-enter var(--dur-enter-sm) var(--ease-out) backwards;
   animation-delay: calc(var(--i, 0) * var(--palette-stagger));
+}
+
+/* A format change mid-gallery, Sept 2026 — the strip re-enters rather than resizing.
+   
+   The first attempt interpolated width over --dur-lb-nav. It reads badly, and the reason
+   is structural: the swatches are flex: 1, so animating the container's width drags all
+   thirteen boundaries sideways at once. The strip looks like it is being pulled, which is
+   a motion the palette never makes anywhere else on the site — the entrance doesn't move
+   sideways at all, it rises from the baseline.
+
+   So a change of format is treated as an arrival, reusing palette-enter. The width is
+   still set instantly, but it now changes on the frame where opacity is 0, so the
+   sideways jump is never drawn: what you see is the palette dropping to its baseline and
+   coming back up at the new width.
+
+   Only on a format change. Most arrow presses in a mixed gallery are between stills of
+   the SAME format (BIP/9VOLT is 21 at 16:9 and 6 at 1.296), and there the width doesn't
+   move and the colours crossfade exactly as before. Replaying this on every press would
+   be the old ~750ms-wave-on-every-navigation problem again, which is what the note above
+   describes getting rid of.
+
+   --wave, rather than --i, carries each swatch's place: openLightboxAt reverses it when
+   you arrow backwards, so the wave always runs in the direction you are travelling. */
+.lightbox-palette.is-reshaping > div {
+  animation: palette-enter var(--dur-palette-rise) var(--ease-out) backwards;
+  animation-delay: calc(var(--wave, 0) * var(--palette-nav-stagger));
+}
+/* The colour is already correct when the swatch is invisible, so the crossfade that
+   serves a same-format navigation would only smear the rise. */
+.lightbox-palette.is-reshaping > div {
+  transition: none;
 }
 .lightbox-close {
   position: absolute;
@@ -2054,8 +2074,8 @@ body.same-doc-transition .site-nav {
   .contact-photo {
     animation: none;
   }
-  .lightbox-palette {
-    transition: none;
+  .lightbox-palette.is-reshaping > div {
+    animation: none;
   }
   .lightbox-palette.is-entering > div {
     animation: none;

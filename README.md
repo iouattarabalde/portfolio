@@ -251,13 +251,30 @@ projet à format unique, le cadre épouse l'image exactement, comme avant.
 
 La bande de palette, elle, fait toujours exactement la largeur de la **photo**, pas du cadre —
 une palette plus large que son propre still se lisait comme un élément d'interface plutôt que
-comme une partie de l'image. Dans une galerie à formats mélangés cette largeur change donc à
-chaque flèche, et elle est animée sur `--dur-lb-nav` (240 ms), le même jeton que le fondu de
-l'image : pendant une transition la bande reçoit son propre `view-transition-name` et c'est le
-navigateur qui interpole sa boîte ; la transition CSS sur `width` couvre les cas où aucune
-transition ne tourne (navigateur sans View Transitions, onglet masqué, deuxième flèche en
-cours d'animation). À l'ouverture elle n'anime pas : `.is-entering` coupe la transition, sinon
-la bande partirait de la largeur du still précédent.
+comme une partie de l'image. Dans une galerie à formats mélangés cette largeur change donc dès
+que le format change.
+
+Ce changement de largeur n'est **pas** interpolé. Une première version animait `width` sur 240 ms
+et se lisait mal, pour une raison structurelle : les pastilles sont en `flex: 1`, donc animer la
+largeur du conteneur fait glisser les treize séparations d'un coup et la bande a l'air d'être
+tirée sur le côté — un mouvement que la palette ne fait nulle part ailleurs sur le site. Un
+changement de format rejoue plutôt l'animation d'entrée (`palette-enter`, la même montée depuis
+la ligne de base qu'à l'ouverture, classe `.is-reshaping`) : la largeur est appliquée
+instantanément, mais sur la frame où l'opacité est à 0, donc le saut latéral n'est jamais dessiné.
+On voit la bande retomber sur sa base et remonter à sa nouvelle largeur.
+
+Trois règles :
+- **Seulement quand le format change.** La plupart des flèches passent d'un still à un autre du
+  même format (BIP/9VOLT : 21 en 16:9, 6 en 1.296) — là rien ne bouge et les couleurs se fondent
+  comme avant. Rejouer la vague à chaque flèche, c'est exactement le problème que la note
+  ci-dessus décrit avoir réglé en septembre 2026.
+- **Plus serré qu'à l'ouverture.** `--dur-palette-rise` (280 ms) et `--palette-nav-stagger`
+  (11 ms) donnent ~410 ms bout à bout, contre ~750 ms pour l'entrée
+  (`--dur-enter-sm` / `--palette-stagger`) : la vague démarre avec le fondu de l'image et se pose
+  juste après. Ce sont les deux seuls jetons à toucher pour retoucher le rythme.
+- **La vague suit la flèche.** `--wave` porte la place de chaque pastille et est inversé quand on
+  recule, donc la vague voyage toujours dans le sens du déplacement, y compris sur les
+  rebouclages début/fin.
 
 Cela repose sur les dimensions réelles (`w` / `h`) stockées pour chaque entrée de galerie dans
 `projects.json` : l'admin les inscrit à l'upload, et `scripts/backfill_gallery_dimensions.py`

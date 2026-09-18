@@ -296,6 +296,39 @@
   }
   lightboxImg.addEventListener('load', sizePalette);
 
+  // Replays the entrance wave when a navigation changed the still's FORMAT, which is the
+  // only time the strip's width moves. See .lightbox-palette.is-reshaping in style.css
+  // for why a format change is staged as an arrival rather than a resize.
+  //
+  // Defined out here, not inside openLightboxAt: that function runs on every arrow press,
+  // and the listener below would accumulate one copy per press if it were declared there.
+  function reshapePalette(changed, backwards) {
+    // Cleared first so a second format change can replay it. Removing and re-adding in
+    // one frame is otherwise a no-op — the animation name never changed, so the browser
+    // sees nothing to restart. The forced reflow between the two is what makes it take.
+    lightboxPalette.classList.remove('is-reshaping');
+    if (!changed) return;
+    const swatches = lightboxPalette.children;
+    const last = swatches.length - 1;
+    for (let i = 0; i <= last; i++) {
+      swatches[i].style.setProperty('--wave', String(backwards ? last - i : i));
+    }
+    void lightboxPalette.offsetWidth;
+    lightboxPalette.classList.add('is-reshaping');
+  }
+  // Dropped when the wave is over, not when its first swatch finishes — that would cut
+  // the rest of it short. The swatch with the highest --wave is the one to wait for: every
+  // swatch runs the same duration, so the one that starts last ends last. Asking instead
+  // whether any animation is still running would depend on exactly when the browser
+  // detaches a finished one, which is not something to rely on.
+  lightboxPalette.addEventListener('animationend', (e) => {
+    if (e.animationName !== 'palette-enter') return;
+    const last = String(lightboxPalette.children.length - 1);
+    if (e.target.style.getPropertyValue('--wave') === last) {
+      lightboxPalette.classList.remove('is-reshaping');
+    }
+  });
+
   // Full-resolution stills fetched this visit, keyed by URL, and the subset already
   // decoded. Kept for the life of the page so a still seen once, or preloaded as the
   // neighbour of the one on screen, opens straight on its full file next time instead of
@@ -380,6 +413,7 @@
   function openLightboxAt(index, options) {
     if (!currentProject) return;
     const gallery = currentProject.gallery;
+    const previousIndex = lightboxIndex;
     lightboxIndex = (index + gallery.length) % gallery.length; // loops both directions
     const item = gallery[lightboxIndex]; // {filename, palette} — see data/projects.json, Aug 2026
     const hasMultiple = gallery.length > 1;
@@ -413,6 +447,7 @@
         .map((hex, i) => `<div style="--i:${i};background:${esc(hex)}"></div>`)
         .join('');
       lightboxPalette.classList.toggle('is-entering', !isNavigating);
+      if (!isNavigating) lightboxPalette.classList.remove('is-reshaping');
     }
 
     // Opens on whatever the grid already decoded for this tile, then upgrades to the
@@ -465,7 +500,20 @@
       document.documentElement.classList.add('lightbox-open'); // locks page scroll behind the overlay, see html.lightbox-open in style.css
       lightboxPrev.style.display = hasMultiple ? '' : 'none';
       lightboxNext.style.display = hasMultiple ? '' : 'none';
+      // Width before and after, so a format change can be told from an ordinary step
+      // between two stills of the same shape. Read before sizePalette writes the new one;
+      // 0 on the initial open, where .is-entering owns the motion instead.
+      const widthBefore = isNavigating ? Math.round(lightboxPalette.getBoundingClientRect().width) : 0;
       sizePalette(knownRatio); // after .open: the overlay is display:none until then, so nothing has a measurable width before this point
+      if (isNavigating) {
+        const widthAfter = Math.round(lightboxPalette.getBoundingClientRect().width);
+        // Which way the wave travels. Written as the step between indices so the two
+        // wrap-arounds land on the right side of it: last -> first reads as +1 (forward),
+        // first -> last as -1 (backward), not as a jump the length of the gallery.
+        const step = lightboxIndex - previousIndex;
+        const backwards = step === -1 || step === gallery.length - 1;
+        reshapePalette(widthAfter !== widthBefore, backwards);
+      }
       upgradeToFull(fullSrc, lightboxIndex);
       // The stills either side, so the next arrow press opens on the full file.
       if (hasMultiple) {
@@ -477,24 +525,7 @@
 
     if (isNavigating) {
       if (options && options.instant) applyImage();
-      else {
-        // Only for navigation, and only for as long as it lasts. Without a name of its own
-        // the strip rides the root snapshot, which crossfades it — fine while every still
-        // in a gallery was the same width, but a crossfade between a wide strip and a
-        // narrow one is a fade, not a move. Named, the browser interpolates the box and
-        // still crossfades the colours inside it, both on --dur-lb-nav.
-        //
-        // Released in onDone rather than left on: the open and close transitions want the
-        // strip back in the root snapshot, where .is-entering's stagger belongs, and a
-        // name left behind would quietly cost those transitions instead (see
-        // releaseThumbNames above for the same hazard on the tiles).
-        lightboxPalette.style.viewTransitionName = 'lightbox-palette';
-        withViewTransition(
-          applyImage,
-          () => { lightboxPalette.style.viewTransitionName = ''; },
-          ['lightbox-nav']
-        );
-      }
+      else withViewTransition(applyImage, null, ['lightbox-nav']);
       return;
     }
 
@@ -540,6 +571,7 @@
       lightboxImg.src = '';
       lightboxPalette.innerHTML = '';
       lightboxPalette.classList.remove('is-entering'); // next open re-adds it; leaving it set on an empty strip is just untidy state
+      lightboxPalette.classList.remove('is-reshaping'); // same, and it must not be on when the next open's entrance runs
     }
 
     if (!thumbImg) {
