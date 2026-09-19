@@ -38,7 +38,7 @@
      once the scripts at the bottom of <body> get round to it (Sept 2026). crossorigin is
      what makes the preload's request match fetch()'s default same-origin credentials
      mode; without it the browser would download each file twice. -->
-<link rel="preload" href="data/projects.json" as="fetch" crossorigin>
+<link rel="preload" href="data/projects.json?v=135" as="fetch" crossorigin>
 <link rel="preload" href="data/strings.json" as="fetch" crossorigin>
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, own
      randomised phase offset per load — so navigating between pages can land at a
@@ -851,7 +851,7 @@
   // rendered by renderProjectType() also depends on i18n.js's PROJECT_TYPES being loaded.
   Promise.all([
     loadI18n(),
-    fetch('data/projects.json').then((r) => r.json())
+    fetch('data/projects.json?v=135').then((r) => r.json())
   ])
     .then(([, data]) => {
       applyStrings();

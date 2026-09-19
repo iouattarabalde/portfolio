@@ -11,6 +11,18 @@ name: Bump asset cache-busters
 # a new page against a cached older site.js and call a function that didn't exist
 # in it yet. One shared version number covers all three assets — see the script
 # for why that's a single counter and not one per file.
+#
+# data/projects.json and data/settings.json joined them in Sept 2026. Neither is
+# a shared asset like the other three, but both are files the admin rewrites on a
+# save, and they need the same busting for the same reason — see OPTIONAL_ASSETS
+# in the script. data/strings.json has the identical problem and is deliberately
+# NOT here: i18n.js builds its URL itself, with new URL() against the script's own
+# src, so there is no reference in any page for the script to rewrite. Fixing that
+# one needs a different mechanism, not another path here. Note
+# the consequence: an admin save now lands two commits, the save itself and the
+# bump behind it, and so two Pages deploys. That is intended. The first deploy
+# would otherwise publish new data under a version number every browser has
+# already cached.
 on:
   push:
     branches: [main]
@@ -18,6 +30,8 @@ on:
       - 'style.css'
       - 'site.js'
       - 'i18n.js'
+      - 'data/projects.json'
+      - 'data/settings.json'
 
 permissions:
   contents: write

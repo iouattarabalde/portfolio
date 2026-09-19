@@ -43,7 +43,27 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Every page that links these links all of them, so a page carrying some but not
 # all is a real error rather than something to skip over.
 ASSETS = ["style.css", "site.js", "i18n.js"]
-PATTERN = re.compile(r'(%s)(\?v=)(\d+)' % "|".join(re.escape(a) for a in ASSETS))
+
+# Versioned identically, but only on the pages that actually read it, so absence
+# is not an error the way it is for the three above — privacy/ and terms/ carry
+# the shared assets and no project data at all.
+#
+# Added Sept 2026. data/projects.json is what the admin rewrites on every save,
+# and it was the one input to the work grid and the galleries with no cache-buster
+# on it: GitHub Pages serves it with max-age=600 and gives no way to set a header,
+# so for ten minutes after a save every visitor kept the old gallery, and an iOS
+# tab restored from the back/forward cache never re-ran the fetch at all and could
+# hold it indefinitely. Stale data there is worse than a stale stylesheet, because
+# a save that removes a still leaves the old copy pointing at files that now 404.
+# Both the <link rel=preload> and the fetch() carry the number and are rewritten
+# together — they have to stay byte-identical or the preload stops matching the
+# request it exists to warm, and the page pays for two fetches instead of one.
+# data/settings.json is the same story on a smaller file — the contact photo and
+# the two bios, index.html only.
+OPTIONAL_ASSETS = ["data/projects.json", "data/settings.json"]
+
+VERSIONED = ASSETS + OPTIONAL_ASSETS
+PATTERN = re.compile(r'(%s)(\?v=)(\d+)' % "|".join(re.escape(a) for a in VERSIONED))
 SKIP_DIRS = {".git", "node_modules", ".github"}
 
 
@@ -95,7 +115,8 @@ def main():
         new_text = PATTERN.sub(rf'\g<1>\g<2>{new_v}', contents[name])
         with open(os.path.join(REPO_ROOT, name), "w", encoding="utf-8") as f:
             f.write(new_text)
-        was = ", ".join(f"{asset} v={found[name][asset]}" for asset in ASSETS)
+        was = ", ".join(f"{asset} v={found[name][asset]}"
+                        for asset in VERSIONED if asset in found[name])
         print(f"{name}: {was} -> v={new_v}")
 
 
