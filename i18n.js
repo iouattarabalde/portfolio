@@ -53,9 +53,32 @@ let _i18nPromise = null; // cached so several callers on the same page share one
 // a subfolder (privacy/, terms/) load ../i18n.js, and a page-relative 'data/strings.json'
 // sent them to /privacy/data/strings.json — a 404 on every visit, after which their
 // labels quietly fell back to the defaults above, ignoring anything edited in the admin.
-// From a root page this is the same URL as before, so the preload in index.html and
-// project.html still matches it.
-const STRINGS_URL = new URL('data/strings.json', document.currentScript ? document.currentScript.src : location.href).href;
+const SELF_URL = new URL(document.currentScript ? document.currentScript.src : location.href);
+
+// ...and carrying this script's own ?v= across onto the data file, so the strings get the
+// cache-busting the rest of the site already had (Sept 2026). data/strings.json is rewritten
+// by the admin, and was fetched at a bare URL that GitHub Pages serves with max-age=600 and
+// no way to set a header — so an edited label kept its old value for ten minutes, and on an
+// iOS tab restored from the back/forward cache the fetch never re-ran at all.
+//
+// The version is taken from this script's src rather than passed in from the page, because
+// every page already loads i18n.js?v=N and that number is already bumped in CI. There is
+// nothing to add to a page, nothing for a new page to forget, and the two can't drift: the
+// strings are busted by definition whenever i18n.js is. The preloads in index.html and
+// project.html carry the same ?v= (they're in the bump script's OPTIONAL_ASSETS, moved by
+// the same counter) so they still match the request they exist to warm — change one of
+// these without the other and the page quietly pays for two fetches.
+//
+// A relative reference does not inherit its base's query, so resolving against SELF_URL
+// gives a clean data/strings.json and the v below is the only thing on it. If
+// document.currentScript is unavailable the fallback is location.href, which carries no
+// version — the URL is then simply unbusted, as it was before this change.
+const STRINGS_URL = (() => {
+  const url = new URL('data/strings.json', SELF_URL);
+  const v = SELF_URL.searchParams.get('v');
+  if (v) url.searchParams.set('v', v);
+  return url.href;
+})();
 
 // Fetches data/strings.json and merges it over the defaults (a key missing from the
 // file — e.g. a brand new one added later that hasn't been edited yet — just falls

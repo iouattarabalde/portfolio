@@ -12,13 +12,15 @@ name: Bump asset cache-busters
 # in it yet. One shared version number covers all three assets — see the script
 # for why that's a single counter and not one per file.
 #
-# data/projects.json and data/settings.json joined them in Sept 2026. Neither is
-# a shared asset like the other three, but both are files the admin rewrites on a
-# save, and they need the same busting for the same reason — see OPTIONAL_ASSETS
-# in the script. data/strings.json has the identical problem and is deliberately
-# NOT here: i18n.js builds its URL itself, with new URL() against the script's own
-# src, so there is no reference in any page for the script to rewrite. Fixing that
-# one needs a different mechanism, not another path here. Note
+# The three data files the admin rewrites joined them in Sept 2026. None is a
+# shared asset like the other three, but all are rewritten on a save and need the
+# same busting for the same reason — see OPTIONAL_ASSETS in the script.
+#
+# data/strings.json is listed here but reaches the browser differently: i18n.js
+# builds that URL itself and carries its own ?v= onto it, so what the bump has to
+# move for the strings is i18n.js's number, which it does for every page anyway.
+# The path is here so that a save touching ONLY the strings still triggers a run —
+# without it the counter would never move and the strings would stay cached. Note
 # the consequence: an admin save now lands two commits, the save itself and the
 # bump behind it, and so two Pages deploys. That is intended. The first deploy
 # would otherwise publish new data under a version number every browser has
@@ -32,6 +34,7 @@ on:
       - 'i18n.js'
       - 'data/projects.json'
       - 'data/settings.json'
+      - 'data/strings.json'
 
 permissions:
   contents: write

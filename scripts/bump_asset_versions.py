@@ -60,7 +60,13 @@ ASSETS = ["style.css", "site.js", "i18n.js"]
 # request it exists to warm, and the page pays for two fetches instead of one.
 # data/settings.json is the same story on a smaller file — the contact photo and
 # the two bios, index.html only.
-OPTIONAL_ASSETS = ["data/projects.json", "data/settings.json"]
+#
+# data/strings.json is here for its PRELOADS only. Nothing fetches it from a page:
+# i18n.js builds that URL itself and carries its own ?v= onto it, so the fetched URL
+# is busted by i18n.js's number without anything here. The preloads in index.html and
+# project.html do sit in the HTML though, and have to move on the same counter or they
+# stop matching the request they exist to warm.
+OPTIONAL_ASSETS = ["data/projects.json", "data/settings.json", "data/strings.json"]
 
 VERSIONED = ASSETS + OPTIONAL_ASSETS
 PATTERN = re.compile(r'(%s)(\?v=)(\d+)' % "|".join(re.escape(a) for a in VERSIONED))

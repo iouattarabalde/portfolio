@@ -39,7 +39,7 @@
      what makes the preload's request match fetch()'s default same-origin credentials
      mode; without it the browser would download each file twice. -->
 <link rel="preload" href="data/projects.json?v=135" as="fetch" crossorigin>
-<link rel="preload" href="data/strings.json" as="fetch" crossorigin>
+<link rel="preload" href="data/strings.json?v=135" as="fetch" crossorigin>
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, own
      randomised phase offset per load — so navigating between pages can land at a
      different point in the loop each time), plus esc(), withViewTransition(),
