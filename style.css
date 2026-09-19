@@ -970,11 +970,47 @@ body.same-doc-transition .site-nav {
   .work-card:hover .thumb { transform: scale(1.04); }
 }
 
-/* Dark gradient scrim behind the caption text. */
+/* Dark gradient scrim behind the caption text. Only ever visible on touch (see the
+   hover:none block below) — on hover-capable devices the caption lives in #work-info-bar
+   instead and this layer stays at opacity 0, so everything here is tuned for phones and
+   tablets.
+
+   Reworked Sept 2026. It used to be two stops — transparent until 55% of the card height,
+   then a straight ramp to rgba(12,12,12,0.94) at the bottom edge — which put essentially
+   all of its density in the 10px of padding BELOW the text. Measured on a 2-up portrait
+   phone (~176px square card), the accent .type line sat at ~6% alpha and .artist at ~29%;
+   the 9px accent line, whose colour site.js cycles across the whole hue wheel at full
+   chroma, was the least legible thing on the card and got the least help. Three changes:
+
+   - Multi-stop easing rather than a linear ramp. A two-stop ramp shows its own leading
+     edge as a soft band wherever the photo behind it is flat (sky, a wall); the sigmoid
+     below is what makes this read as feathering instead of as a gradient.
+   - Weighted asymmetrically: it holds ~0.76 through the caption band and does its falling
+     off ABOVE the text, so the .type line now lands around 0.59. The peak, 0.80, is
+     actually lighter than the old 0.94 bottom edge — this covers the whole caption
+     instead of only the last line, it isn't darker.
+   - background-size pins the feather to a fixed HEIGHT rather than a share of the card.
+     The caption is the same pixel height on every card; cards are not. A percentage band
+     tuned for a 176px phone tile becomes a heavy vignette over the bottom half of a
+     ~390px iPad tile. min() keeps it from swallowing a whole card on a 320px phone, and
+     the top stop is alpha 0 so there's no seam where the no-repeat band ends. */
 .work-card::after {
   content: "";
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(12,12,12,0) 55%, rgba(12,12,12,0.94) 100%);
+  background-image: linear-gradient(to top,
+    rgba(12,12,12,0.80) 0%,
+    rgba(12,12,12,0.76) 25%,
+    rgba(12,12,12,0.66) 40%,
+    rgba(12,12,12,0.54) 52%,
+    rgba(12,12,12,0.41) 63%,
+    rgba(12,12,12,0.29) 73%,
+    rgba(12,12,12,0.19) 82%,
+    rgba(12,12,12,0.11) 90%,
+    rgba(12,12,12,0.04) 96%,
+    rgba(12,12,12,0)    100%);
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: 100% min(70%, 124px);
   opacity: 0;
   transition: opacity var(--dur-ui) var(--ease-out-soft);
 }
@@ -1060,6 +1096,45 @@ body.same-doc-transition .site-nav {
   font-size: 14px;
   font-weight: 700;
   color: var(--fg);
+}
+
+/* How the on-card caption is set on touch, where it's the only place this text appears.
+   Separate from the hover:none block further up rather than folded into it, because these
+   selectors tie with the base .work-card .type / .artist / .title rules just above on
+   specificity — source order is what decides, so they have to come after them. Keep the
+   two blocks in sync if either moves.
+
+   Sept 2026: the caption read as far too airy on a phone — measured at 375px wide, a
+   three-line caption spent 91px of a 185px card. Three causes, all fixed here:
+
+   - The paragraphs still carried the UA's p { margin: 1em 0 }. Only margin-BOTTOM was
+     ever overridden above, so every line kept a margin-top of its own font-size, and
+     since adjacent siblings collapse, the gap between .type and the name below it was
+     the title's 14px margin-top winning over .type's 4px margin-bottom — not the 4px it
+     looks like it should be from reading the rules. Zeroing margin-top is what puts the
+     margin-bottom values below actually in charge of the spacing.
+   - Nothing overrode body's line-height of 1.6. 1.3 is the right leading for a caption,
+     and it's what keeps a title that wraps to two lines (there are a few) compact.
+   - The remaining margins are then set small on purpose: 6px under the accent label to
+     hold it visibly as a label over the name, 2px between the two names.
+
+   That lands a three-line caption at ~55px and a two-line one at ~37px. The accent
+   acronym goes the other way, 9 to 10px: it's the hardest line on the card to read and
+   the freed vertical space pays for it. The text-shadow is a fixed rgba rather than
+   anything derived from --accent, and carries no transition, so it stays clear of the
+   warning in :root about animating properties whose resting value site.js rewrites every
+   frame. */
+@media (hover: none) {
+  .work-card-meta {
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgba(12, 12, 12, 0.5);
+  }
+  .work-card .type,
+  .work-card .artist,
+  .work-card .title { margin-top: 0; }
+  .work-card .type   { font-size: 10px; margin-bottom: 6px; }
+  .work-card .artist { margin-bottom: 2px; }
+  .work-card .title  { margin-bottom: 0; }
 }
 
 /* Shared "now showing" bar under the grid, desktop/hover-capable only — populated by
