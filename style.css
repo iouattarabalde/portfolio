@@ -1546,9 +1546,18 @@ body.same-doc-transition .site-nav {
 
 /* Phones in landscape still match max-width:1000px above, but there's enough horizontal
    room to treat them as desktop-width instead of dropping to the portrait 2-up density —
-   hence the 4 columns here rather than the 2 set just above. orientation:landscape wins
-   since it's the more specific/later rule; gap and card padding simply aren't restated,
-   so they keep the desktop values from the base rules. */
+   hence the 4 columns here rather than the 2 set just above. This rule wins on source
+   order alone: a media query's conditions add nothing to specificity, so the two
+   .work-grid rules tie and the later one applies.
+
+   Column count is the ONLY thing it overrides. Everything else a landscape phone gets
+   comes from the max-width:1000px block above, not from the desktop base rules — cards
+   here are 1/1 at 10px of padding, the same as portrait, and only the density differs.
+   (gap is restated above, but at the same var(--grid-gap), so it never changes.) Said
+   the other way round until Sept 2026, when measuring a 767x390 viewport showed 187px
+   square cards at 10px: the note claimed padding fell back to the desktop 14px, which
+   would need this block to reset it, and it doesn't. Add a reset here if that is ever
+   actually wanted — the claim alone never made it true. */
 @media (max-width: 1000px) and (orientation: landscape) {
   .work-grid {
     grid-template-columns: repeat(4, 1fr);
