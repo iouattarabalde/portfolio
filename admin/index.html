@@ -1214,11 +1214,43 @@ async function ghFetch(url, options = {}, label = url) {
 // file doesn't exist yet, since "not found" is a perfectly normal case here (e.g.
 // checking whether a project's still image is new or being replaced).
 // Retries up to 3× with backoff on network errors and GitHub 503s.
+/* cache: 'no-cache' added Sept 2026, and it is load-bearing rather than tidiness.
+   GitHub's contents API answers with `cache-control: public, max-age=60`, so a plain
+   fetch() here was free to serve a reply up to a minute old out of the browser's cache
+   without ever reaching the network — and every caller of this function reads a `sha`
+   off the result to decide what to do next.
+
+   The damage lands on the conflict check in saveSettings(): it re-reads both files and
+   compares their sha against the one this page loaded, precisely so a save from another
+   device isn't silently clobbered. Given a cached reply that predates that other save,
+   the shas match, the "modifié depuis un autre appareil" prompt never appears, and the
+   other device's change is overwritten without anyone being asked. A minute is a wide
+   window for exactly the case the check exists to catch.
+
+   Measured rather than assumed, against a local server sending GitHub's own headers:
+   three plain fetch() calls after a warm one reached the server zero times, and three
+   with cache:'no-cache' reached it all three. So this is the difference between reading
+   a sha and reading a sha that is actually current.
+
+   What it does NOT buy is a cheap revalidation. Chrome sends `Cache-Control: max-age=0`
+   for this but no If-None-Match, even on a resource whose ETag it received moments
+   earlier — five requests, not one conditional among them — so every call is a full 200
+   rather than a 304. 'no-store' would behave the same way here; 'no-cache' is kept
+   because it is the accurate description of the intent, and it takes the cheap path on
+   any client that does send the conditional.
+
+   The cost is real and worth knowing: data/projects.json is ~165KB and is read here
+   several times per dashboard load and again on every save, and repeated reads inside a
+   60s window used to be free. Gzip absorbs most of it, and a wrong answer on the
+   conflict check is worse than the bytes. The one read that genuinely does not need
+   this is the `?ref=<sha>` one in commitProjects — that URL pins to a commit, so its
+   content can never change under us. */
 async function ghGetFile(path) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     let res;
     try {
       res = await fetch(API + path, {
+        cache: 'no-cache',
         headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
       });
     } catch (networkErr) {
@@ -1499,10 +1531,16 @@ function trackPublish(path, expected) {
 
 /* ---------- Réglages (data/settings.json + data/strings.json) ----------
    Contact details (settings.json) and every other bilingual string + project type acronym
-   on the site (strings.json). Both are read fresh via ghGetFile (not the public
+   on the site (strings.json). Both are read through ghGetFile (not the public
    fetch()/loadI18n() path the live pages use) so edits are never based on a possibly-
    cached copy, and merged over i18n.js's DEFAULT_STRINGS/DEFAULT_TYPES so every field
    always has a value to show, even for a key that's never been saved.
+
+   "Never based on a cached copy" was only half true until Sept 2026: going through the
+   API does sidestep the CDN's copy of the published file, which is what this note meant,
+   but the API response is itself cacheable for 60s and ghGetFile wasn't revalidating.
+   See the note on that function — it does now, and the sha comparison below can be
+   trusted because of it.
 
    One tab and one save since Sept 2026. This used to be "Textes du site", with its own
    save for the photo on top of the page's, and it's edited a few times a year — so the
