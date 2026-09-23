@@ -12,8 +12,8 @@
   --accent: #8A9A5B;          /* olive accent, used for links/highlights/active states */
   --line: #232320;            /* hairline borders and grid gaps */
   --grid-gap: 6px;            /* shared gap for the work grid and project gallery — small visible gap, ShotDeck-inspired, Aug 2026 */
-  --display: "Space Grotesk", "Space Grotesk Fallback", sans-serif;  /* headings, titles, card captions */
-  --mono: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;      /* body copy, labels, nav — technical/utility feel */
+  --display: "Big Shoulders Display", "Big Shoulders Fallback", "Big Shoulders Fallback Impact", sans-serif;  /* headings, titles, wordmark, card captions */
+  --mono: "Fragment Mono", "Fragment Mono Fallback", monospace;      /* body copy, labels, nav — technical/utility feel */
 
   /* Motion system, Sept 2026 — one timing scale and two curves for the whole site.
      Before this every transition picked its own duration by hand (0.2s, 0.25s, 0.3s,
@@ -96,101 +96,127 @@
 * { box-sizing: border-box; }
 
 /* ---------- Typefaces ---------- */
-/* Served from this site since Sept 2026, not from Google Fonts. Two reasons, both about
-   the first second of a visit:
+/* Big Shoulders Display for titles and the wordmark, Fragment Mono for everything else.
+   Chosen Sept 2026 to replace Space Grotesk + IBM Plex Mono, a pairing so common on
+   AI-built portfolios that visitors recognised the look. Big Shoulders is a condensed
+   grotesk in the manner of a cinema marquee; Fragment Mono is a Helvetica-derived mono.
+   Both come from the site's own origin, not Google Fonts, for two reasons about the first
+   second of a visit:
    - The Google Fonts stylesheet was render-blocking and lived on another origin, so every
-     first visit waited on two extra connections (fonts.googleapis.com for the CSS, then
-     fonts.gstatic.com for the files) before anything could paint. Same-origin files reuse
-     the connection the page itself arrived on, and the two faces used above the fold are
+     first visit waited on two extra connections before anything could paint. Same-origin
+     files reuse the page's own connection, and the two faces used above the fold are
      preloaded from each page's <head>.
    - When a web font arrives after first paint, text re-lays itself in the new metrics. The
      nav changes height when that happens, which is why index.html measures it into --nav-h.
      The "Fallback" faces below are local system fonts rescaled to this site's typefaces
      (size-adjust for width, the overrides for vertical metrics), so the swap, if it's seen
      at all, changes letterforms but moves nothing.
-   The fallback numbers were measured in Chrome against the real fonts, from canvas text
-   metrics at 1000-2000px: Space Grotesk's ascent/descent are 0.984/0.292 of the em and Plex
-   Mono's 1.025/0.275, neither with a line gap, and each override is that value divided by
-   the face's size-adjust. Widths were matched over the site's own titles, separately for
-   regular Arial (standing in for Space Grotesk 500) and Arial Bold (600-700), since the two
-   differ from Space Grotesk in opposite directions. Menlo and Courier New both advance
-   ~0.60em like Plex Mono, so one face serves either. Helvetica shares Arial's metrics and
-   Liberation Sans is built to match them, so macOS without Arial and Linux fit too.
-   Files: fonts/, WOFF2, latin and latin-ext subsets — latin covers French in full, and
-   latin-ext is there for crew names from further afield. Space Grotesk is a single
-   variable file serving 500 to 700. Licence: SIL Open Font License for both families. */
+   The fallback numbers were measured in Chrome from canvas text metrics at 1000px, over
+   the site's own titles set in capitals, the way they're displayed. Big Shoulders'
+   ascent/descent are 0.984/0.213 of the em and Fragment Mono's 0.95/0.25, neither with
+   a line gap, and each override is that value divided by the face's size-adjust. Big Shoulders widens as it gets heavier, so
+   each weight the site uses (600, 800, 900) has its own size-adjust:
+   - macOS: Helvetica Neue Condensed Bold stands in for 600, Condensed Black for 800-900
+   - Windows: Impact (also on macOS, but Helvetica Neue wins there)
+   - elsewhere: the generic sans-serif, unadjusted
+   Menlo and Courier New both advance ~0.60em against Fragment Mono's 0.618, so one
+   mono face serves either.
+   Files: fonts/, WOFF2, latin and latin-ext subsets. Latin covers French in full, and
+   latin-ext is there for crew names from further afield. Big Shoulders is one variable
+   file per subset (weights 100-900); Fragment Mono has a single weight, 400, so any
+   bold mono text is synthesised by the browser. Licence: SIL Open Font License for both. */
 @font-face {
-  font-family: "Space Grotesk";
+  font-family: "Big Shoulders Display";
   font-style: normal;
-  font-weight: 500 700;
+  font-weight: 100 900;
   font-display: swap;
-  src: url("fonts/space-grotesk-latin.woff2") format("woff2");
+  src: url("fonts/big-shoulders-display-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "Space Grotesk";
+  font-family: "Big Shoulders Display";
   font-style: normal;
-  font-weight: 500 700;
+  font-weight: 100 900;
   font-display: swap;
-  src: url("fonts/space-grotesk-latin-ext.woff2") format("woff2");
+  src: url("fonts/big-shoulders-display-latin-ext.woff2") format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "IBM Plex Mono";
+  font-family: "Fragment Mono";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
+  src: url("fonts/fragment-mono-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "IBM Plex Mono";
+  font-family: "Fragment Mono";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("fonts/ibm-plex-mono-400-latin-ext.woff2") format("woff2");
+  src: url("fonts/fragment-mono-latin-ext.woff2") format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "IBM Plex Mono";
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url("fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "IBM Plex Mono";
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url("fonts/ibm-plex-mono-500-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-  font-family: "Space Grotesk Fallback";
-  font-weight: 100 500;
-  src: local("Arial"), local("ArialMT"), local("Helvetica"), local("Liberation Sans");
-  size-adjust: 107.33%;
-  ascent-override: 91.68%;
-  descent-override: 27.21%;
+  font-family: "Big Shoulders Fallback";
+  font-weight: 100 700;
+  src: local("Helvetica Neue Condensed Bold"), local("HelveticaNeue-CondensedBold");
+  size-adjust: 71.58%;
+  ascent-override: 137.47%;
+  descent-override: 29.76%;
   line-gap-override: 0%;
 }
 @font-face {
-  font-family: "Space Grotesk Fallback";
-  font-weight: 600 900;
-  src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Bold"), local("Helvetica-Bold"), local("Liberation Sans Bold");
-  size-adjust: 97%;
-  ascent-override: 101.44%;
-  descent-override: 30.1%;
+  font-family: "Big Shoulders Fallback";
+  font-weight: 701 800;
+  src: local("Helvetica Neue Condensed Black"), local("HelveticaNeue-CondensedBlack");
+  size-adjust: 81.66%;
+  ascent-override: 120.5%;
+  descent-override: 26.08%;
   line-gap-override: 0%;
 }
 @font-face {
-  font-family: "IBM Plex Mono Fallback";
+  font-family: "Big Shoulders Fallback";
+  font-weight: 801 900;
+  src: local("Helvetica Neue Condensed Black"), local("HelveticaNeue-CondensedBlack");
+  size-adjust: 87.48%;
+  ascent-override: 112.48%;
+  descent-override: 24.35%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Big Shoulders Fallback Impact";
+  font-weight: 100 700;
+  src: local("Impact");
+  size-adjust: 75.99%;
+  ascent-override: 129.49%;
+  descent-override: 28.03%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Big Shoulders Fallback Impact";
+  font-weight: 701 800;
+  src: local("Impact");
+  size-adjust: 88.58%;
+  ascent-override: 111.09%;
+  descent-override: 24.05%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Big Shoulders Fallback Impact";
+  font-weight: 801 900;
+  src: local("Impact");
+  size-adjust: 94.9%;
+  ascent-override: 103.69%;
+  descent-override: 22.44%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Fragment Mono Fallback";
   src: local("Menlo"), local("Menlo-Regular"), local("Courier New");
-  size-adjust: 99.66%;
-  ascent-override: 102.85%;
-  descent-override: 27.59%;
+  size-adjust: 102.65%;
+  ascent-override: 92.55%;
+  descent-override: 24.35%;
   line-gap-override: 0%;
 }
 
@@ -396,11 +422,14 @@ body.lang-fr [data-fr] { display: inline; }
   color: var(--accent);
 }
 
+/* Titles are set in capitals, heavy, with a hair of tracking: Big Shoulders is condensed,
+   and it reads like a marquee in caps where mixed case looks cramped. */
 h1, h2, h3 {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: 800;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 /* ---------- Nav ---------- */
@@ -441,9 +470,9 @@ body.same-doc-transition .site-nav {
 
 .wordmark {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.02em;
+  font-weight: 900;
+  font-size: 18px; /* up from 15px with Space Grotesk: Big Shoulders is condensed, so it needs the extra size to hold the same presence */
+  letter-spacing: 0.04em;
 }
 
 .wordmark span { color: var(--accent); } /* colors just the "OB" half of the ISMAELOB wordmark */
@@ -1076,16 +1105,20 @@ body.same-doc-transition .site-nav {
 
 .work-card .artist {
   font-family: var(--display);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--fg);
   margin-bottom: 2px;
 }
 
 .work-card .title {
   font-family: var(--display);
-  font-size: calc(14px - 2px);
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--fg-dim);
   margin-bottom: 2px;
 }
@@ -1093,8 +1126,8 @@ body.same-doc-transition .site-nav {
    .artist paragraph simply isn't rendered) — use that to give the title back its full
    prominence when it's the only name on the card, instead of always reading as secondary. */
 .work-card .type + .title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--fg);
 }
 
@@ -1201,8 +1234,10 @@ body.same-doc-transition .site-nav {
 }
 .info-bar-title {
   font-family: var(--display);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .info-bar-credit {
   color: var(--fg-faint);
@@ -1379,8 +1414,8 @@ body.same-doc-transition .site-nav {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--display);
-  font-size: clamp(17px, 2vw, 22px);
+  font-family: var(--mono); /* was the display face; an email address in condensed lowercase Big Shoulders read thin and cramped, Sept 2026 */
+  font-size: clamp(14px, 1.6vw, 17px);
   border-bottom: 1px solid var(--line);
   padding-bottom: 6px;
   overflow-wrap: break-word; /* safety net: long unbroken strings (emails) never overflow */
