@@ -33,6 +33,14 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Admin — Ismael OB</title>
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-16.png">
+<link rel="alternate icon" href="../favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="../assets/favicon-180.png">
+<!-- Same two preloads as the public pages: the wordmark and titles use Big Shoulders,
+     everything else Fragment Mono, both declared in ../style.css. -->
+<link rel="preload" href="../fonts/big-shoulders-display-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../fonts/fragment-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../style.css?v=138">
 <!-- Shared behaviours (../site.js): the cycling accent colour, self-starting with its
      own randomised phase offset, plus esc() and prefersReducedMotion(). The accent was
@@ -112,6 +120,14 @@
   /* Token gate — shown until a working GitHub token is supplied (see tryConnect() in the script) */
   #gate { max-width: 440px; margin: 15vh auto 0; padding: 0 20px; text-align: center; }
   #gate p { color: var(--fg-dim); font-size: 13px; margin-bottom: 20px; }
+  /* The OB mark, drawn from the #ob-mark symbol just above #gate, in the accent
+     colour, so it cycles along with the wordmark's "OB". */
+  .ob-mark { display: block; fill: var(--accent); }
+  .gate-brand { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .gate-brand .ob-mark { width: 62px; height: 56px; }
+  .gate-brand .wordmark { font-size: 24px; }
+  .gate-brand .eyebrow { color: var(--fg-dim); }
+  .admin-header .ob-mark { width: 31px; height: 28px; }
   #gate input {
     width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
     color: var(--fg); font-family: var(--mono); font-size: 13px; padding: 12px; margin-bottom: 14px;
@@ -750,8 +766,22 @@
 </div>
 
 <!-- Shown first; swapped for #dashboard once tryConnect() confirms the token works -->
+<!-- The OB mark: the same Big Shoulders Display 900 outlines as ../assets/favicon.svg,
+     without the tile, and the viewBox cropped to the letters. Keep the paths in sync with
+     the favicon if the mark is ever redrawn. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ob-mark" viewBox="9 11 46 42">
+      <path transform="translate(7.688,52.000) scale(0.02500,-0.02500)" d="M496 -20Q276 -20 177.5 73Q79 166 74 382Q72 480 71 586Q70 692 70 801Q70 910 71 1016Q72 1122 74 1220Q79 1435 177.5 1527.5Q276 1620 496 1620Q717 1620 813 1527.5Q909 1435 916 1220Q920 1120 922 1014Q924 908 924 799.5Q924 691 922 585.5Q920 480 916 382Q909 166 813 73Q717 -20 496 -20ZM496 224Q555 224 585 250.5Q615 277 616 326Q621 428 623 550Q625 672 625 801Q625 930 623 1052Q621 1174 616 1276Q615 1324 584 1350Q553 1376 496 1376Q439 1376 407.5 1350Q376 1324 374 1276Q370 1174 367.5 1052Q365 930 365 801Q365 672 367.5 550Q370 428 374 326Q376 277 407.5 250.5Q439 224 496 224Z"/>
+      <path transform="translate(32.513,52.000) scale(0.02500,-0.02500)" d="M80 0V1600H450Q674 1600 777 1509.5Q880 1419 880 1210Q880 1182 880 1156Q880 1130 878 1104Q871 995 829 930.5Q787 866 698 836V788Q790 758 833 692.5Q876 627 880 514Q882 481 882 453Q882 425 880 390Q871 182 772.5 91Q674 0 450 0ZM380 264H450Q513 264 546.5 297.5Q580 331 580 394Q580 421 580 447Q580 473 580 500Q580 599 549.5 640.5Q519 682 450 682H380ZM380 946H450Q513 946 546.5 989.5Q580 1033 580 1112Q580 1141 580 1169.5Q580 1198 580 1226Q580 1279 546.5 1307.5Q513 1336 450 1336H380Z"/>
+  </symbol>
+</svg>
+
 <div id="gate">
-  <p class="eyebrow" style="margin-bottom:10px;">ISMAEL<span style="color:var(--accent)">OB</span> — ADMIN</p>
+  <div class="gate-brand">
+    <svg class="ob-mark" aria-hidden="true"><use href="#ob-mark"/></svg>
+    <span class="wordmark">ISMAEL<span>OB</span></span>
+    <span class="eyebrow">Admin</span>
+  </div>
   <p>Colle ton token GitHub pour continuer. Il reste seulement dans ce navigateur.</p>
   <input type="password" id="token-input" placeholder="github_pat_..." autocomplete="off">
   <button class="btn btn-primary" id="connect-btn" style="width:100%;">Connexion</button>
@@ -772,6 +802,7 @@
 <div class="admin-wrap" id="dashboard" style="display:none;">
   <div class="admin-header">
     <div class="header-left">
+      <svg class="ob-mark" aria-hidden="true"><use href="#ob-mark"/></svg>
       <h1>Admin</h1>
       <span class="publish-pill" id="publish-pill" hidden aria-live="polite"><span class="dot"></span><span id="publish-pill-text"></span></span>
     </div>
