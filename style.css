@@ -30,7 +30,6 @@
   --dur-hover: 220ms;   /* colour, border and opacity responses to a pointer */
   --dur-ui: 320ms;      /* scrims, fades and small transforms */
   --dur-zoom: 450ms;    /* the slower image zooms on card/next-project hover */
-  --dur-bar-travel: 220ms; /* the work info bar's slide on a filter change — read from :root by withInfoBarSlide() in index.html */
   --dur-grid-move: 360ms;  /* cards sliding to their new cells on a filter change — read by withGridFlip() in index.html */
   --dur-press: 100ms;      /* the way DOWN into a press (:active); the release uses --dur-hover, so a tap reads as a quick dip and a soft return */
   /* The entrance was tightened in Sept 2026, from 700ms / 18px / 55ms / 500ms. Same motion
@@ -939,8 +938,8 @@ body.same-doc-transition .site-nav {
   /* No view-transition-name here any more. The filter change used to run as a
      same-document View Transition scoped to this container, but a View Transition
      crossfades every snapshot it takes — and a crossfade is the one thing the filter
-     change shouldn't do. Cards now lift in under the shared reveal animation instead,
-     and the info bar's travel is FLIPped in JS; see withInfoBarSlide() in index.html. */
+     change shouldn't do. The cards are FLIPped in JS instead; see withGridFlip() in
+     index.html. */
 }
 
 .work-card {
@@ -999,10 +998,10 @@ body.same-doc-transition .site-nav {
   .work-card:hover .thumb { transform: scale(1.04); }
 }
 
-/* Dark gradient scrim behind the caption text. Only ever visible on touch (see the
-   hover:none block below) — on hover-capable devices the caption lives in #work-info-bar
-   instead and this layer stays at opacity 0, so everything here is tuned for phones and
-   tablets.
+/* Dark gradient scrim behind the caption text. Always on for touch (see the hover:none
+   block below); on hover-capable devices it fades in under the caption of the card being
+   looked at, with a taller band to suit the bigger desktop caption (see the hover:hover
+   block below). The values here are tuned for phones and tablets.
 
    Reworked Sept 2026. It used to be two stops — transparent until 55% of the card height,
    then a straight ramp to rgba(12,12,12,0.94) at the bottom edge — which put essentially
@@ -1048,20 +1047,23 @@ body.same-doc-transition .site-nav {
   position: relative;
   z-index: 1;
   opacity: 0;
-  transition: opacity var(--dur-ui) var(--ease-out-soft);
+  transform: translateY(6px);
+  transition: opacity var(--dur-ui) var(--ease-out-soft), transform var(--dur-ui) var(--ease-out-soft);
 }
 
-/* Hover-capable devices (desktop/trackpad): no per-card caption at all — the shared
-   #work-info-bar below the grid shows whichever card is hovered instead (Aug 2026
-   redesign). Hovering any card also dims every other card in the grid, drawing the eye
-   to the one you're looking at; the hovered card itself is excluded from that dim so it
-   reads at full brightness while the rest recede.
+/* Hover-capable devices (desktop/trackpad): the card being looked at shows its own
+   caption, rising 6px into place over its scrim, and every other card dims so the eye
+   goes to it (Sept 2026). This brings back the per-card hover caption that an Aug 2026
+   redesign had swapped for a shared info bar pinned to the bottom of the viewport. A
+   client said the bar was too far from the image to get the brand read, so the caption
+   is back on the image, with the brand or artist as its biggest line.
 
    Reworked Sept 2026, on two counts:
-   1. The state comes from JS (.is-dimming on the grid, .is-current on the card — see the
-      #work-grid delegation in index.html) rather than from :hover. A pure :hover version
+   1. The state comes from JS (.is-dimming on the grid, .is-current on the card — see
+      setCurrentCard() in index.html) rather than from :hover. A pure :hover version
       matched "grid hovered, no card hovered" while the pointer crossed the 6px gap between
-      two cards, so every card dimmed for a moment on each crossing.
+      two cards, so every card dimmed for a moment on each crossing. The caption keys off
+      the same .is-current, so it never blinks out between two cards either.
    2. The dim is a black layer at 18% over the photo, faded with opacity, instead of
       filter: brightness(0.82) on the card. The two look the same over #0C0C0C, but a
       filter transition on 32 cards has the browser re-run the filter over every photo on
@@ -1081,17 +1083,24 @@ body.same-doc-transition .site-nav {
 .work-grid.is-dimming .work-card:not(.is-current)::before {
   opacity: 0.18;
 }
+@media (hover: hover) {
+  .work-card::after { background-size: 100% min(80%, 160px); }
+  .work-card.is-current::after { opacity: 1; }
+  .work-card.is-current .work-card-meta {
+    opacity: 1;
+    transform: none;
+  }
+}
 
-/* Touch devices can't hover, so the reveal-on-hover pattern above would never trigger —
-   the caption and its gradient scrim are shown permanently instead (reverts an earlier
-   "no caption on touch at all" decision — the new shared bottom bar isn't available on
-   touch, so cards need their own always-visible caption again there). */
+/* Touch devices can't hover, so the reveal above would never trigger — the caption and
+   its gradient scrim are shown permanently instead. */
 @media (hover: none) {
   .work-card::after {
     opacity: 1;
   }
   .work-card-meta {
     opacity: 1;
+    transform: none;
   }
 }
 
@@ -1170,86 +1179,24 @@ body.same-doc-transition .site-nav {
   .work-card .title  { margin-bottom: 0; }
 }
 
-/* Shared "now showing" bar under the grid, desktop/hover-capable only — populated by
-   #work-grid's mouseover/mouseout delegation in index.html. Hidden entirely on touch
-   (see the media query below) since cards show their own caption there instead.
-   The bar itself (this element — background, border, height) is always visible once
-   on screen; only #info-bar-content fades in/out on hover, so the black strip along
-   the bottom edge doesn't flicker away between cards. Content is right-aligned rather
-   than spanning the full width, so it never sits over the browser's own bottom-left
-   link-preview overlay when hovering a card. */
-.work-info-bar {
-  display: none;
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  align-items: center;
-  justify-content: flex-end;
-  height: 60px;
-  padding: 0 clamp(20px, 4vw, 48px);
-  border-top: 1px solid var(--line);
-  background: rgba(12, 12, 12, 0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  font-size: 12px;
-  pointer-events: none;
-}
+/* The desktop caption, set larger than the touch one because it's the only place the
+   brand appears on this page and it only shows on one card at a time, so it can afford
+   to be loud. The brand or artist leads at about 23px on a 1440px-wide screen (a
+   ~355x200 card), the title sits under it at 14px, and the accent type tag stays a small
+   label on top. Same margin and leading fixes as the touch block above, which is why the
+   margin-top reset is repeated: these selectors tie with the base rules on specificity. */
 @media (hover: hover) {
-  .work-info-bar { display: flex; }
-}
-
-/* The bar sits at the bottom of #work and sticks to the viewport only while the section
-   runs past it, so filtering moves it: going from 32 projects to 8 shortens the section
-   from ~1750px to ~520px and the bar unsticks down to the section's real bottom edge —
-   measured at 1440x900, a 685px jump in a single frame.
-   Animating that is JS's job (withInfoBarSlide() in index.html) rather than CSS's,
-   because nothing about the bar's own styles changed: it moved because the section above
-   it got shorter, and layout isn't transitionable. A View Transition did handle it for a
-   while — that API exists for exactly this — but it crossfades every snapshot it takes,
-   including the cards and the whole page root as #contact slid up underneath, and the
-   crossfade is precisely what wasn't wanted here. --dur-bar-travel and --ease-out-soft
-   are still the knobs; the JS reads them straight off :root. */
-.info-bar-content {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  min-width: 0;
-  max-width: 100%;
-  opacity: 0;
-  transition: opacity var(--dur-ui) var(--ease-out-soft);
-}
-.info-bar-content.visible { opacity: 1; }
-.info-bar-main {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  min-width: 0;
-}
-.info-bar-type {
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-.info-bar-title {
-  font-family: var(--display);
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-.info-bar-credit {
-  color: var(--fg-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.info-bar-index {
-  color: var(--fg-faint);
-  letter-spacing: 0.1em;
-  white-space: nowrap;
-  flex-shrink: 0;
+  .work-card-meta {
+    line-height: 1.2;
+    text-shadow: 0 1px 2px rgba(12, 12, 12, 0.5);
+  }
+  .work-card .type,
+  .work-card .artist,
+  .work-card .title { margin-top: 0; }
+  .work-card .type   { font-size: 10px; margin-bottom: 6px; }
+  .work-card .artist { font-size: clamp(18px, 1.6vw, 26px); margin-bottom: 3px; }
+  .work-card .title  { font-size: 14px; margin-bottom: 0; }
+  .work-card .type + .title { font-size: clamp(18px, 1.6vw, 26px); }
 }
 
 /* ---------- Contact ---------- */
@@ -2180,6 +2127,10 @@ body.same-doc-transition .site-nav {
   }
   .work-card:hover .thumb,
   .gallery-item:hover img {
+    transform: none;
+  }
+  /* The hover caption keeps its fade and loses its 6px rise. */
+  .work-card-meta {
     transform: none;
   }
   /* Both selectors matter: site.js reveals everything immediately for these visitors,

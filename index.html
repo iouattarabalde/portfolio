@@ -152,19 +152,6 @@
 
   <div class="work-grid" id="work-grid"></div>
 
-  <!-- Desktop-only (hover-capable devices): shows whichever card is currently
-       hovered, in place of the old always-rendered per-card caption. See
-       #work-grid's mouseover/mouseout delegation in the script below. -->
-  <div class="work-info-bar" id="work-info-bar" aria-hidden="true">
-    <div class="info-bar-content" id="info-bar-content">
-      <div class="info-bar-main">
-        <span class="info-bar-type" id="info-bar-type"></span>
-        <span class="info-bar-title" id="info-bar-title"></span>
-        <span class="info-bar-credit" id="info-bar-credit"></span>
-      </div>
-      <span class="info-bar-index" id="info-bar-index"></span>
-    </div>
-  </div>
 </section>
 
 <!-- Contact + site footer. Three columns (heading/bio, links/meta, photo) inside a
@@ -557,9 +544,8 @@
   // Work grid: fetched once from data/projects.json and cached, then rendered into
   // #work-grid. activeFilter holds a project type code (e.g. 'TV') to show only that
   // category, or null to show everything — set by clicking a button in the category
-  // filter bar. Each card carries its type/title/credit/index in data-* attributes so the
-  // shared #work-info-bar (desktop-only, see below) can read them straight off whichever
-  // card is hovered without needing its own copy of the project list.
+  // filter bar. Each card carries its own caption (type tag, brand or artist, title): shown
+  // permanently on touch, and on the hovered or keyboard-focused card on desktop.
   let cachedProjects = null;
   let activeFilter = null;
 
@@ -579,13 +565,10 @@
     const isFr = body.classList.contains('lang-fr');
     grid.innerHTML = cachedProjects.map((p) => {
       const acronym = projectTypeAcronym(p.type, isFr);
-      const creditName = p.artist || p.client || '';
-      const credit = creditName ? `${creditName} · ${p.director || ''}` : (p.director || '');
       return `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}"
          data-reveal
-         data-type-code="${esc(p.type)}"
-         data-type="${esc(acronym)}" data-title="${esc(p.title)}" data-credit="${esc(credit)}">
+         data-type-code="${esc(p.type)}">
         <img class="thumb" src="assets/${esc(p.thumbnail)}" alt="${esc(p.title)}" loading="lazy" style="object-position:${esc(p.thumbnailFocus || '50% 50%')};">
         <div class="work-card-meta">
           <p class="type">${esc(acronym)}</p>
@@ -599,19 +582,14 @@
     observeReveals(grid);
   }
 
-  // Shows the cards matching activeFilter and hides the rest, then renumbers the visible
-  // ones for the info bar's "06 / 32". A hidden card is display:none (see
+  // Shows the cards matching activeFilter and hides the rest. A hidden card is display:none (see
   // .work-card[hidden] in style.css), so it takes no grid cell, no tab stop and no
   // IntersectionObserver entry until it comes back.
   function applyFilter() {
     const cards = document.querySelectorAll('#work-grid .work-card:not(.work-card-ghost)');
-    let shown = 0;
     cards.forEach((card) => {
-      const match = !activeFilter || card.dataset.typeCode === activeFilter;
-      card.hidden = !match;
-      if (match) card.dataset.index = String(++shown);
+      card.hidden = !!activeFilter && card.dataset.typeCode !== activeFilter;
     });
-    cards.forEach((card) => { card.dataset.total = String(shown); });
   }
 
   // Rewrites each card's type tag for the current language, on the existing elements.
@@ -619,106 +597,53 @@
     const isFr = body.classList.contains('lang-fr');
     document.querySelectorAll('#work-grid .work-card:not(.work-card-ghost)').forEach((card) => {
       const acronym = projectTypeAcronym(card.dataset.typeCode, isFr);
-      card.dataset.type = acronym;
       const tag = card.querySelector('.type');
       if (tag) tag.textContent = acronym;
     });
   }
 
-  // Shared bottom info bar (desktop/hover-capable only — hidden entirely on touch via
-  // CSS, see .work-info-bar in style.css): replaces the old always-in-DOM per-card
-  // caption on non-touch devices, showing whichever card is currently hovered/focused
-  // instead. Wired once via event delegation on #work-grid. The bar itself
-  // (background/border) always stays visible — only #info-bar-content fades in and out,
-  // so the black strip along the bottom edge never flickers away between cards.
+  // Desktop hover (Sept 2026): the card being looked at shows its own caption, brand or
+  // artist first, and every other card dims (.is-current on the card, .is-dimming on the
+  // grid — see .work-card-meta in style.css). This replaced a shared info bar pinned to
+  // the bottom of the viewport, which a client said was too far from the image to get
+  // the brand read. Touch devices show every caption permanently and never get here.
   //
-  // The same delegation drives the hover dim (Sept 2026): .is-dimming on the grid and
-  // .is-current on the card being looked at, instead of the pure-CSS :hover pair this
-  // used to be. The CSS version couldn't tell "between two cards" from "off the grid":
-  // crossing the 6px gap from one card to the next matched .work-grid:hover with no card
-  // hovered, so every card dimmed for a frame or two and the info bar started fading out,
-  // then both reversed. Here the current card only changes when the pointer reaches
+  // The state lives in JS rather than in a pure-CSS :hover pair because CSS can't tell
+  // "between two cards" from "off the grid": crossing the 6px gap from one card to the
+  // next matched .work-grid:hover with no card hovered, so every card dimmed for a frame
+  // or two, then reversed. Here the current card only changes when the pointer reaches
   // another card, and everything clears only when it leaves the grid itself.
   const workGridEl = document.getElementById('work-grid');
-  const infoBarContent = document.getElementById('info-bar-content');
   let currentCard = null;
-  function updateWorkInfoBar(card) {
+  function setCurrentCard(card) {
     if (currentCard && currentCard !== card) currentCard.classList.remove('is-current');
     currentCard = card;
+    if (card) card.classList.add('is-current');
     if (workGridEl) workGridEl.classList.toggle('is-dimming', !!card);
-    if (!infoBarContent) return;
-    if (!card) { infoBarContent.classList.remove('visible'); return; }
-    card.classList.add('is-current');
-    document.getElementById('info-bar-type').textContent = card.dataset.type || '';
-    document.getElementById('info-bar-title').textContent = card.dataset.title || '';
-    document.getElementById('info-bar-credit').textContent = card.dataset.credit || '';
-    document.getElementById('info-bar-index').textContent = card.dataset.index.padStart(2, '0') + ' / ' + card.dataset.total;
-    infoBarContent.classList.add('visible');
   }
   if (workGridEl) {
-    // Mouse only: a touch or pen "hover" is the tap itself, and touch devices have no bar.
+    // Mouse only: a touch or pen "hover" is the tap itself, and touch captions never hide.
     workGridEl.addEventListener('pointerover', (e) => {
       if (e.pointerType !== 'mouse') return;
       const card = e.target.closest('.work-card');
-      if (card && card !== currentCard) updateWorkInfoBar(card);
+      if (card && card !== currentCard) setCurrentCard(card);
     });
     workGridEl.addEventListener('pointerleave', (e) => {
-      if (e.pointerType === 'mouse') updateWorkInfoBar(null);
+      if (e.pointerType === 'mouse') setCurrentCard(null);
     });
     // Keyboard focus only. A mouse click focuses the link too, and would otherwise leave
     // the grid dimmed around that card when the visitor comes back to this page.
     workGridEl.addEventListener('focusin', (e) => {
       const card = e.target.closest('.work-card');
-      if (card && card.matches(':focus-visible')) updateWorkInfoBar(card);
+      if (card && card.matches(':focus-visible')) setCurrentCard(card);
     });
     workGridEl.addEventListener('focusout', (e) => {
       const card = e.target.closest('.work-card');
-      if (card && !workGridEl.contains(e.relatedTarget)) updateWorkInfoBar(null);
+      if (card && !workGridEl.contains(e.relatedTarget)) setCurrentCard(null);
     });
   }
 
-  // Slides the info bar between the positions a filter change moves it between.
-  //
-  // The bar sits at the bottom of #work and sticks to the viewport only while the
-  // section runs past it, so filtering moves it a long way: 32 projects down to 8
-  // shortens the section from ~1750px to ~520px and the bar unsticks to the section's
-  // real bottom edge, a 685px jump in one frame at 1440x900.
-  //
-  // This is a FLIP — read where it is, apply the change, read where it landed, then put
-  // it back at the old offset and animate that away. It has to be done in JS: no
-  // property of the bar's own changed, it moved because the section above it got
-  // shorter, and layout isn't something CSS can transition. A same-document View
-  // Transition handled this for a while, since that API exists for exactly this problem,
-  // but it also crossfades every snapshot it takes — the cards, and the whole page root
-  // as #contact slid up underneath — and the crossfade is the one thing this shouldn't
-  // do. Web Animations rather than a class toggle so there's no state to clean up: the
-  // animation has no fill, so the bar is back to its own styles the moment it ends.
-  // Timing comes from the same :root tokens as the rest of the site's motion.
-  function withInfoBarSlide(applyChange) {
-    const bar = document.getElementById('work-info-bar');
-    // display:none on touch, where there is no bar on screen to move.
-    if (!bar || prefersReducedMotion() || getComputedStyle(bar).display === 'none') {
-      applyChange();
-      return;
-    }
-    const before = bar.getBoundingClientRect().top;
-    applyChange();
-    // getBoundingClientRect() forces the pending layout, so this reads the post-change
-    // position rather than a stale one.
-    const delta = before - bar.getBoundingClientRect().top;
-    if (!delta) return; // filtering to a list of the same height moves nothing
-    const rootStyles = getComputedStyle(document.documentElement);
-    bar.animate(
-      [{ transform: `translateY(${delta}px)` }, { transform: 'translateY(0)' }],
-      {
-        duration: parseFloat(rootStyles.getPropertyValue('--dur-bar-travel')) || 220,
-        easing: rootStyles.getPropertyValue('--ease-out-soft').trim() || 'ease-out'
-      }
-    );
-  }
-
-  // Animates a filter change on the cards themselves (Sept 2026), the same FLIP as the
-  // info bar above: read where every on-screen card is, apply the change, read where each
+  // Animates a filter change on the cards themselves (Sept 2026), as a FLIP: read where every on-screen card is, apply the change, read where each
   // landed, and play the difference back.
   //
   // Three kinds of card come out of one change, and each gets its own motion:
@@ -828,7 +753,7 @@
   // browser paused on the way out.
   window.addEventListener('pageshow', (e) => {
     if (!e.persisted) return;
-    updateWorkInfoBar(null);
+    setCurrentCard(null);
     if (reelVideo && reelOnScreen && reelVideo.paused) reelVideo.play().catch(() => {});
   });
 
@@ -889,7 +814,7 @@
         if (next === activeFilter) return;
         activeFilter = next;
         syncFilterButtons();
-        withInfoBarSlide(() => withGridFlip(applyFilter));
+        withGridFlip(applyFilter);
       });
     });
   }
@@ -902,10 +827,8 @@
 
   // Footer category links (Sept 2026): the same choices as the filter bar, but reached
   // from the bottom of the page, so they also have to scroll back up to #work — without
-  // that, clicking one would silently re-render a grid the visitor can't see. No
-  // withInfoBarSlide() here, unlike the filter bar: the bar is off-screen at the moment
-  // of the click, so sliding it would animate where nobody is looking and only risk
-  // fighting the scroll. The cards still reveal normally once the scroll arrives.
+  // that, clicking one would silently re-render a grid the visitor can't see. The cards
+  // still reveal normally once the scroll arrives.
   function renderFooterNav() {
     const container = document.getElementById('contact-footer-nav');
     if (!container) return;

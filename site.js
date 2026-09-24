@@ -129,7 +129,7 @@ function esc(value) {
 // it — used by the lightbox's open, close and still-to-still crossfades (project.html).
 // index.html's work-grid filter used this too until Sept 2026, when the crossfade it
 // brings with it turned out to be the wrong motion for that change; see
-// withInfoBarSlide() there for what replaced it.
+// withGridFlip() there for what replaced it.
 //
 // Temporarily adds .same-doc-transition to <body> for the duration; see the CSS rule of
 // the same name in style.css for why. Short version: the nav's own view-transition-name
