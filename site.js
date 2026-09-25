@@ -553,16 +553,25 @@ function initLangToggle(onChange) {
   if (!btn) return;
   const body = document.body;
 
-  if (localStorage.getItem('iob-lang') === 'fr') body.classList.add('lang-fr');
+  // Storage can throw outright (blocked site data, some private modes); the toggle then
+  // just works for this page view without being remembered.
+  let saved = null;
+  try { saved = localStorage.getItem('iob-lang'); } catch (err) { /* nothing remembered */ }
+  if (saved === 'fr') body.classList.add('lang-fr');
 
   const isFr = () => body.classList.contains('lang-fr');
-  const syncButton = () => { btn.textContent = isFr() ? 'EN' : 'FR'; };
+  // <html lang> has to follow the remembered choice too, not only a click: screen readers
+  // pick their voice from it, and a returning French visitor was being read French text
+  // with the English one (Sept 2026).
+  const syncButton = () => {
+    btn.textContent = isFr() ? 'EN' : 'FR';
+    document.documentElement.lang = isFr() ? 'fr' : 'en';
+  };
   syncButton();
 
   btn.addEventListener('click', () => {
     body.classList.toggle('lang-fr');
-    localStorage.setItem('iob-lang', isFr() ? 'fr' : 'en');
-    document.documentElement.lang = isFr() ? 'fr' : 'en';
+    try { localStorage.setItem('iob-lang', isFr() ? 'fr' : 'en'); } catch (err) { /* see above */ }
     syncButton();
     if (onChange) onChange(isFr());
   });
