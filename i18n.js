@@ -20,6 +20,8 @@ const DEFAULT_STRINGS = {
   'contact.heading': { fr: 'Disponible pour vos prochains projets.', en: 'Available for your next project.' },
   'contact.email_label': { fr: 'Courriel', en: 'Email' },
   'contact.top': { fr: 'Haut de page', en: 'Back to top' },
+  'contact.privacy': { fr: 'Confidentialité', en: 'Privacy' },
+  'contact.terms': { fr: "Conditions d'utilisation", en: 'Terms of use' },
 
   'project.back': { fr: 'Retour aux travaux', en: 'Back to work' },
   'project.type_label': { fr: 'Type', en: 'Type' },

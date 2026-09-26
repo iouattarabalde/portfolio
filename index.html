@@ -205,10 +205,18 @@
   </div>
 
   <div class="contact-footer" data-reveal>
-    <p class="contact-copyright">
-      © <span id="contact-year"></span> Ismael OB —
-      <span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span>
-    </p>
+    <!-- Copyright and the two legal pages travel as one group, so the bar keeps its three
+         groups (this, the categories, back to top) and its layout at every width. -->
+    <div class="contact-footer-start">
+      <p class="contact-copyright">
+        © <span id="contact-year"></span> Ismael OB —
+        <span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span>
+      </p>
+      <nav class="contact-legal">
+        <a href="privacy/"><span data-fr data-key="contact.privacy"></span><span data-en data-key="contact.privacy"></span></a>
+        <a href="terms/"><span data-fr data-key="contact.terms"></span><span data-en data-key="contact.terms"></span></a>
+      </nav>
+    </div>
     <!-- Filled by renderFooterNav() from PROJECT_TYPES, same source as the filter row. -->
     <nav class="contact-footer-nav" id="contact-footer-nav"></nav>
     <button type="button" class="contact-top" id="contact-top">

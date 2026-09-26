@@ -1443,6 +1443,33 @@ body.same-doc-transition .site-nav {
 }
 .contact-copyright { margin: 0; }
 
+/* Copyright plus the privacy and terms links (Sept 2026; the pages existed from Sept 9 but
+   nothing linked to them). One flex item of the bar, so the bar still has three groups
+   and none of the alignment notes above change. The links wrap under the copyright as a
+   unit on narrow screens; the 14px row gap clears their 44px hit areas' 13px of upward
+   growth, since the copyright itself isn't a target. */
+.contact-footer-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+}
+.contact-legal {
+  display: flex;
+  flex-wrap: wrap;
+  /* 28px down for the same reason as .contact-footer-nav: stacked 44px hit areas need
+     it. Only French wraps, and only on the narrowest phones: "Confidentialité" plus
+     "Conditions d'utilisation" is ~330px, wider than a 320px screen's column. */
+  gap: 28px 24px;
+}
+.contact-legal a {
+  white-space: nowrap;
+  transition: color var(--dur-hover) var(--ease-out-soft);
+}
+@media (hover: hover) {
+  .contact-legal a:hover { color: var(--accent); }
+}
+
 /* Deep links into the work grid's category filter. Rendered from PROJECT_TYPES by the
    same helper that builds .work-filter (see buildFilterItems in index.html), so the two
    rows can't drift apart, and clicking one sets the very same activeFilter the filter
@@ -2102,7 +2129,8 @@ body.same-doc-transition .site-nav {
   transition: opacity var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
 }
 .contact-footer-nav button,
-.contact-top {
+.contact-top,
+.contact-legal a {
   transition: opacity var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
 }
 .nav-links a:active,
@@ -2111,7 +2139,8 @@ body.same-doc-transition .site-nav {
 .project-back:active,
 .work-filter button:active,
 .contact-footer-nav button:active,
-.contact-top:active {
+.contact-top:active,
+.contact-legal a:active {
   opacity: 0.55;
   transition-duration: var(--dur-press);
 }
@@ -2218,6 +2247,7 @@ body.same-doc-transition .site-nav {
 .work-filter button,
 .contact-footer-nav button,
 .contact-top,
+.contact-legal a,
 .contact-link,
 .project-back {
   position: relative; /* containing block for the ::before below (.nav-links a already had this for its underline) */
@@ -2232,6 +2262,7 @@ body.same-doc-transition .site-nav {
 .work-filter button::before,
 .contact-footer-nav button::before,
 .contact-top::before,
+.contact-legal a::before,
 .contact-link::before,
 .project-back::before,
 .lightbox-close::before {

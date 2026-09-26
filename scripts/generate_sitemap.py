@@ -49,6 +49,10 @@ def main():
         loc = f"{BASE_URL}/project.html?project={project['id']}"
         entries.append(url_entry(loc, "monthly", "0.8"))
 
+    # The two legal pages, linked from the homepage footer since Sept 2026.
+    for path in ("privacy/", "terms/"):
+        entries.append(url_entry(f"{BASE_URL}/{path}", "yearly", "0.2"))
+
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

@@ -32,6 +32,14 @@
       "fr": "Haut de page",
       "en": "Back to top"
     },
+    "contact.privacy": {
+      "fr": "Confidentialité",
+      "en": "Privacy"
+    },
+    "contact.terms": {
+      "fr": "Conditions d'utilisation",
+      "en": "Terms of use"
+    },
     "project.back": {
       "fr": "Retour aux projets",
       "en": "Back to projects"
