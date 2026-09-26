@@ -484,6 +484,7 @@
       const storedRatio = item.w && item.h ? item.w / item.h : 0;
       lightboxImg.src = full ? fullSrc : (openingThumbImg && openingThumbImg.currentSrc) || fullSrc;
       lightboxImg.alt = `${currentProject.title} — still ${lightboxIndex + 1}`;
+      lightbox.setAttribute('aria-label', currentProject.title); // role="dialog" needs a name, or it's announced as just "dialog"
       const knownRatio = storedRatio
         || (sizedFrom ? sizedFrom.naturalWidth / sizedFrom.naturalHeight : 0);
       if (knownRatio) {

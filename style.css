@@ -331,6 +331,27 @@ a { color: inherit; text-decoration: none; }
    now (see "Press feedback" further down), so the stock flash is only noise. */
 a, button { -webkit-tap-highlight-color: transparent; }
 
+/* Keyboard focus (Sept 2026). The site had no focus styles at all until then, so it fell
+   back on the browser's own 1px ring, which all but disappears against the dark tiles.
+   :focus-visible only, so a mouse click or a tap never draws it. No transition on it: its
+   colour is var(--accent), which site.js rewrites 4x a second (see the note in :root).
+   The photo tiles sit on a 6px gap, so their ring is pulled in to fit it:
+   - A work card's photo and caption are positioned layers, which paint over any ring drawn
+     inside the card, so its ring sits just outside it, lifted above the neighbouring cards.
+   - A gallery tile's photo isn't positioned, so its ring can sit inside the tile, clear of
+     the viewport edge the gallery runs up against. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.work-card:focus-visible {
+  outline-offset: 1px;
+  z-index: 1;
+}
+.gallery-item:focus-visible {
+  outline-offset: -2px;
+}
+
 /* Visually hidden but present for screen readers/SEO — used for index.html's h1
    (the visible "brand" in nav is a link, not a heading, so the page had no h1 at
    all without this). Standard clip-based pattern, not display:none, so it still

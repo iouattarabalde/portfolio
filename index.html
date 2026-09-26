@@ -805,7 +805,7 @@
     const isFr = body.classList.contains('lang-fr');
     const items = buildFilterItems(isFr);
     container.innerHTML = items.map((item, i) => `
-      <button type="button" data-filter="${esc(item.code || '')}" class="${activeFilter === item.code ? 'active' : ''}">${esc(item.label)}</button>
+      <button type="button" data-filter="${esc(item.code || '')}" class="${activeFilter === item.code ? 'active' : ''}" aria-pressed="${activeFilter === item.code}">${esc(item.label)}</button>
       ${i < items.length - 1 ? '<span class="filter-sep" aria-hidden="true">/</span>' : ''}
     `).join('');
     container.querySelectorAll('button').forEach((btn) => {
@@ -821,7 +821,9 @@
 
   function syncFilterButtons() {
     document.querySelectorAll('#category-filter button').forEach((btn) => {
-      btn.classList.toggle('active', (btn.dataset.filter || null) === activeFilter);
+      const active = (btn.dataset.filter || null) === activeFilter;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active)); // the underline alone says nothing to a screen reader
     });
   }
 
