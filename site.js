@@ -543,11 +543,12 @@ document.addEventListener('touchstart', function () {}, { passive: true });
 // Wires the FR/EN toggle: restores the remembered choice, keeps the button label
 // showing the language you'd switch TO (not the current one), and persists every change.
 //
-// English is the default; French is only applied if it was remembered. onChange runs
-// after each switch so a page can re-render whatever it builds in JS and would otherwise
-// keep stale labels — the work grid and filter bar on index.html, the credits' type
-// acronym on project.html. No-ops if the page has no toggle (admin/index.html is
-// French-only), so it's safe to call unconditionally.
+// A remembered choice wins; otherwise the visitor's browser languages decide (see
+// browserPrefersFr), and English is the fallback. onChange runs after each switch so a
+// page can re-render whatever it builds in JS and would otherwise keep stale labels —
+// the work grid and filter bar on index.html, the credits' type acronym on project.html.
+// No-ops if the page has no toggle (admin/index.html is French-only), so it's safe to
+// call unconditionally.
 function initLangToggle(onChange) {
   const btn = document.getElementById('lang-toggle');
   if (!btn) return;
@@ -557,7 +558,7 @@ function initLangToggle(onChange) {
   // just works for this page view without being remembered.
   let saved = null;
   try { saved = localStorage.getItem('iob-lang'); } catch (err) { /* nothing remembered */ }
-  if (saved === 'fr') body.classList.add('lang-fr');
+  if (saved === 'fr' || (saved !== 'en' && browserPrefersFr())) body.classList.add('lang-fr');
 
   const isFr = () => body.classList.contains('lang-fr');
   // <html lang> has to follow the remembered choice too, not only a click: screen readers
@@ -575,4 +576,23 @@ function initLangToggle(onChange) {
     syncButton();
     if (onChange) onChange(isFr());
   });
+}
+
+// First visit only: walks the browser's language list in the visitor's own order and
+// takes the first French or English entry, so 'es, fr, en' gets French and 'de, en, fr'
+// gets English. Neither listed falls back to English. Read from the browser rather than
+// looked up from the visitor's IP (Oct 2026): it costs no request, involves no third
+// party (the privacy page says GitHub is the only server that sees a visitor), and it
+// reflects the language someone reads rather than the country they're in — Montreal's
+// anglophones, a Paris agency on a VPN.
+function browserPrefersFr() {
+  const langs = navigator.languages && navigator.languages.length
+    ? navigator.languages
+    : [navigator.language || ''];
+  for (const lang of langs) {
+    const code = String(lang).toLowerCase().slice(0, 2);
+    if (code === 'fr') return true;
+    if (code === 'en') return false;
+  }
+  return false;
 }

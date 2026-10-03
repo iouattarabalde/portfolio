@@ -317,8 +317,13 @@ images encore servies par le site (restaurées depuis l'historique).
 
 ## Bilinguisme et textes éditables
 
-Anglais par défaut, français activé via le bouton FR/EN (mémorisé en `localStorage`,
-partagé entre les pages). Tout le texte du site — navigation, titres, étiquettes de
+À la première visite, la langue suit celle du navigateur du visiteur : français si le
+français vient avant l'anglais dans ses langues préférées, anglais sinon (et anglais si
+aucune des deux n'y figure). Le bouton FR/EN change ensuite la langue, et ce choix est
+mémorisé en `localStorage`, partagé entre les pages, et l'emporte toujours sur le
+navigateur. Pas de détection par adresse IP (oct. 2026) : il faudrait un service tiers qui
+verrait l'IP des visiteurs, ce qui contredirait la page de confidentialité, et le pays ne
+dit pas quelle langue la personne lit. Tout le texte du site — navigation, titres, étiquettes de
 types de projet — vient de `data/strings.json` et est éditable dans l'admin
 sous « Réglages → Avancé », sans toucher au code.
 
