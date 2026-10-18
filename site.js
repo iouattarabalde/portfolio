@@ -2,8 +2,8 @@
 //
 // Created Aug 2026 to stop copy-pasting the same code into three pages. Before this,
 // the accent-colour cycle below existed as three verbatim ~45-line copies, the HTML
-// escaper as three near-copies that had drifted apart, and the language toggle and
-// design-settings loader as two copies each. Fixing any one of them meant remembering
+// escaper as three near-copies that had drifted apart, and the (since removed) language
+// toggle and design-settings loader as two copies each. Fixing any one of them meant remembering
 // to fix the others, which is exactly how admin/index.html ended up 13 stylesheet
 // versions behind at one point.
 //
@@ -540,59 +540,8 @@ function initBackToGrid() {
 document.addEventListener('touchstart', function () {}, { passive: true });
 
 // ---------------------------------------------------------------------------
-// Wires the FR/EN toggle: restores the remembered choice, keeps the button label
-// showing the language you'd switch TO (not the current one), and persists every change.
-//
-// A remembered choice wins; otherwise the visitor's browser languages decide (see
-// browserPrefersFr), and English is the fallback. onChange runs after each switch so a
-// page can re-render whatever it builds in JS and would otherwise keep stale labels —
-// the work grid and filter bar on index.html, the credits' type acronym on project.html.
-// No-ops if the page has no toggle (admin/index.html is French-only), so it's safe to
-// call unconditionally.
-function initLangToggle(onChange) {
-  const btn = document.getElementById('lang-toggle');
-  if (!btn) return;
-  const body = document.body;
-
-  // Storage can throw outright (blocked site data, some private modes); the toggle then
-  // just works for this page view without being remembered.
-  let saved = null;
-  try { saved = localStorage.getItem('iob-lang'); } catch (err) { /* nothing remembered */ }
-  if (saved === 'fr' || (saved !== 'en' && browserPrefersFr())) body.classList.add('lang-fr');
-
-  const isFr = () => body.classList.contains('lang-fr');
-  // <html lang> has to follow the remembered choice too, not only a click: screen readers
-  // pick their voice from it, and a returning French visitor was being read French text
-  // with the English one (Sept 2026).
-  const syncButton = () => {
-    btn.textContent = isFr() ? 'EN' : 'FR';
-    document.documentElement.lang = isFr() ? 'fr' : 'en';
-  };
-  syncButton();
-
-  btn.addEventListener('click', () => {
-    body.classList.toggle('lang-fr');
-    try { localStorage.setItem('iob-lang', isFr() ? 'fr' : 'en'); } catch (err) { /* see above */ }
-    syncButton();
-    if (onChange) onChange(isFr());
-  });
-}
-
-// First visit only: walks the browser's language list in the visitor's own order and
-// takes the first French or English entry, so 'es, fr, en' gets French and 'de, en, fr'
-// gets English. Neither listed falls back to English. Read from the browser rather than
-// looked up from the visitor's IP (Oct 2026): it costs no request, involves no third
-// party (the privacy page says GitHub is the only server that sees a visitor), and it
-// reflects the language someone reads rather than the country they're in — Montreal's
-// anglophones, a Paris agency on a VPN.
-function browserPrefersFr() {
-  const langs = navigator.languages && navigator.languages.length
-    ? navigator.languages
-    : [navigator.language || ''];
-  for (const lang of langs) {
-    const code = String(lang).toLowerCase().slice(0, 2);
-    if (code === 'fr') return true;
-    if (code === 'en') return false;
-  }
-  return false;
-}
+// The site was bilingual until Oct 2026 and remembered the visitor's FR/EN choice under
+// localStorage 'iob-lang'. It is English only now, so that key is cleared for returning
+// visitors: the privacy page says the site stores nothing in the browser. Storage can
+// throw outright (blocked site data, some private modes), hence the guard.
+try { localStorage.removeItem('iob-lang'); } catch (err) { /* nothing to clear */ }

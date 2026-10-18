@@ -29,6 +29,7 @@ from PIL import Image
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECTS_JSON = os.path.join(REPO_ROOT, "data", "projects.json")
+STRINGS_JSON = os.path.join(REPO_ROOT, "data", "strings.json")
 ASSETS_DIR = os.path.join(REPO_ROOT, "assets")
 OG_OUT_DIR = os.path.join(ASSETS_DIR, "og")
 SHARE_OUT_DIR = os.path.join(REPO_ROOT, "project")
@@ -36,12 +37,15 @@ SHARE_OUT_DIR = os.path.join(REPO_ROOT, "project")
 TARGET_W, TARGET_H = 1200, 630
 TARGET_RATIO = TARGET_W / TARGET_H
 
-TYPE_LABELS_EN = {
-    "AD": "Advertising",
-    "MV": "Music Video",
-    "FILM": "Film",
-    "TV": "TV",
-}
+
+def load_type_labels():
+    """Type code -> label, from data/strings.json ("types"), the same source the site
+    and the admin use, so a type renamed or added in the admin reaches the share cards
+    too. Was a hardcoded copy until Oct 2026, which had drifted ("Advertising" here,
+    "Commercial" on the site)."""
+    with open(STRINGS_JSON, encoding="utf-8") as f:
+        types = json.load(f).get("types", {})
+    return {code: label for code, label in types.items() if isinstance(label, str) and label}
 
 SHARE_TEMPLATE = """<!DOCTYPE html>
 <!--
@@ -99,8 +103,8 @@ def crop_to_ratio(im, fx, fy):
     return im.crop(box).resize((TARGET_W, TARGET_H), Image.LANCZOS)
 
 
-def build_description(project):
-    type_label = TYPE_LABELS_EN.get(project["type"], project["type"])
+def build_description(project, type_labels):
+    type_label = type_labels.get(project["type"], project["type"])
     client = (project.get("client") or "").strip()
     artist = (project.get("artist") or "").strip()
     if client:
@@ -113,6 +117,7 @@ def build_description(project):
 def main():
     with open(PROJECTS_JSON) as f:
         data = json.load(f)
+    type_labels = load_type_labels()
 
     os.makedirs(OG_OUT_DIR, exist_ok=True)
     os.makedirs(SHARE_OUT_DIR, exist_ok=True)
@@ -133,7 +138,7 @@ def main():
         html_out = SHARE_TEMPLATE.format(
             slug=slug,
             title_esc=html.escape(project["title"]),
-            desc_esc=html.escape(build_description(project)),
+            desc_esc=html.escape(build_description(project, type_labels)),
         )
         with open(os.path.join(SHARE_OUT_DIR, f"{slug}.html"), "w") as f:
             f.write(html_out)

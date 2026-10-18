@@ -5,15 +5,10 @@
   data/projects.json, and renders its gallery + credits. Visited as e.g.
   project.html?project=fleur-de-peau, linked from the work grid on index.html.
 -->
-<html lang="en" translate="no" class="notranslate">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Les deux langues cohabitent dans le DOM ([data-fr] / [data-en], masquées par CSS), alors
-     la traduction automatique de Chrome retraduit les deux copies et donne n'importe quoi.
-     Ces trois signaux (meta google, translate="no" et .notranslate sur <html>) désactivent
-     la barre "Traduire cette page" : le toggle FR/EN du site reste la seule bascule. -->
-<meta name="google" content="notranslate">
 <title id="page-title">Project — Ismael OB</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -42,8 +37,8 @@
 <link rel="preload" href="data/strings.json?v=143" as="fetch" crossorigin>
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, own
      randomised phase offset per load — so navigating between pages can land at a
-     different point in the loop each time), plus esc(), withViewTransition(),
-     and initLangToggle() used below. See site.js. -->
+     different point in the loop each time), plus esc() and withViewTransition()
+     used below. See site.js. -->
 <script src="site.js?v=143"></script>
 <script src="i18n.js?v=143"></script>
 <!-- Prerenders the next project page from the link to it (Sept 2026). In Chrome and Edge,
@@ -66,13 +61,12 @@
 
 <nav class="site-nav">
   <div class="brand">
-    <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
-    <span class="nav-eyebrow"><span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span></span>
+    <a href="index.html" class="wordmark" translate="no">ISMAEL<span>OB</span></a>
+    <span class="nav-eyebrow"><span data-key="nav.eyebrow"></span></span>
   </div>
   <div class="nav-links">
-    <a href="index.html#work" data-back-to-grid><span data-fr data-key="nav.work"></span><span data-en data-key="nav.work"></span></a>
-    <a href="index.html#contact"><span data-fr data-key="nav.contact"></span><span data-en data-key="nav.contact"></span></a>
-    <button id="lang-toggle" type="button" aria-label="Toggle language">FR</button>
+    <a href="index.html#work" data-back-to-grid><span data-key="nav.work"></span></a>
+    <a href="index.html#contact"><span data-key="nav.contact"></span></a>
   </div>
 </nav>
 
@@ -85,28 +79,28 @@
     <div class="bottom-glow-gradient"></div>
   </div>
   <div class="project-info-main">
-    <a class="project-back" href="index.html#work" data-back-to-grid>← <span data-fr data-key="project.back"></span><span data-en data-key="project.back"></span></a>
-    <h1 class="project-title" id="project-title" data-reveal></h1>
+    <a class="project-back" href="index.html#work" data-back-to-grid>← <span data-key="project.back"></span></a>
+    <h1 class="project-title" id="project-title" translate="no" data-reveal></h1>
     <dl class="credits" data-reveal>
       <div>
-        <dt><span data-fr data-key="project.type_label"></span><span data-en data-key="project.type_label"></span></dt>
+        <dt><span data-key="project.type_label"></span></dt>
         <dd id="project-type">—</dd>
       </div>
       <div id="project-client-wrap" style="display:none;">
-        <dt><span data-fr data-key="project.client_label"></span><span data-en data-key="project.client_label"></span></dt>
-        <dd id="project-client">—</dd>
+        <dt><span data-key="project.client_label"></span></dt>
+        <dd id="project-client" translate="no">—</dd>
       </div>
       <div id="project-artist-wrap" style="display:none;">
-        <dt><span data-fr data-key="project.artist_label"></span><span data-en data-key="project.artist_label"></span></dt>
-        <dd id="project-artist">—</dd>
+        <dt><span data-key="project.artist_label"></span></dt>
+        <dd id="project-artist" translate="no">—</dd>
       </div>
       <div>
-        <dt><span data-fr data-key="project.director_label"></span><span data-en data-key="project.director_label"></span></dt>
-        <dd id="project-director">—</dd>
+        <dt><span data-key="project.director_label"></span></dt>
+        <dd id="project-director" translate="no">—</dd>
       </div>
       <div>
-        <dt><span data-fr data-key="project.dp_label"></span><span data-en data-key="project.dp_label"></span></dt>
-        <dd id="project-dp">—</dd>
+        <dt><span data-key="project.dp_label"></span></dt>
+        <dd id="project-dp" translate="no">—</dd>
       </div>
     </dl>
   </div>
@@ -119,20 +113,19 @@
        JS if there's only one project total, since a link back to itself isn't useful.
        Populated + shown by JS below alongside the rest of project-info. -->
   <a class="next-project" id="next-project" href="#" style="display:none;" data-reveal>
-    <p class="next-project-label"><span data-fr data-key="project.next_label"></span><span data-en data-key="project.next_label"></span> →</p>
+    <p class="next-project-label"><span data-key="project.next_label"></span> →</p>
     <img class="next-project-thumb" id="next-project-thumb" alt="" loading="lazy">
-    <p class="next-project-title" id="next-project-title"></p>
+    <p class="next-project-title" id="next-project-title" translate="no"></p>
   </a>
 </section>
 
 <!-- Shown instead of project-info if the ?project= id doesn't match anything in projects.json -->
 <section class="project-info" id="project-not-found" style="display:none;">
-  <p class="eyebrow"><span data-fr data-key="project.not_found_eyebrow"></span><span data-en data-key="project.not_found_eyebrow"></span></p>
+  <p class="eyebrow"><span data-key="project.not_found_eyebrow"></span></p>
   <h1 class="project-title">
-    <span data-fr data-key="project.not_found_heading"></span>
-    <span data-en data-key="project.not_found_heading"></span>
+    <span data-key="project.not_found_heading"></span>
   </h1>
-  <a class="project-back" href="index.html#work" data-back-to-grid>← <span data-fr data-key="project.back"></span><span data-en data-key="project.back"></span></a>
+  <a class="project-back" href="index.html#work" data-back-to-grid>← <span data-key="project.back"></span></a>
 </section>
 
 <!-- Full-screen image viewer, opened by clicking any gallery thumbnail (see wireLightbox below).
@@ -142,7 +135,7 @@
      positioned absolute against .lightbox itself (unaffected by this nesting, since
      .lightbox-content has no position of its own and therefore isn't a containing block). -->
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
-  <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-fr data-key="lightbox.close"></span><span data-en data-key="lightbox.close"></span></button>
+  <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-key="lightbox.close"></span></button>
   <div class="lightbox-content">
     <img id="lightbox-img" src="" alt="">
     <div class="lightbox-palette" id="lightbox-palette" aria-hidden="true"></div>
@@ -156,16 +149,12 @@
 <script>
   // ---------------------------------------------------------------
   // project.html script overview:
-  //   1. Language toggle (same pattern as index.html)
-  //   2. Lightbox (click a still to enlarge; close via ✕, Escape, or clicking the backdrop)
-  //   3. Load i18n.js (all static copy + type acronyms) and the requested project from
+  //   1. Lightbox (click a still to enlarge; close via ✕, Escape, or clicking the backdrop)
+  //   2. Load i18n.js (all static copy + type labels) and the requested project from
   //      data/projects.json in parallel, then render both
   // ---------------------------------------------------------------
 
   const body = document.body;
-  // Toggle itself lives in site.js; the callback re-runs the one thing on this page
-  // built in JS that would otherwise keep its old-language label.
-  initLangToggle(() => renderProjectType());
   // The links carrying data-back-to-grid return to the grid through history when they can
   // (site.js), so the homepage comes back exactly as it was left.
   initBackToGrid();
@@ -839,17 +828,11 @@
   // Which project to show comes from the URL, e.g. project.html?project=fleur-de-peau
   const params = new URLSearchParams(window.location.search);
   const projectId = params.get('project');
-  let currentProject = null; // cached after fetch so renderProjectType() can re-run on language toggle
-
-  function renderProjectType() {
-    if (!currentProject) return;
-    const isFr = body.classList.contains('lang-fr');
-    document.getElementById('project-type').textContent = projectTypeAcronym(currentProject.type, isFr) || '—';
-  }
+  let currentProject = null;
 
   // i18n and the project data are independent fetches, loaded in parallel — applyStrings()
-  // fills every data-key element (labels, back link, etc.), and the project.type acronym
-  // rendered by renderProjectType() also depends on i18n.js's PROJECT_TYPES being loaded.
+  // fills every data-key element (labels, back link, etc.), and the project's type label
+  // also depends on i18n.js's PROJECT_TYPES being loaded.
   Promise.all([
     loadI18n(),
     fetch('data/projects.json?v=143').then((r) => r.json())
@@ -866,7 +849,7 @@
 
       document.getElementById('page-title').textContent = project.title + ' — Ismael OB';
       document.getElementById('project-title').textContent = project.title;
-      renderProjectType();
+      document.getElementById('project-type').textContent = projectTypeLabel(project.type) || '—';
       if (project.client) {
         document.getElementById('project-client').textContent = project.client;
         document.getElementById('project-client-wrap').style.display = '';

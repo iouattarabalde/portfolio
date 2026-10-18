@@ -1,46 +1,48 @@
 // i18n.js — shared across index.html, project.html, privacy/, terms/ and admin/index.html.
 //
-// Everything editable from the admin's Réglages → Avancé section lives in data/strings.json:
-// general UI copy (nav labels, headings, form labels) plus project type acronyms/labels.
-// The constants below are the fallback defaults, used if that fetch fails or a key is
-// missing, so the site never shows blank text even if something goes wrong.
+// The site is English only (Oct 2026); it was bilingual FR/EN before. Everything editable
+// from the admin's Réglages → Avancé section lives in data/strings.json: general UI copy
+// (nav labels, headings, credit labels) plus the project type labels. The constants below
+// are the fallback defaults, used if that fetch fails or a key is missing, so the site
+// never shows blank text even if something goes wrong.
 //
 // Usage: call loadI18n() once per page (it fetches and caches the result), await it,
 // then call applyStrings() to fill in every element tagged with data-key, and use
-// projectTypeAcronym()/projectTypeLabel() wherever a project type needs to be displayed.
+// projectTypeLabel() wherever a project type needs to be displayed.
 
 const DEFAULT_STRINGS = {
-  'nav.eyebrow': { fr: 'Coloriste', en: 'Colorist' },
-  'nav.work': { fr: 'Projets', en: 'Projects' },
-  'nav.contact': { fr: 'Contact', en: 'Contact' },
+  'nav.eyebrow': 'Colorist',
+  'nav.work': 'Projects',
+  'nav.contact': 'Contact',
 
-  'work.heading': { fr: 'Projets', en: 'Projects' },
-  'work.filter_all': { fr: 'Tous', en: 'All' },
+  'work.heading': 'Projects',
+  'work.filter_all': 'All',
 
-  'contact.heading': { fr: 'Disponible pour vos prochains projets.', en: 'Available for your next project.' },
-  'contact.email_label': { fr: 'Courriel', en: 'Email' },
-  'contact.top': { fr: 'Haut de page', en: 'Back to top' },
-  'contact.privacy': { fr: 'Confidentialité', en: 'Privacy' },
-  'contact.terms': { fr: "Conditions d'utilisation", en: 'Terms of use' },
+  'contact.heading': 'Available for your next project.',
+  'contact.email_label': 'Email',
+  'contact.top': 'Back to top',
+  'contact.privacy': 'Privacy',
+  'contact.terms': 'Terms of use',
 
-  'project.back': { fr: 'Retour aux travaux', en: 'Back to work' },
-  'project.type_label': { fr: 'Type', en: 'Type' },
-  'project.client_label': { fr: 'Client', en: 'Client' },
-  'project.director_label': { fr: 'Réalisation', en: 'Director' },
-  'project.dp_label': { fr: 'Image', en: 'DP' },
-  'project.artist_label': { fr: 'Artiste', en: 'Artist' },
-  'project.next_label': { fr: 'Prochain projet', en: 'Next project' },
-  'project.not_found_eyebrow': { fr: 'Introuvable', en: 'Not found' },
-  'project.not_found_heading': { fr: "Ce projet n'existe pas ou plus.", en: "This project doesn't exist." },
+  'project.back': 'Back to projects',
+  'project.type_label': 'Type',
+  'project.client_label': 'Client',
+  'project.director_label': 'Director',
+  'project.dp_label': 'DP',
+  'project.artist_label': 'Artist',
+  'project.next_label': 'Next project',
+  'project.not_found_eyebrow': 'Not found',
+  'project.not_found_heading': "This project doesn't exist.",
 
-  'lightbox.close': { fr: 'Fermer', en: 'Close' }
+  'lightbox.close': 'Close'
 };
 
+// Code (what data/projects.json stores) -> label shown on the cards, the filter, the footer
+// and the project credits. Narrative replaced FILM and TV in Oct 2026.
 const DEFAULT_TYPES = {
-  AD:   { enAcronym: 'AD',   frAcronym: 'PUB',  enLabel: 'Advertising', frLabel: 'Publicité' },
-  MV:   { enAcronym: 'MV',   frAcronym: 'CLIP', enLabel: 'Music Video', frLabel: 'Vidéoclip' },
-  FILM: { enAcronym: 'FILM', frAcronym: 'FILM', enLabel: 'Film',        frLabel: 'Film' },
-  TV:   { enAcronym: 'TV',   frAcronym: 'TV',   enLabel: 'TV',          frLabel: 'Série' }
+  AD: 'Commercial',
+  MV: 'Music Video',
+  NARRATIVE: 'Narrative'
 };
 
 // Live copies, overwritten by loadI18n() once data/strings.json has loaded successfully.
@@ -99,27 +101,16 @@ function loadI18n() {
   return _i18nPromise;
 }
 
-// Fills every element tagged data-key="..." with the matching STRINGS entry, using
-// whichever of data-fr/data-en is also present on that same element to pick fr vs en
-// — the same pairing pattern already used for the language toggle everywhere on the
-// site. Call once per page, after loadI18n() resolves.
+// Fills every element tagged data-key="..." with the matching STRINGS entry. Call once
+// per page, after loadI18n() resolves.
 function applyStrings() {
   document.querySelectorAll('[data-key]').forEach((el) => {
-    const entry = STRINGS[el.dataset.key];
-    if (!entry) return;
-    if (el.hasAttribute('data-fr') && entry.fr) el.textContent = entry.fr;
-    else if (el.hasAttribute('data-en') && entry.en) el.textContent = entry.en;
+    const text = STRINGS[el.dataset.key];
+    if (typeof text === 'string' && text) el.textContent = text;
   });
 }
 
-function projectTypeAcronym(code, isFr) {
-  const t = PROJECT_TYPES[code];
-  if (!t) return code || '';
-  return isFr ? t.frAcronym : t.enAcronym;
-}
-
-function projectTypeLabel(code, isFr) {
-  const t = PROJECT_TYPES[code];
-  if (!t) return code || '';
-  return isFr ? t.frLabel : t.enLabel;
+function projectTypeLabel(code) {
+  const label = PROJECT_TYPES[code];
+  return typeof label === 'string' && label ? label : (code || '');
 }

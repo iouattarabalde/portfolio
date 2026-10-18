@@ -2,13 +2,15 @@ name: Generate share pages and sitemap
 
 # Regenerates project/<slug>.html + assets/og/<slug>.jpg (OG share cards) and
 # sitemap.xml from data/projects.json whenever a project is added/edited
-# (admin saves) or a cover thumbnail changes. assets/og/** is excluded from
+# (admin saves), a cover thumbnail changes, or a type label changes in
+# data/strings.json (the share descriptions name the type). assets/og/** is excluded from
 # the trigger paths so the commit this workflow makes doesn't re-trigger itself.
 on:
   push:
     branches: [main]
     paths:
       - 'data/projects.json'
+      - 'data/strings.json'
       - 'assets/**'
       - '!assets/og/**'
 

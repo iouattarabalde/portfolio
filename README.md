@@ -21,14 +21,14 @@ les cas qui sortent de l'admin.
 | Utiliser une image de la galerie comme vignette | Admin → ouvrir le projet → bouton « Définir comme vignette » sur l'image | L'image quitte la galerie (une vignette n'est pas aussi dans sa galerie) |
 | Changer courriel / localisation / dispo / Instagram / photo / bio de contact | Admin → Réglages | La bio est de nouveau affichée sur le site depuis la refonte de septembre 2026 |
 | Changer un texte du site (nav, titres, étiquettes) | Admin → Réglages → Avancé | |
-| Ajouter ou retirer un type de projet (AD, MV, etc.) | Admin → Réglages → Avancé → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
+| Ajouter, renommer ou retirer un type de projet (Commercial, Music Video, Narrative) | Admin → Réglages → Avancé → Types de projet | Réassigner les projets existants avant de retirer un type déjà utilisé |
 | Savoir si une modification est en ligne | L'étiquette à côté de « Admin » | « Publication… » puis « En ligne ✓ » quand le site sert la nouvelle version |
 | Ajuster le halo du reel, le grain ou la couleur de fond | **Pas dans l'admin** (depuis sept. 2026) | Variables `--halo-*`, `--grain-level` et `--bg` en tête de `style.css` — demander à Claude |
 | Mon changement n'apparaît pas sur le site en ligne | Attendre 1-2 min | Si ça persiste, tout petit changement (n'importe lequel) relance un déploiement propre |
 | Remplacer le reel principal (vidéo hero) | Terminal sur le Mac : `python3 scripts/encode_reel.py --file "master.mov"` | Ouvre une page pour choisir le grain, encode, met à jour `index.html`, puis demande avant de commit et push. Voir "Vidéo du reel" |
 | Changer la photo de partage (aperçu quand le lien est partagé) | **Pas dans l'admin** | Remplacer `assets/og-image.jpg` via l'éditeur de fichiers GitHub (voir plus bas), même nom, mêmes dimensions 1200×630 |
 | Changer polices / mise en page | Verrouillé, pas d'éditeur admin | Demander à Claude |
-| Ajouter un tout nouveau texte bilingue à un endroit du site qui n'en a pas encore | Touche 3 fichiers différents | Demander à Claude |
+| Ajouter un tout nouveau texte à un endroit du site qui n'en a pas encore | Touche 3 fichiers différents | Demander à Claude |
 
 ### Modifier un fichier directement sur GitHub, sans coder
 
@@ -68,10 +68,10 @@ Dès qu'il faut *modifier du code* (pas juste remplacer un fichier), retour à C
 | `index.html` | Page principale : hero reel, filtre de catégories + grille de travaux (construits dynamiquement depuis `data/projects.json`), barre d'infos au survol, section contact |
 | `project.html` | Gabarit unique pour tous les projets. Se remplit via l'URL `project.html?project=<id>`, lit `data/projects.json` |
 | `data/projects.json` | Source de vérité pour tous les projets : titre, type, réalisation, DP, vignette, galerie ordonnée |
-| `data/settings.json` | Coordonnées éditables : courriel, localisation (FR/EN), disponibilité (FR/EN), Instagram |
-| `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet (bilingue FR/EN), et les acronymes/libellés de chaque type de projet |
-| `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeAcronym()`/`projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin. Versionné en cache-buster (`?v=N`), sur le même numéro que `style.css` et `site.js` |
-| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML), `withViewTransition()` et `initLangToggle()`. Chacun existait auparavant en deux ou trois copies recopiées à la main. Versionné en cache-buster (`?v=N`) comme `style.css` et `i18n.js`, sur le même numéro |
+| `data/settings.json` | Coordonnées éditables : courriel, localisation, disponibilité, bio, Instagram, photo |
+| `data/strings.json` | **Tous les autres textes du site** : libellés de navigation, titres, textes de la page projet, et le libellé de chaque type de projet |
+| `i18n.js` | Charge `data/strings.json`, avec des valeurs par défaut intégrées en repli. Fournit `applyStrings()` (remplit tout élément `data-key`) et `projectTypeLabel()`. Partagé par toutes les pages, y compris l'admin. Versionné en cache-buster (`?v=N`), sur le même numéro que `style.css` et `site.js` |
+| `site.js` | Comportements partagés par les trois pages (Aug 2026) : le cycle de couleur d'accent, `esc()` (échappe le texte injecté en HTML) et `withViewTransition()`. Chacun existait auparavant en deux ou trois copies recopiées à la main. Versionné en cache-buster (`?v=N`) comme `style.css` et `i18n.js`, sur le même numéro |
 | `admin/index.html` | Outil d'auto-gestion — voir section dédiée plus bas |
 | `style.css` | Feuille de style partagée, versionnée en cache-buster (`?v=N`, le même numéro que `site.js` et `i18n.js`). L'incrément se fait tout seul sur les 3 pages qui la chargent à chaque modification — voir "Automatisations" |
 | `video/reel.av1.mp4` | Reel auto-hébergé, **source principale** (AV1 10 bits — voir "Vidéo du reel") |
@@ -112,27 +112,25 @@ la faire monter jusque-là, et l'atterrissage dépendrait de la hauteur de la fe
 
 La section porte aussi le pied de page du site (il n'y avait aucun `<footer>` avant) :
 mention de copyright, liens vers les catégories de projets (ils appliquent le même filtre
-que la barre au-dessus de la grille, puis remontent à celle-ci) et un lien "Haut de page".
+que la barre au-dessus de la grille, puis remontent à celle-ci) et un lien "Back to top".
 Cette barre est limitée à la même largeur que les colonnes : la mention de copyright
 commence donc juste sous le titre. Elle ne se termine pas au même endroit que la barre de
 navigation — les deux alignements sont incompatibles, et c'est l'alignement sur le texte
 qui a été retenu (voir la note dans `style.css`, section Contact).
-Pas de bascule FR/EN dans le pied de page : la barre de navigation est collante et reste
-visible, la sienne est donc déjà à portée de clic.
 
 Un ancien formulaire (`intake-form.html`) a été retiré : sans backend, il ne faisait que
 construire un lien `mailto:`, sans réel avantage sur un lien courriel direct.
 
-**Retour aux projets** (sept. 2026) : sur une page projet, « ← Retour aux projets » et le lien
-« Projets » de la barre de navigation reviennent en arrière dans l'historique quand la grille
-y est déjà (même après plusieurs « Projet suivant »), au lieu de recharger l'accueil. La page
+**Retour aux projets** (sept. 2026) : sur une page projet, « ← Back to projects » et le lien
+« Projects » de la barre de navigation reviennent en arrière dans l'historique quand la grille
+y est déjà (même après plusieurs « Next project »), au lieu de recharger l'accueil. La page
 revient telle qu'elle a été quittée : même position dans la grille, reel au même endroit. Si
 la grille n'est pas dans l'historique (lien partagé, nouvel onglet), le lien se comporte
 normalement. Voir `initBackToGrid()` dans `site.js`.
 
 ## Zones tactiles
 
-Tous les contrôles des pages publiques (navigation, bascule FR/EN, filtres de la grille,
+Tous les contrôles des pages publiques (navigation, filtres de la grille,
 liens courriel/Instagram, pied de page, boutons de la visionneuse) ont une zone cliquable
 d'au moins 44x44px, sans que rien ne bouge visuellement : un `::before` invisible et
 centré agrandit la zone autour du contrôle. Voir la section « Touch targets » à la fin de
@@ -140,14 +138,11 @@ centré agrandit la zone autour du contrôle. Voir la section « Touch targets �
 page) : plus le texte est court, plus sa zone déborde, et c'est ce qui peut faire se
 chevaucher deux cibles voisines. L'admin n'est pas concernée (outil privé, non tactile).
 
-Conséquence pour les catégories du pied de page : sous 480px, elles affichent les
-acronymes (AD/PUB, MV/CLIP…) au lieu des libellés complets, sinon la rangée ne tient pas
-sur une ligne une fois les zones tactiles agrandies. Les deux versions sont dans le HTML
-et c'est le CSS qui choisit — rien à faire côté JS lors d'une rotation d'écran.
-L'espacement de cette rangée diffère selon la langue (30px en anglais, 24px en français) :
-les acronymes n'ont pas la même longueur, donc ni le minimum (ne pas faire se chevaucher
-deux cibles) ni le maximum (tenir sur une ligne) ne tombent au même endroit. Le tableau
-des valeurs est dans `style.css` — à recalculer si un acronyme change dans l'admin.
+Conséquence pour les catégories (oct. 2026, noms complets partout, plus d'acronymes) : sous
+480px, l'espacement se resserre (18px dans le pied de page, 6px autour des « / » du filtre)
+pour que chaque rangée tienne sur une ligne dès 360px de large. Sur un écran de 320px, le
+pied de page passe « Narrative » à la ligne et le filtre défile horizontalement. Les calculs
+sont dans `style.css` — à refaire si un nom de type change dans l'admin.
 
 ## Animations et fluidité (sept. 2026)
 
@@ -178,23 +173,23 @@ suivent toujours le doigt mais changent d'image ou se referment sans animation.
 
 Liste actuelle (éditable dans l'admin, sous « Réglages → Avancé → Types de projet ») :
 
-| Code | Acronyme EN / FR | Libellé EN / FR |
-|---|---|---|
-| `AD` | AD / PUB | Commercial / Publicité |
-| `MV` | MV / CLIP | Music Video / Vidéoclip |
-| `FILM` | FILM / FILM | Film / Film |
-| `TV` | TV / TV | TV / Série |
+| Code | Libellé |
+|---|---|
+| `AD` | Commercial |
+| `MV` | Music Video |
+| `NARRATIVE` | Narrative |
 
-(L'acronyme est ce qui s'affiche sur les vignettes ; le libellé est ce qui s'affiche dans
-le filtre de la page d'accueil.)
+Le libellé s'affiche partout en toutes lettres : vignettes, filtre, pied de page, crédits de
+la page projet et description des cartes de partage. Il n'y a plus d'acronymes (AD, MV…)
+depuis octobre 2026, quand `FILM` et `TV` ont été fusionnés dans `NARRATIVE`.
 
-Le code canonique est ce qui est stocké dans `data/projects.json` ; l'acronyme et le
-libellé affichés changent selon la langue active, via `data/strings.json` (section
-"types"). Un type peut être ajouté/retiré à tout moment dans l'admin — la liste des
-catégories sur la page d'accueil (filtre) se régénère automatiquement à partir de
-cette même source, jamais besoin de la toucher séparément.
+Le code est ce qui est stocké dans `data/projects.json` ; le libellé vient de
+`data/strings.json` (section "types"). Un type peut être ajouté/retiré à tout moment dans
+l'admin — le filtre et le pied de page se régénèrent automatiquement à partir de cette même
+source, jamais besoin de les toucher séparément. Les codes `AD` et `MV` commandent aussi les
+champs Client et Artiste dans l'admin : les garder tels quels.
 Avant de retirer un type déjà utilisé par un projet existant, le réassigner d'abord
-(sinon son acronyme s'affiche tel quel, sans traduction, sur ce projet).
+(sinon son code s'affiche tel quel sur ce projet).
 
 ## Grille de travaux (page d'accueil)
 
@@ -206,11 +201,10 @@ le HTML, masqué, pour les lecteurs d'écran et les moteurs de recherche). Gén�
 (`renderCategoryFilter` dans `index.html`) à partir des mêmes types de projet, pas de
 configuration séparée.
 
-**Changer de filtre ou de langue** (sept. 2026) : la grille est construite une seule fois.
+**Changer de filtre** (sept. 2026) : la grille est construite une seule fois.
 Un filtre masque les vignettes qui ne correspondent pas ; celles qui restent glissent vers leur
-nouvelle place, celles qui partent s'estompent, et les nouvelles apparaissent en fondu. La
-bascule FR/EN ne fait que réécrire les étiquettes. Avant, les deux reconstruisaient toute la
-grille, qui disparaissait et réapparaissait d'un bloc.
+nouvelle place, celles qui partent s'estompent, et les nouvelles apparaissent en fondu. Avant,
+il reconstruisait toute la grille, qui disparaissait et réapparaissait d'un bloc.
 
 **Barre d'infos** (Aug 2026, ordinateur seulement) : survoler une vignette assombrit
 légèrement toutes les autres et affiche son type, son titre, ses crédits et sa position
@@ -315,27 +309,29 @@ fichiers orphelins. Ce n'était pas le cas avant septembre 2026 : en août ils r
 2026 — il n'avait plus rien à trouver, et une de ses deux utilisations avait effacé 1567
 images encore servies par le site (restaurées depuis l'historique).
 
-## Bilinguisme et textes éditables
+## Langue et textes éditables
 
-À la première visite, la langue suit celle du navigateur du visiteur : français si le
-français vient avant l'anglais dans ses langues préférées, anglais sinon (et anglais si
-aucune des deux n'y figure). Le bouton FR/EN change ensuite la langue, et ce choix est
-mémorisé en `localStorage`, partagé entre les pages, et l'emporte toujours sur le
-navigateur. Pas de détection par adresse IP (oct. 2026) : il faudrait un service tiers qui
-verrait l'IP des visiteurs, ce qui contredirait la page de confidentialité, et le pays ne
-dit pas quelle langue la personne lit. Tout le texte du site — navigation, titres, étiquettes de
-types de projet — vient de `data/strings.json` et est éditable dans l'admin
-sous « Réglages → Avancé », sans toucher au code.
+Le site est en anglais seulement depuis octobre 2026. Il était bilingue FR/EN avant : chaque
+texte existait en deux copies, avec un bouton FR/EN dans la navigation. Le bouton, les copies
+françaises et le choix de langue mémorisé dans le navigateur (`iob-lang`) ont été retirés ;
+`site.js` efface cette ancienne clé chez les visiteurs qui l'avaient encore, pour que la page
+de confidentialité (« rien n'est enregistré dans votre navigateur ») reste vraie. L'admin, lui,
+reste en français : seuls ses champs de contenu français ont disparu.
 
-Mécanique : chaque élément bilingue dans le HTML a une paire `<span data-fr data-key="...">`
-/ `<span data-en data-key="...">`. Au chargement, `applyStrings()` (dans `i18n.js`) va
-chercher la valeur correspondante dans `data/strings.json` et remplit les deux spans ; le
-CSS n'affiche que celui qui correspond à la langue active. Si `data/strings.json` est
-absent ou qu'une clé manque, les valeurs par défaut intégrées à `i18n.js` prennent le relais
-— le site ne se retrouve jamais avec du texte vide.
+La traduction automatique du navigateur n'est plus bloquée (elle l'était parce que les deux
+copies dans la page donnaient n'importe quoi une fois traduites) : un visiteur francophone
+peut traduire la page. Le logo, les titres de projet et les noms des crédits portent
+`translate="no"` pour ne jamais être traduits.
 
-Ajouter un nouveau texte bilingue quelque part sur le site demande trois choses : une entrée
-dans `DEFAULT_STRINGS` (`i18n.js`), la même entrée dans `data/strings.json`, et les deux
+Tout le texte du site — navigation, titres, libellés de types de projet — vient de
+`data/strings.json` et est éditable dans l'admin sous « Réglages → Avancé », sans toucher au
+code. Mécanique : chaque texte dans le HTML est un `<span data-key="...">`, que
+`applyStrings()` (dans `i18n.js`) remplit au chargement. Si `data/strings.json` est absent
+ou qu'une clé manque, les valeurs par défaut intégrées à `i18n.js` prennent le relais — le
+site ne se retrouve jamais avec du texte vide.
+
+Ajouter un nouveau texte quelque part sur le site demande trois choses : une entrée dans
+`DEFAULT_STRINGS` (`i18n.js`), la même entrée dans `data/strings.json`, et le
 `<span data-key="...">` dans le HTML. Pour qu'il soit aussi éditable dans l'admin, ajouter
 une ligne dans `STRING_GROUPS` (`admin/index.html`). Les deux fichiers doivent rester en
 miroir exact (mêmes clés des deux côtés) — un désalignement ne casse rien visuellement
@@ -438,7 +434,7 @@ faire quand ils apparaissent.
 
 | Quand | Ce qui se passe |
 |---|---|
-| `data/projects.json` ou une image change (donc : à chaque sauvegarde de projet dans l'admin) | `projects.json` est d'abord validé (ids uniques, fichiers réellement présents) ; si c'est bon, les coquilles de partage `project/<slug>.html`, les images `assets/og/<slug>.jpg` et `sitemap.xml` sont régénérées et commitées |
+| `data/projects.json`, `data/strings.json` ou une image change (donc : à chaque sauvegarde de projet ou de réglages dans l'admin) | `projects.json` est d'abord validé (ids uniques, fichiers réellement présents) ; si c'est bon, les coquilles de partage `project/<slug>.html`, les images `assets/og/<slug>.jpg` et `sitemap.xml` sont régénérées et commitées |
 | `style.css`, `site.js` **ou** `i18n.js` change | Le cache-buster `?v=N` — un seul numéro pour les trois fichiers — est incrémenté sur `index.html`, `project.html` **et** `admin/index.html`, puis commité |
 
 Deux détails qui ont déjà causé des ennuis et sont maintenant réglés :

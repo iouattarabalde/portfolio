@@ -425,15 +425,6 @@ a, button { -webkit-tap-highlight-color: transparent; }
   opacity: var(--grain-level);
 }
 
-/* Language toggling — English is default, French shown when body has .lang-fr.
-   Every bilingual bit of copy is written twice inline as <span data-fr> / <span data-en>;
-   these three rules just show/hide the right one based on the class on <body>.
-   The JS in each page's language-toggle button flips this class and remembers the choice
-   in localStorage so it persists across pages. */
-[data-fr] { display: none; }
-body.lang-fr [data-en] { display: none; }
-body.lang-fr [data-fr] { display: inline; }
-
 .eyebrow {
   font-family: var(--mono);
   font-size: 11px;
@@ -559,22 +550,6 @@ body.same-doc-transition .site-nav {
 }
 @media (hover: hover) {
   .nav-links a:hover::after { transform: scaleX(1); }
-}
-
-#lang-toggle {
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 8px; /* small radius, ShotDeck-inspired, Aug 2026 */
-  color: var(--fg-dim);
-  padding: 6px 10px;
-  cursor: pointer;
-  transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
-}
-@media (hover: hover) {
-  #lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
 }
 
 /* ---------- Hero ---------- */
@@ -907,8 +882,12 @@ body.same-doc-transition .site-nav {
 .work-filter {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px; /* was 8: with 44px hit areas, "Film" and "TV" (the two narrowest labels, so the two that grow most) came within 1.6px of overlapping — see the touch-target section at the end of this file */
+  /* Right-aligned by the auto margin on the first item below, not justify-content:
+     flex-end. On a ~320px phone the row is wider than the screen, and flex-end overflows
+     to the left, where a scroller can't reach: "All" sat 44px off screen. An auto margin
+     drops to 0 instead, so the row starts at the left edge and scrolls (Oct 2026). */
+  justify-content: flex-start;
+  gap: 10px; /* was 8: with 44px hit areas, the narrowest labels (then "Film" and "TV", now "All") come within a couple of px of overlapping — see the touch-target section at the end of this file */
   padding: 16px clamp(20px, 4vw, 48px);
   border-bottom: 1px solid var(--line);
   font-family: var(--mono);
@@ -920,6 +899,14 @@ body.same-doc-transition .site-nav {
   scrollbar-width: none;
 }
 .work-filter::-webkit-scrollbar { display: none; }
+.work-filter > :first-child { margin-left: auto; }
+/* Tighter on phones so the row fits a 360px screen: the four labels and three slashes are
+   ~284px of text, leaving 6px a side of each slash inside the 320px between the paddings.
+   Hit areas still clear each other: "All" needs ~10px to the next target, and the next
+   target is 6 + 8 (slash) + 6 = 20px away. A 320px phone scrolls the row instead. */
+@media (max-width: 480px) {
+  .work-filter { gap: 6px; }
+}
 .work-filter button {
   background: transparent;
   border: none;
@@ -1182,7 +1169,7 @@ body.same-doc-transition .site-nav {
      hold it visibly as a label over the name, 2px between the two names.
 
    That lands a three-line caption at ~55px and a two-line one at ~37px. The accent
-   acronym goes the other way, 9 to 10px: it's the hardest line on the card to read and
+   type label goes the other way, 9 to 10px: it's the hardest line on the card to read and
    the freed vertical space pays for it. The text-shadow is a fixed rgba rather than
    anything derived from --accent, and carries no transition, so it stays clear of the
    warning in :root about animating properties whose resting value site.js rewrites every
@@ -1262,8 +1249,8 @@ body.same-doc-transition .site-nav {
       work. At 300 the row still fits at 700px — 300 + 296 + 28 = 624 inside a 644px
       container — so the photo now stops holding the line only below the breakpoint,
       where the media query takes over deliberately.
-   3. The bio is rendered again (bioFr/bioEn — still authored and translated in the
-      admin, just dropped from the page in the Aug 2026 pass) and given a real measure.
+   3. The bio is rendered again (still authored in the admin, just dropped from the
+      page in the Aug 2026 pass) and given a real measure.
       It's most of what fills the copy column.
 
    This was briefly three columns (heading+bio | links+meta | photo). Two is the
@@ -1349,7 +1336,7 @@ body.same-doc-transition .site-nav {
 }
 
 /* Short bio, back on the page as of the Sept 2026 restructure above. Reads from
-   settings.json's bioFr/bioEn, which the admin has been saving all along. */
+   settings.json's bio (bioFr/bioEn until the site went English-only, Oct 2026). */
 .contact-bio {
   margin: 24px 0 0;
   color: var(--fg-dim);
@@ -1476,52 +1463,24 @@ body.same-doc-transition .site-nav {
    row does. Styled as plain text to match that row rather than reintroducing the
    bordered chips it dropped in the Aug 2026 redesign.
 
-   Below 480px the row switches from the full labels to the acronyms the work cards
-   already use (AD/PUB, MV/CLIP...). That's a fitting problem with no spacing solution:
-   the five English labels are ~231px of text, and 44px hit areas need ~21px between
-   them, so the row cannot go below ~315px however the gaps are tuned — wider than the
-   ~320px column a 360px phone gives it. It used to fit only because the targets were
-   18px tall and could be packed at 18px apart; once they grew, "TV" wrapped onto a line
-   of its own. The acronyms are ~99px of text, so the row fits on one line down to a
-   ~280px viewport with room to spare, and nothing above 480px changes at all.
+   Full type names at every width since Oct 2026 (All / Commercial / Music Video /
+   Narrative, ~261px of text). Until then the row switched to acronyms below 480px.
 
-   Both forms are in the DOM and CSS picks one, so there is no resize listener and no
-   re-render on rotate. The column-gap goes up inside the media query because the
-   acronyms are shorter and therefore grow *more* to reach 44px — two 2-character labels
-   side by side ("AD", "MV") each need 14.5px a side, so they need 29px between them,
-   where the full labels only ever needed 21. */
+   Below 480px the gap tightens from 24 to 18px, which keeps the row on one line down to
+   a ~355px viewport (360, 375, 390px phones). The floor is "All": 24px wide, it grows
+   ~10px a side to reach a 44px hit area, so it needs ~10px to its neighbour; the other
+   three are wider than 44px and don't grow sideways. Narrower than ~355px (a 320px
+   phone) the row wraps "Narrative" onto a second line, and the 28px row-gap keeps the
+   two lines' hit areas apart. A longer type name moves both numbers: recompute here. */
 .contact-footer-nav {
   display: flex;
   flex-wrap: wrap;
-  /* Both gaps are set by the 44px hit areas rather than by how the row looks: 24px
-     across, because "Film" and "TV" each grow ~6.5 and ~14.5px sideways to reach 44 and
-     18px left them overlapping by 3; 28px down, for the narrow screens where this row
-     wraps, because each line grows 13px up and 13px down. See the touch-target section
-     at the end of this file. */
+  /* 28px down because each wrapped line's hit area grows 13px up and 13px down. See the
+     touch-target section at the end of this file. */
   gap: 28px 24px;
 }
-/* One of the two label forms per button; see the note above. */
-.contact-footer-nav .cat-short { display: none; }
 @media (max-width: 480px) {
-  .contact-footer-nav .cat-full { display: none; }
-  .contact-footer-nav .cat-short { display: inline; }
-  /* The gap has to clear the widest pair of neighbouring hit areas without pushing the
-     row past the column, and the two languages don't have a value in common — the
-     acronyms differ in length, so both the floor and the ceiling move with the language:
-
-                text   min gap (no overlap)   max gap (fits a 280px viewport)
-       EN       100px  28.6  (AD|MV)          35
-       FR       131px  20.9  (FILM|TV)        27.3
-
-     30 sits in EN's window and above FR's ceiling, which is why French was the one
-     language still wrapping at 280px. 24 is around the middle of FR's window.
-     Both numbers depend on the acronyms themselves, which are editable in the admin
-     ("Textes du site" -> Types de projet): a new 2-character acronym next to another
-     2-character one raises that language's floor to ~28.6, and longer acronyms lower its
-     ceiling. If a row starts wrapping or two neighbours start stealing each other's
-     taps, this table is what to recompute. */
-  .contact-footer-nav { column-gap: 30px; }
-  body.lang-fr .contact-footer-nav { column-gap: 24px; }
+  .contact-footer-nav { column-gap: 18px; }
 }
 
 .contact-footer-nav button,
@@ -2101,7 +2060,6 @@ body.same-doc-transition .site-nav {
    feedback, not the kind of travel that setting is about.
 
    The :active state on iOS depends on the empty touchstart listener in site.js. */
-#lang-toggle,
 #sound-toggle,
 #fullscreen-toggle,
 .lightbox-nav,
@@ -2113,7 +2071,6 @@ body.same-doc-transition .site-nav {
     opacity var(--dur-ui) var(--ease-out),
     scale var(--dur-hover) var(--ease-out);
 }
-#lang-toggle:active,
 #sound-toggle:active,
 #fullscreen-toggle:active,
 .lightbox-nav:active,
@@ -2234,16 +2191,16 @@ body.same-doc-transition .site-nav {
 
    What this does NOT solve on its own is neighbouring targets colliding once they grow.
    Three gaps were widened for exactly that reason and are marked at their own rules:
-   .work-filter (8 -> 10px), .contact-footer-nav (8/18 -> 28/24px) and .contact-footer
-   on mobile (16 -> 28px). Narrow labels are what drive this — "TV" is 15px wide and has
-   to grow 14.5px on each side, while "Music Video" at 85px grows not at all — so adding
+   .work-filter (8 -> 10px), .contact-footer-nav (8/18 -> 28/24px, 18px across below
+   480px) and .contact-footer on mobile (16 -> 28px). Narrow labels are what drive this —
+   "All" is 24px wide and has to grow 10px on each side, while "Music Video" at 87px
+   grows not at all — so adding
    a short label to the filters or the footer categories is the thing most likely to
    reintroduce an overlap. .lightbox-nav is already 44x44 by its own --lb-arrow-size and
    the cards (.work-card, .gallery-item, .next-project) are far larger, so none of them
    appear here. */
 .wordmark,
 .nav-links a,
-#lang-toggle,
 .work-filter button,
 .contact-footer-nav button,
 .contact-top,
@@ -2258,7 +2215,6 @@ body.same-doc-transition .site-nav {
    it out of its corner. */
 .wordmark::before,
 .nav-links a::before,
-#lang-toggle::before,
 .work-filter button::before,
 .contact-footer-nav button::before,
 .contact-top::before,

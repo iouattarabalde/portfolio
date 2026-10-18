@@ -27,8 +27,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Panneau français uniquement : on coupe la traduction automatique du navigateur, qui
-     mangerait les libellés de l'admin et le contenu bilingue des champs d'édition. Même
-     trio de signaux que sur index.html / project.html. -->
+     mangerait les libellés de l'admin et le contenu anglais des champs d'édition. Trois
+     signaux (meta google, translate="no" et .notranslate sur <html>). Les pages publiques,
+     elles, laissent la traduction ouverte depuis oct. 2026 (site en anglais seulement). -->
 <meta name="google" content="notranslate">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin — Ismael OB</title>
@@ -418,11 +419,12 @@
     display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
     color: var(--fg-dim); margin-bottom: 8px;
   }
-  .field input, .field select {
+  .field input, .field select, .field textarea {
     width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
     color: var(--fg); font-family: var(--mono); font-size: 14px; padding: 11px;
   }
-  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+  .field textarea { resize: vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
   .field-hint { font-size: 11px; color: var(--fg-faint); margin-top: 6px; }
 
   /* ---------- Thumbnail focal-point picker ----------
@@ -695,7 +697,7 @@
   /* Types de projet + Textes généraux editors, inside Réglages → Avancé */
   .type-row {
     display: grid;
-    grid-template-columns: 60px 1fr 1fr;
+    grid-template-columns: 96px 1fr;
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
@@ -713,7 +715,7 @@
   }
   .string-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 2fr;
     gap: 8px;
     align-items: start;
     margin-bottom: 6px;
@@ -842,24 +844,21 @@
           <label class="btn file-trigger" for="s-photo">Choisir une photo</label>
         </div>
       </div>
-      <div class="string-row" style="margin-bottom:16px;">
-        <span class="string-label">Bio courte</span>
-        <textarea id="s-bio-fr" rows="3" placeholder="Français"></textarea>
-        <textarea id="s-bio-en" rows="3" placeholder="English"></textarea>
+      <div class="field">
+        <label for="s-bio">Bio courte</label>
+        <textarea id="s-bio" rows="3"></textarea>
       </div>
       <div class="field">
         <label for="s-email">Courriel</label>
         <input type="email" id="s-email">
       </div>
-      <div class="string-row" style="margin-bottom:16px;">
-        <span class="string-label">Localisation</span>
-        <input type="text" id="s-location-fr" placeholder="Montréal, QC">
-        <input type="text" id="s-location-en" placeholder="Montreal, QC">
+      <div class="field">
+        <label for="s-location">Localisation</label>
+        <input type="text" id="s-location" placeholder="Montreal, QC">
       </div>
-      <div class="string-row" style="margin-bottom:16px;">
-        <span class="string-label">Disponibilité</span>
-        <input type="text" id="s-availability-fr" placeholder="Disponible à distance">
-        <input type="text" id="s-availability-en" placeholder="Available remote">
+      <div class="field">
+        <label for="s-availability">Disponibilité</label>
+        <input type="text" id="s-availability" placeholder="Available remote">
       </div>
       <div class="field" style="margin-bottom:0;">
         <label for="s-instagram">Instagram (nom d'utilisateur, sans @)</label>
@@ -870,12 +869,12 @@
     <details class="settings-card settings-advanced">
       <summary><h2>Avancé</h2><span class="field-hint">Types de projet et libellés du site</span></summary>
       <h3>Types de projet</h3>
-      <p class="field-hint" style="margin-bottom:14px;">Acronyme + libellé, dans chaque langue. L'acronyme est ce qui s'affiche sur les vignettes.</p>
+      <p class="field-hint" style="margin-bottom:14px;">Le libellé (en anglais) est ce qui s'affiche sur les vignettes, le filtre et la page projet.</p>
       <div id="types-editor"></div>
       <button type="button" class="btn" id="add-type-btn" style="margin-top:4px;">+ Ajouter un type</button>
 
       <h3>Textes généraux</h3>
-      <p class="field-hint" style="margin-bottom:14px;">Tous les libellés du site (navigation, titres, textes de la page projet), en français et en anglais.</p>
+      <p class="field-hint" style="margin-bottom:14px;">Tous les libellés du site (navigation, titres, textes de la page projet), en anglais.</p>
       <div id="strings-editor"></div>
     </details>
 
@@ -1561,10 +1560,10 @@ function trackPublish(path, expected) {
 }
 
 /* ---------- Réglages (data/settings.json + data/strings.json) ----------
-   Contact details (settings.json) and every other bilingual string + project type acronym
-   on the site (strings.json). Both are read through ghGetFile (not the public
-   fetch()/loadI18n() path the live pages use) so edits are never based on a possibly-
-   cached copy, and merged over i18n.js's DEFAULT_STRINGS/DEFAULT_TYPES so every field
+   Contact details (settings.json) and every other string + project type label on the
+   site (strings.json), all plain English strings since the site went English-only in
+   Oct 2026. Both are read through ghGetFile (not the public fetch()/loadI18n() path the
+   live pages use) so edits are never based on a possibly-cached copy, and merged over i18n.js's DEFAULT_STRINGS/DEFAULT_TYPES so every field
    always has a value to show, even for a key that's never been saved.
 
    "Never based on a cached copy" was only half true until Sept 2026: going through the
@@ -1585,7 +1584,7 @@ let stringsSha = null;
 let settingsBaseline = null; // settingsFormState() right after loading; null until both files are in
 let savingSettings = false;
 
-const SETTINGS_FIELD_IDS = ['s-email', 's-location-fr', 's-location-en', 's-availability-fr', 's-availability-en', 's-instagram', 's-bio-fr', 's-bio-en'];
+const SETTINGS_FIELD_IDS = ['s-email', 's-location', 's-availability', 's-instagram', 's-bio'];
 
 // Loads settings.json into the Coordonnées fields. Falls back to empty fields (rather
 // than throwing) if the file doesn't exist yet.
@@ -1594,13 +1593,10 @@ async function loadSettingsIntoForm() {
   settingsSha = file ? file.sha : null;
   const s = file ? decodeJsonFile(file) : {};
   document.getElementById('s-email').value = s.email || '';
-  document.getElementById('s-location-fr').value = s.locationFr || '';
-  document.getElementById('s-location-en').value = s.locationEn || '';
-  document.getElementById('s-availability-fr').value = s.availabilityFr || '';
-  document.getElementById('s-availability-en').value = s.availabilityEn || '';
+  document.getElementById('s-location').value = s.location || '';
+  document.getElementById('s-availability').value = s.availability || '';
   document.getElementById('s-instagram').value = s.instagramHandle || '';
-  document.getElementById('s-bio-fr').value = s.bioFr || '';
-  document.getElementById('s-bio-en').value = s.bioEn || '';
+  document.getElementById('s-bio').value = s.bio || '';
   currentPhotoFilename = s.photoFilename || null;
   document.getElementById('s-photo-preview').src = currentPhotoFilename ? `../assets/${currentPhotoFilename}` : '';
 }
@@ -1623,7 +1619,7 @@ document.getElementById('s-photo').addEventListener('change', (e) => {
 // Manifest for the "Textes généraux" editor: which data/strings.json key each row
 // edits, grouped by the page it appears on, with a plain-language description.
 // Add a new entry here (and a matching key in i18n.js's DEFAULT_STRINGS) any time a
-// new bilingual string is added to one of the public pages, and it shows up here too.
+// new string is added to one of the public pages, and it shows up here too.
 const STRING_GROUPS = [
   { title: 'Navigation', keys: [
     { key: 'nav.eyebrow', label: 'Sous-titre à côté du logo' },
@@ -1653,11 +1649,12 @@ const STRING_GROUPS = [
   ] }
 ];
 
-function stringInputId(key, lang) {
-  return 'str-' + key.replace(/\./g, '-') + '-' + lang;
+function stringInputId(key) {
+  return 'str-' + key.replace(/\./g, '-');
 }
 
-// Builds one FR/EN input pair per manifest entry, grouped under a heading per page.
+// Builds one input per manifest entry (the English text — the site is English-only since
+// Oct 2026, it used to be an FR + EN pair), grouped under a heading per page.
 // Entries flagged multiline (long sentences that don't fit legibly on one line) render
 // as a 2-row <textarea> instead of a single-line <input> — same id either way, so
 // collectStringsFromForm() below doesn't need to know or care which one it is.
@@ -1665,17 +1662,15 @@ function renderStringsEditor(strings) {
   document.getElementById('strings-editor').innerHTML = STRING_GROUPS.map((group) => `
     <div class="string-group-title">${group.title}</div>
     ${group.keys.map(({ key, label, multiline }) => {
-      const entry = strings[key] || {};
-      const frId = stringInputId(key, 'fr');
-      const enId = stringInputId(key, 'en');
-      const field = (id, value, placeholder) => multiline
-        ? `<textarea id="${id}" rows="2" placeholder="${placeholder}">${esc(value)}</textarea>`
-        : `<input type="text" id="${id}" value="${esc(value)}" placeholder="${placeholder}">`;
+      const value = typeof strings[key] === 'string' ? strings[key] : '';
+      const id = stringInputId(key);
+      const field = multiline
+        ? `<textarea id="${id}" rows="2" aria-label="${esc(label)}">${esc(value)}</textarea>`
+        : `<input type="text" id="${id}" value="${esc(value)}" aria-label="${esc(label)}">`;
       return `
         <div class="string-row">
           <span class="string-label">${label}</span>
-          ${field(frId, entry.fr || '', 'Français')}
-          ${field(enId, entry.en || '', 'English')}
+          ${field}
         </div>
       `;
     }).join('')}
@@ -1686,10 +1681,7 @@ function collectStringsFromForm() {
   const result = {};
   STRING_GROUPS.forEach((group) => {
     group.keys.forEach(({ key }) => {
-      result[key] = {
-        fr: document.getElementById(stringInputId(key, 'fr')).value,
-        en: document.getElementById(stringInputId(key, 'en')).value
-      };
+      result[key] = document.getElementById(stringInputId(key)).value;
     });
   });
   return result;
@@ -1703,11 +1695,13 @@ function typeInputId(code, field) {
    and re-derived from it on every save — meant a 5th type (e.g. YT for YouTube) could
    never actually be added. Now backed by two variables that are the real source of
    truth once the page has loaded:
-     - typesDraft: { code: {frAcronym, enAcronym, frLabel, enLabel} } for every type,
-       kept in sync with whatever's currently typed in the form (see syncTypesDraftFromForm)
+     - typesDraft: { code: label } for every type (the English label shown on the site,
+       e.g. AD -> "Commercial"; one plain string since the site went English-only in
+       Oct 2026, it used to hold an acronym and a label in each language), kept in sync
+       with whatever's currently typed in the form (see syncTypesDraftFromForm)
      - currentTypeCodes: the ordered list of codes currently in play, grows/shrinks via
        the Add/Retirer buttons
-   DEFAULT_TYPES (i18n.js) still seeds the initial 4 on first load / as a fallback if
+   DEFAULT_TYPES (i18n.js) still seeds the initial 3 (AD/MV/NARRATIVE) on first load / as a fallback if
    data/strings.json has no types yet, but no longer caps what can exist afterward. */
 let typesDraft = {};
 let currentTypeCodes = [];
@@ -1716,35 +1710,23 @@ let currentTypeCodes = [];
 // in-progress edit isn't lost when adding/removing a type triggers a re-render.
 function syncTypesDraftFromForm() {
   currentTypeCodes.forEach((code) => {
-    const frAcronymEl = document.getElementById(typeInputId(code, 'frAcronym'));
-    if (!frAcronymEl) return; // guards the brand-new-code case, nothing rendered yet
-    typesDraft[code] = {
-      frAcronym: frAcronymEl.value,
-      enAcronym: document.getElementById(typeInputId(code, 'enAcronym')).value,
-      frLabel: document.getElementById(typeInputId(code, 'frLabel')).value,
-      enLabel: document.getElementById(typeInputId(code, 'enLabel')).value
-    };
+    const labelEl = document.getElementById(typeInputId(code, 'label'));
+    if (!labelEl) return; // guards the brand-new-code case, nothing rendered yet
+    typesDraft[code] = labelEl.value;
   });
 }
 
-// One block per type in currentTypeCodes: acronym + label, each in both languages,
-// plus a "Retirer" button (not shown as a 3rd type-row grid cell, its own row instead,
-// simpler than fighting the 3-column grid for a single full-width control). The code
-// itself (left column on the first row) isn't editable — it's the id used in
+// One block per type in currentTypeCodes: its label, plus a "Retirer" button (its own
+// row rather than a 3rd type-row grid cell, simpler than fighting the grid for a single
+// full-width control). The code itself (left column) isn't editable — it's the id used in
 // data/projects.json, changing it would silently orphan any project still using it.
 function renderTypesEditor(types) {
   document.getElementById('types-editor').innerHTML = currentTypeCodes.map((code) => {
-    const t = types[code] || { frAcronym: '', enAcronym: '', frLabel: '', enLabel: '' };
+    const label = typeof types[code] === 'string' ? types[code] : '';
     return `
       <div class="type-row">
         <span class="type-code">${code}</span>
-        <input type="text" id="${typeInputId(code, 'frAcronym')}" value="${esc(t.frAcronym)}" placeholder="Acronyme FR">
-        <input type="text" id="${typeInputId(code, 'enAcronym')}" value="${esc(t.enAcronym)}" placeholder="Acronym EN">
-      </div>
-      <div class="type-row">
-        <span></span>
-        <input type="text" id="${typeInputId(code, 'frLabel')}" value="${esc(t.frLabel)}" placeholder="Libellé FR">
-        <input type="text" id="${typeInputId(code, 'enLabel')}" value="${esc(t.enLabel)}" placeholder="Label EN">
+        <input type="text" id="${typeInputId(code, 'label')}" value="${esc(label)}" placeholder="Libellé" aria-label="Libellé du type ${code}">
       </div>
       <div style="display:flex; justify-content:flex-end; margin:-2px 0 20px;">
         <button type="button" class="btn btn-danger" data-remove-type="${code}" style="font-size:10px; padding:6px 10px;">Retirer « ${code} »</button>
@@ -1759,8 +1741,8 @@ function renderTypesEditor(types) {
   renderTypeSelectOptions(types);
 }
 
-// "+ Ajouter un type" — asks for a short code (e.g. "YT"), seeds it with placeholder
-// text in all 4 fields (defaults to the code itself, edited right below), and adds it
+// "+ Ajouter un type" — asks for a short code (e.g. "YT"), seeds its label with the
+// code itself (edited right below), and adds it
 // to both the types editor and the project editor's Type dropdown immediately.
 document.getElementById('add-type-btn').addEventListener('click', async () => {
   syncTypesDraftFromForm();
@@ -1770,7 +1752,7 @@ document.getElementById('add-type-btn').addEventListener('click', async () => {
   if (!code) { showToast('Code invalide : utilise seulement des lettres et des chiffres.', 'error'); return; }
   if (currentTypeCodes.includes(code)) { showToast(`Le type "${code}" existe déjà.`, 'error'); return; }
   currentTypeCodes.push(code);
-  typesDraft[code] = { frAcronym: code, enAcronym: code, frLabel: code, enLabel: code };
+  typesDraft[code] = code;
   renderTypesEditor(typesDraft);
   updateSettingsDirty();
 });
@@ -1798,8 +1780,8 @@ function renderTypeSelectOptions(types) {
   const select = document.getElementById('f-type');
   const current = select.value; // preserve selection if the editor happens to be open
   select.innerHTML = currentTypeCodes.map((code) => {
-    const t = types[code] || {};
-    return `<option value="${code}">${code} — ${esc(t.frLabel || code)}</option>`;
+    const label = typeof types[code] === 'string' && types[code] ? types[code] : code;
+    return `<option value="${code}">${code} — ${esc(label)}</option>`;
   }).join('');
   if (currentTypeCodes.includes(current)) select.value = current;
 }
@@ -1820,7 +1802,7 @@ async function loadStringsIntoForm() {
   currentTypeCodes = Object.keys(typesDraft);
   PROJECT_TYPES = Object.assign({}, typesDraft); // i18n.js's own copy only holds the defaults here, since the admin never calls loadI18n()
   renderTypesEditor(typesDraft);
-  updateProjectCountSummary(); // re-run now that currentTypeCodes/acronyms are actually loaded
+  updateProjectCountSummary(); // re-run now that currentTypeCodes/labels are actually loaded
 }
 
 
@@ -1879,13 +1861,10 @@ async function saveSettings() {
     statusEl.textContent = 'Enregistrement…';
     const settings = {
       email: document.getElementById('s-email').value.trim(),
-      locationFr: document.getElementById('s-location-fr').value.trim(),
-      locationEn: document.getElementById('s-location-en').value.trim(),
-      availabilityFr: document.getElementById('s-availability-fr').value.trim(),
-      availabilityEn: document.getElementById('s-availability-en').value.trim(),
+      location: document.getElementById('s-location').value.trim(),
+      availability: document.getElementById('s-availability').value.trim(),
       instagramHandle: document.getElementById('s-instagram').value.trim().replace(/^@/, ''),
-      bioFr: document.getElementById('s-bio-fr').value.trim(),
-      bioEn: document.getElementById('s-bio-en').value.trim(),
+      bio: document.getElementById('s-bio').value.trim(),
       photoFilename: photoFile ? 'profile-photo.jpg' : currentPhotoFilename
     };
     const settingsText = JSON.stringify(settings, null, 2);
@@ -1907,7 +1886,7 @@ async function saveSettings() {
       document.getElementById('s-photo').value = '';
     }
     [settingsSha, stringsSha] = await Promise.all([gitBlobSha(settingsText), gitBlobSha(stringsText)]);
-    PROJECT_TYPES = Object.assign({}, types); // the grid's acronyms follow the saved types
+    PROJECT_TYPES = Object.assign({}, types); // the grid's labels follow the saved types
     settingsBaseline = settingsFormState();
     updateSettingsDirty();
     renderDashboard();
@@ -2212,7 +2191,7 @@ async function tryConnect(t, { isBoot = false } = {}) {
       .then(() => {
         settingsBaseline = settingsFormState();
         updateSettingsDirty();
-        renderDashboard(); // acronyms from the saved project types
+        renderDashboard(); // labels from the saved project types
       })
       .catch((e) => {
         console.error('Impossible de charger les réglages:', e);
@@ -2276,7 +2255,7 @@ function updateProjectCountSummary() {
   const counts = {};
   projectsData.projects.forEach((p) => { counts[p.type] = (counts[p.type] || 0) + 1; });
   const codes = currentTypeCodes.length ? currentTypeCodes : Object.keys(counts);
-  const breakdown = codes.map((code) => `${projectTypeAcronym(code, true)} ${counts[code] || 0}`).join(' · ');
+  const breakdown = codes.map((code) => `${projectTypeLabel(code)} ${counts[code] || 0}`).join(' · ');
   el.textContent = `${total}/${PROJECT_MAX} projets` + (breakdown ? ' · ' + breakdown : '');
   el.classList.toggle('project-count-full', total >= PROJECT_MAX);
 
@@ -2309,7 +2288,7 @@ function renderDashboard() {
       <div class="card-info">
         <div class="card-text">
           <div class="row-title">${esc(p.title)}</div>
-          <div class="row-meta">${esc(projectTypeAcronym(p.type, true))} · ${p.gallery.length} stills</div>
+          <div class="row-meta">${esc(projectTypeLabel(p.type))} · ${p.gallery.length} stills</div>
         </div>
         <a class="card-view" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener" title="Voir sur le site" aria-label="Voir ${esc(p.title)} sur le site">${ICON_EXTERNAL}</a>
       </div>

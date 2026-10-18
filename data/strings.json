@@ -1,110 +1,29 @@
 {
   "strings": {
-    "nav.eyebrow": {
-      "fr": "Coloriste",
-      "en": "Colorist"
-    },
-    "nav.work": {
-      "fr": "Projets",
-      "en": "Projects"
-    },
-    "nav.contact": {
-      "fr": "Contact",
-      "en": "Contact"
-    },
-    "work.heading": {
-      "fr": "Projets",
-      "en": "Projects"
-    },
-    "work.filter_all": {
-      "fr": "Tous",
-      "en": "All"
-    },
-    "contact.heading": {
-      "fr": "Disponible pour vos prochains projets.",
-      "en": "Available for your next project."
-    },
-    "contact.email_label": {
-      "fr": "Courriel",
-      "en": "Email"
-    },
-    "contact.top": {
-      "fr": "Haut de page",
-      "en": "Back to top"
-    },
-    "contact.privacy": {
-      "fr": "Confidentialité",
-      "en": "Privacy"
-    },
-    "contact.terms": {
-      "fr": "Conditions d'utilisation",
-      "en": "Terms of use"
-    },
-    "project.back": {
-      "fr": "Retour aux projets",
-      "en": "Back to projects"
-    },
-    "project.type_label": {
-      "fr": "Type",
-      "en": "Type"
-    },
-    "project.client_label": {
-      "fr": "Client",
-      "en": "Client"
-    },
-    "project.director_label": {
-      "fr": "Réalisation",
-      "en": "Director"
-    },
-    "project.dp_label": {
-      "fr": "Image",
-      "en": "DP"
-    },
-    "project.artist_label": {
-      "fr": "Artiste",
-      "en": "Artist"
-    },
-    "project.next_label": {
-      "fr": "Prochain projet",
-      "en": "Next project"
-    },
-    "project.not_found_eyebrow": {
-      "fr": "Introuvable",
-      "en": "Not found"
-    },
-    "project.not_found_heading": {
-      "fr": "Ce projet n'existe pas.",
-      "en": "This project doesn't exist."
-    },
-    "lightbox.close": {
-      "fr": "Fermer",
-      "en": "Close"
-    }
+    "nav.eyebrow": "Colorist",
+    "nav.work": "Projects",
+    "nav.contact": "Contact",
+    "work.heading": "Projects",
+    "work.filter_all": "All",
+    "contact.heading": "Available for your next project.",
+    "contact.email_label": "Email",
+    "contact.top": "Back to top",
+    "contact.privacy": "Privacy",
+    "contact.terms": "Terms of use",
+    "project.back": "Back to projects",
+    "project.type_label": "Type",
+    "project.client_label": "Client",
+    "project.director_label": "Director",
+    "project.dp_label": "DP",
+    "project.artist_label": "Artist",
+    "project.next_label": "Next project",
+    "project.not_found_eyebrow": "Not found",
+    "project.not_found_heading": "This project doesn't exist.",
+    "lightbox.close": "Close"
   },
   "types": {
-    "AD": {
-      "frAcronym": "PUB",
-      "enAcronym": "AD",
-      "frLabel": "Publicité",
-      "enLabel": "Commercial"
-    },
-    "MV": {
-      "frAcronym": "CLIP",
-      "enAcronym": "MV",
-      "frLabel": "Vidéoclip",
-      "enLabel": "Music Video"
-    },
-    "FILM": {
-      "frAcronym": "FILM",
-      "enAcronym": "FILM",
-      "frLabel": "Film",
-      "enLabel": "Film"
-    },
-    "TV": {
-      "frAcronym": "TV",
-      "enAcronym": "TV",
-      "frLabel": "Série",
-      "enLabel": "TV"
-    }
+    "AD": "Commercial",
+    "MV": "Music Video",
+    "NARRATIVE": "Narrative"
   }
 }

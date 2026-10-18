@@ -6,17 +6,12 @@
   shared number; a GitHub Action bumps it across ALL pages that link them whenever any of
   them changes, so browsers can't keep serving a stale stylesheet or a stale script.
 -->
-<html lang="en" translate="no" class="notranslate">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Les deux langues cohabitent dans le DOM ([data-fr] / [data-en], masquées par CSS), alors
-     la traduction automatique de Chrome retraduit les deux copies et donne n'importe quoi.
-     Ces trois signaux (meta google, translate="no" et .notranslate sur <html>) désactivent
-     la barre "Traduire cette page" : le toggle FR/EN du site reste la seule bascule. -->
-<meta name="google" content="notranslate">
 <title>Ismael OB — Colorist</title>
-<meta name="description" content="Ismael OB, colorist based in Montreal. Color grading for commercials, music videos, film and television.">
+<meta name="description" content="Ismael OB, colorist based in Montreal. Color grading for commercials, music videos and narrative work.">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
@@ -28,12 +23,11 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ismaelob.com/">
 <meta property="og:title" content="Ismael OB — Colorist">
-<meta property="og:description" content="Color grading for commercials, music videos, film and television. Based in Montreal, available remote.">
+<meta property="og:description" content="Color grading for commercials, music videos and narrative work. Based in Montreal, available remote.">
 <meta property="og:image" content="https://ismaelob.com/assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="en_CA">
-<meta property="og:locale:alternate" content="fr_CA">
 <meta name="twitter:card" content="summary_large_image">
 <!-- The two faces used above the fold, fetched alongside the stylesheet rather than once it has
      been parsed. Self-hosted since Sept 2026; see "Typefaces" in style.css. -->
@@ -49,7 +43,7 @@
 <link rel="preload" href="data/settings.json?v=143" as="fetch" crossorigin>
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, which
      is why this loads here in <head> rather than at the end of <body>), plus esc(),
-     prefersReducedMotion(), observeReveals() and initLangToggle()
+     prefersReducedMotion() and observeReveals()
      used by the script at the bottom of this file. (withViewTransition() lives there too
      but is only used by project.html's lightbox now.) See site.js for the story on each. -->
 <script src="site.js?v=143"></script>
@@ -74,13 +68,12 @@
 
 <nav class="site-nav">
   <div class="brand">
-    <a href="index.html" class="wordmark">ISMAEL<span>OB</span></a>
-    <span class="nav-eyebrow"><span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span></span>
+    <a href="index.html" class="wordmark" translate="no">ISMAEL<span>OB</span></a>
+    <span class="nav-eyebrow"><span data-key="nav.eyebrow"></span></span>
   </div>
   <div class="nav-links">
-    <a href="#work"><span data-fr data-key="nav.work"></span><span data-en data-key="nav.work"></span></a>
-    <a href="#contact"><span data-fr data-key="nav.contact"></span><span data-en data-key="nav.contact"></span></a>
-    <button id="lang-toggle" type="button" aria-label="Toggle language">FR</button>
+    <a href="#work"><span data-key="nav.work"></span></a>
+    <a href="#contact"><span data-key="nav.contact"></span></a>
   </div>
 </nav>
 
@@ -116,8 +109,7 @@
      be the exact frame playback starts on or the handoff visibly jumps. -->
 <header class="hero">
   <h1 class="sr-only">
-    <span data-fr>Ismael OB — Coloriste basé à Montréal</span>
-    <span data-en>Ismael OB — Colorist based in Montreal</span>
+    Ismael OB — Colorist based in Montreal
   </h1>
   <div class="reel-frame">
     <div class="reel-embed">
@@ -147,7 +139,7 @@
 
 <!-- Work grid: empty on load, filled by renderWorkGrid() from data/projects.json -->
 <section id="work">
-  <h2 class="sr-only"><span data-fr data-key="work.heading"></span><span data-en data-key="work.heading"></span></h2>
+  <h2 class="sr-only"><span data-key="work.heading"></span></h2>
   <div class="work-filter" id="category-filter" data-reveal></div>
 
   <div class="work-grid" id="work-grid"></div>
@@ -169,17 +161,16 @@
     <div class="contact-text">
       <div class="contact-intro" data-reveal>
         <h2 class="contact-title">
-          <span data-fr data-key="contact.heading"></span>
-          <span data-en data-key="contact.heading"></span>
+          <span data-key="contact.heading"></span>
         </h2>
         <p class="contact-bio">
-          <span data-fr id="contact-bio-fr"></span><span data-en id="contact-bio-en"></span>
+          <span id="contact-bio"></span>
         </p>
       </div>
       <div class="contact-details" data-reveal>
         <div class="contact-links">
           <div class="contact-link-group">
-            <span class="contact-link-label"><span data-fr data-key="contact.email_label"></span><span data-en data-key="contact.email_label"></span></span>
+            <span class="contact-link-label"><span data-key="contact.email_label"></span></span>
             <a id="contact-email" class="contact-link" href="#" target="_blank" rel="noopener">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" stroke="currentColor" stroke-width="1.6"/><path d="M3 7.5L12 13.5L21 7.5" stroke="currentColor" stroke-width="1.6"/></svg>
               <span id="contact-email-text"></span>
@@ -194,8 +185,8 @@
           </div>
         </div>
         <p class="contact-meta">
-          <span data-fr id="contact-location-fr"></span><span data-en id="contact-location-en"></span>
-          — <span data-fr id="contact-availability-fr"></span><span data-en id="contact-availability-en"></span>
+          <span id="contact-location"></span>
+          — <span id="contact-availability"></span>
         </p>
       </div>
     </div>
@@ -210,17 +201,17 @@
     <div class="contact-footer-start">
       <p class="contact-copyright">
         © <span id="contact-year"></span> Ismael OB —
-        <span data-fr data-key="nav.eyebrow"></span><span data-en data-key="nav.eyebrow"></span>
+        <span data-key="nav.eyebrow"></span>
       </p>
       <nav class="contact-legal">
-        <a href="privacy/"><span data-fr data-key="contact.privacy"></span><span data-en data-key="contact.privacy"></span></a>
-        <a href="terms/"><span data-fr data-key="contact.terms"></span><span data-en data-key="contact.terms"></span></a>
+        <a href="privacy/"><span data-key="contact.privacy"></span></a>
+        <a href="terms/"><span data-key="contact.terms"></span></a>
       </nav>
     </div>
     <!-- Filled by renderFooterNav() from PROJECT_TYPES, same source as the filter row. -->
     <nav class="contact-footer-nav" id="contact-footer-nav"></nav>
     <button type="button" class="contact-top" id="contact-top">
-      <span data-fr data-key="contact.top"></span><span data-en data-key="contact.top"></span>
+      <span data-key="contact.top"></span>
     </button>
   </div>
 </section>
@@ -229,25 +220,12 @@
 <script>
   // ---------------------------------------------------------------
   // index.html script overview:
-  //   1. Language toggle (FR/EN), persisted in localStorage
-  //   2. Hero reel sizing (fills viewport below nav) + mute/unmute button
-  //   3. Work grid, rendered from data/projects.json once data/strings.json (i18n.js)
-  //      has also loaded, since card captions need the type acronyms it provides.
-  //      Re-rendered on language change so those acronyms switch too.
+  //   1. Hero reel sizing (fills viewport below nav) + mute/unmute button
+  //   2. Work grid, rendered from data/projects.json once data/strings.json (i18n.js)
+  //      has also loaded, since card captions need the type labels it provides.
   // ---------------------------------------------------------------
 
   const body = document.body;
-  // Toggle itself lives in site.js; the callback refreshes the three things on this
-  // page built in JS, which would otherwise keep their old-language labels: the filter
-  // bar, the card type tags (AD/PUB, MV/CLIP...), and the footer's category links.
-  // The cards are relabelled in place rather than re-rendered (Sept 2026): rebuilding
-  // the grid threw every card away, so switching language blanked all 32 and replayed
-  // their entrance, for what is a change to one short tag per card.
-  initLangToggle(() => {
-    renderCategoryFilter();
-    renderFooterNav();
-    updateCardLabels();
-  });
 
   // Sizes the reel so it exactly fills the space below the sticky nav, fully visible
   // without scrolling on load. Math: available vertical space = viewport height minus
@@ -550,7 +528,7 @@
   }
 
   // Work grid: fetched once from data/projects.json and cached, then rendered into
-  // #work-grid. activeFilter holds a project type code (e.g. 'TV') to show only that
+  // #work-grid. activeFilter holds a project type code (e.g. 'MV') to show only that
   // category, or null to show everything — set by clicking a button in the category
   // filter bar. Each card carries its own caption (type tag, brand or artist, title): shown
   // permanently on touch, and on the hovered or keyboard-focused card on desktop.
@@ -560,28 +538,25 @@
   // Builds every card, once. Cards opt into the shared scroll reveal, so they lift into
   // place the first time they're reached — see observeReveals() in site.js.
   //
-  // Once, and never again for the life of the page (Sept 2026). The filter and the
-  // language toggle both used to call this, and both paid for it the same way: innerHTML
-  // throws every card away, the replacements start at opacity 0, and the whole grid
-  // blanked and lifted back in — including the cards that were on screen before and after
-  // and hadn't changed at all. The filter now hides the cards that don't match
-  // (applyFilter), the toggle relabels them in place (updateCardLabels), and each card
-  // stays the same element from first render to last.
+  // Once, and never again for the life of the page (Sept 2026). The filter used to call
+  // this, and paid for it: innerHTML throws every card away, the replacements start at
+  // opacity 0, and the whole grid blanked and lifted back in — including the cards that
+  // were on screen before and after and hadn't changed at all. The filter now hides the
+  // cards that don't match (applyFilter), and each card stays the same element from
+  // first render to last.
   function renderWorkGrid() {
     const grid = document.getElementById('work-grid');
     if (!grid || !cachedProjects) return;
-    const isFr = body.classList.contains('lang-fr');
     grid.innerHTML = cachedProjects.map((p) => {
-      const acronym = projectTypeAcronym(p.type, isFr);
       return `
       <a class="work-card" href="project.html?project=${encodeURIComponent(p.id)}"
          data-reveal
          data-type-code="${esc(p.type)}">
         <img class="thumb" src="assets/${esc(p.thumbnail)}" alt="${esc(p.title)}" loading="lazy" style="object-position:${esc(p.thumbnailFocus || '50% 50%')};">
         <div class="work-card-meta">
-          <p class="type">${esc(acronym)}</p>
-          ${p.artist || p.client ? `<p class="artist">${esc(p.artist || p.client)}</p>` : ''}
-          <p class="title">${esc(p.title)}</p>
+          <p class="type">${esc(projectTypeLabel(p.type))}</p>
+          ${p.artist || p.client ? `<p class="artist" translate="no">${esc(p.artist || p.client)}</p>` : ''}
+          <p class="title" translate="no">${esc(p.title)}</p>
         </div>
       </a>
     `;
@@ -597,16 +572,6 @@
     const cards = document.querySelectorAll('#work-grid .work-card:not(.work-card-ghost)');
     cards.forEach((card) => {
       card.hidden = !!activeFilter && card.dataset.typeCode !== activeFilter;
-    });
-  }
-
-  // Rewrites each card's type tag for the current language, on the existing elements.
-  function updateCardLabels() {
-    const isFr = body.classList.contains('lang-fr');
-    document.querySelectorAll('#work-grid .work-card:not(.work-card-ghost)').forEach((card) => {
-      const acronym = projectTypeAcronym(card.dataset.typeCode, isFr);
-      const tag = card.querySelector('.type');
-      if (tag) tag.textContent = acronym;
     });
   }
 
@@ -782,36 +747,23 @@
     }
   });
 
-  // The one list of filter choices — "All"/"Tous" plus every entry in PROJECT_TYPES, in
-  // the current language. Shared by the filter bar below and by the footer's category
-  // links (Sept 2026), so the two rows can never offer a different set of options.
-  //
-  // Each item carries both the full label and the acronym the work cards already use
-  // (AD/PUB, MV/CLIP...). The filter bar only ever renders `label`; the footer renders
-  // both and lets CSS pick, so that row can shrink to fit a narrow phone without any
-  // resize listener or re-render — see .contact-footer-nav in style.css. "All"/"Tous"
-  // has no acronym and is short enough not to need one, so it is its own short form.
-  function buildFilterItems(isFr) {
-    const allLabel = STRINGS['work.filter_all'] ? (isFr ? STRINGS['work.filter_all'].fr : STRINGS['work.filter_all'].en) : 'All';
-    return [{ code: null, label: allLabel, short: allLabel }].concat(
-      Object.keys(PROJECT_TYPES).map((code) => ({
-        code,
-        label: projectTypeLabel(code, isFr),
-        short: projectTypeAcronym(code, isFr)
-      }))
+  // The one list of filter choices — "All" plus every entry in PROJECT_TYPES. Shared by
+  // the filter bar below and by the footer's category links (Sept 2026), so the two rows
+  // can never offer a different set of options.
+  function buildFilterItems() {
+    return [{ code: null, label: STRINGS['work.filter_all'] || 'All' }].concat(
+      Object.keys(PROJECT_TYPES).map((code) => ({ code, label: projectTypeLabel(code) }))
     );
   }
 
   // Category filter bar: rendered from buildFilterItems() as a slash-separated list of
-  // plain text buttons (no chip/pill styling) — rebuilt on language toggle since the
-  // labels are bilingual. Clicking one sets activeFilter, moves the .active mark in place
+  // plain text buttons (no chip/pill styling). Clicking one sets activeFilter, moves the .active mark in place
   // and animates the grid into its filtered state; it doesn't refetch or rebuild anything.
   // The bar and the cards FLIP inside the same change, so both read one layout.
   function renderCategoryFilter() {
     const container = document.getElementById('category-filter');
     if (!container) return;
-    const isFr = body.classList.contains('lang-fr');
-    const items = buildFilterItems(isFr);
+    const items = buildFilterItems();
     container.innerHTML = items.map((item, i) => `
       <button type="button" data-filter="${esc(item.code || '')}" class="${activeFilter === item.code ? 'active' : ''}" aria-pressed="${activeFilter === item.code}">${esc(item.label)}</button>
       ${i < items.length - 1 ? '<span class="filter-sep" aria-hidden="true">/</span>' : ''}
@@ -842,15 +794,9 @@
   function renderFooterNav() {
     const container = document.getElementById('contact-footer-nav');
     if (!container) return;
-    const isFr = body.classList.contains('lang-fr');
-    container.setAttribute('aria-label', isFr ? 'Projets par catégorie' : 'Projects by category');
-    // Both forms are rendered; style.css shows exactly one. Kept on separate spans
-    // rather than swapped in JS so nothing has to listen for resize or re-render when
-    // the phone rotates.
-    container.innerHTML = buildFilterItems(isFr).map((item) => `
-      <button type="button" data-filter="${esc(item.code || '')}">
-        <span class="cat-full">${esc(item.label)}</span><span class="cat-short">${esc(item.short)}</span>
-      </button>
+    container.setAttribute('aria-label', 'Projects by category');
+    container.innerHTML = buildFilterItems().map((item) => `
+      <button type="button" data-filter="${esc(item.code || '')}">${esc(item.label)}</button>
     `).join('');
     container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -874,9 +820,9 @@
     window.scrollTo({ top: 0, behavior: scrollBehavior() });
   });
 
-  // i18n (all static bilingual copy + project type acronyms) and the project list are
+  // i18n (all static copy + project type labels) and the project list are
   // independent fetches, loaded in parallel — applyStrings() needs the former, and
-  // renderWorkGrid() needs both (project data plus the type acronyms i18n provides).
+  // renderWorkGrid() needs both (project data plus the type labels i18n provides).
   Promise.all([
     loadI18n(),
     fetch('data/projects.json?v=143').then((r) => r.json())
@@ -893,24 +839,21 @@
 
   // Contact section: photo, bio, email, location, availability, Instagram — editable in
   // the admin ("Coordonnées" panel) without touching this file, since they're pulled
-  // from data/settings.json rather than hardcoded here. bioFr/bioEn went unrendered
+  // from data/settings.json rather than hardcoded here. The bio went unrendered
   // between the Aug 2026 redesign and the Sept 2026 restructure (the admin kept saving
-  // them throughout), and are back on the page now as .contact-bio.
+  // it throughout), and is back on the page now as .contact-bio.
   fetch('data/settings.json?v=143')
     .then((r) => r.json())
     .then((s) => {
       if (s.photoFilename) {
         document.getElementById('contact-photo').src = 'assets/' + s.photoFilename;
       }
-      document.getElementById('contact-bio-fr').textContent = s.bioFr || '';
-      document.getElementById('contact-bio-en').textContent = s.bioEn || '';
+      document.getElementById('contact-bio').textContent = s.bio || '';
       const emailEl = document.getElementById('contact-email');
       document.getElementById('contact-email-text').textContent = s.email;
       emailEl.href = 'mailto:' + s.email;
-      document.getElementById('contact-location-fr').textContent = s.locationFr;
-      document.getElementById('contact-location-en').textContent = s.locationEn;
-      document.getElementById('contact-availability-fr').textContent = s.availabilityFr;
-      document.getElementById('contact-availability-en').textContent = s.availabilityEn;
+      document.getElementById('contact-location').textContent = s.location || '';
+      document.getElementById('contact-availability').textContent = s.availability || '';
       const igEl = document.getElementById('contact-instagram');
       document.getElementById('contact-instagram-text').textContent = '@' + s.instagramHandle;
       igEl.href = 'https://instagram.com/' + s.instagramHandle;
