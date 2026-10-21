@@ -188,7 +188,6 @@
     gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
   }
   .projects-toolbar .field-hint { margin: 0; }
-  .project-count-full { color: #b5533f; }
 
   /* One grid, in homepage order. The whole card opens the editor; the card can be dragged
      (mouse) or long-pressed then dragged (touch) to reorder — see wireSortable(). */
@@ -820,8 +819,7 @@
   <div class="tab-panel" id="tab-projets" role="tabpanel">
     <div class="projects-toolbar">
       <div>
-        <!-- Live count against the 32-project cap (8 of each type is the target — see
-             updateProjectCountSummary()). -->
+        <!-- Live project count with a per-type breakdown — see updateProjectCountSummary(). -->
         <p class="field-hint" id="project-count-summary"></p>
         <p class="field-hint">Glisse une carte pour changer l'ordre sur la page d'accueil (au doigt : appui long). Clavier : Alt + flèches.</p>
       </div>
@@ -1167,14 +1165,11 @@ const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
 const TOKEN_KEY = 'iob_admin_token'; // localStorage key the GitHub token is saved under
 
 // Curation limits, Aug 2026 — every project's gallery should sit in this range (enforced
-// at save time); the site itself always shows a max of 32 projects total (enforced on
-// "+ Nouveau projet"), the target being 8 of each project type. That per-type "8 each"
-// balance is *not* a hard rule here on purpose — types are editable (see
-// currentTypeCodes), so a rigid per-type cap would fight a future 5th type. Instead
-// updateProjectCountSummary() shows a live per-type breakdown to keep the balance by eye.
+// at save time). There is no cap on the number of projects (the 32-project cap was
+// lifted Oct 2026); updateProjectCountSummary() shows a live per-type breakdown to keep
+// the balance between types by eye.
 const GALLERY_MIN = 9;
 const GALLERY_MAX = 30;
-const PROJECT_MAX = 32;
 
 let token = localStorage.getItem(TOKEN_KEY) || '';
 let projectsData = null;   // { projects: [...] } — data/projects.json as last read or committed, with local changes still waiting to be committed laid on top (see reconcileLocal)
@@ -2239,15 +2234,14 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 
 /* ---------- Projets ----------
    One grid, in homepage order (Sept 2026). The list view, the search box, the sort menu
-   and the ↑/↓ buttons on every card are gone: 32 projects fit on one screen, and each of
+   and the ↑/↓ buttons on every card are gone: dragging a card does it all, and each of
    those was another way of doing what dragging a card already does. A click anywhere on a
    card opens it; the small arrow opens it on the live site. */
 
 const ICON_EXTERNAL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-// Live "X/32 projets · AD n · MV n · ..." line, and disables "+ Nouveau projet" at the
-// cap — see PROJECT_MAX for why the per-type split is informational only. Falls back to
-// the type codes that appear in the data if currentTypeCodes hasn't loaded yet.
+// Live "X projets · AD n · MV n · ..." line. Falls back to the type codes that appear in
+// the data if currentTypeCodes hasn't loaded yet.
 function updateProjectCountSummary() {
   const el = document.getElementById('project-count-summary');
   if (!el || !projectsData) return;
@@ -2256,14 +2250,7 @@ function updateProjectCountSummary() {
   projectsData.projects.forEach((p) => { counts[p.type] = (counts[p.type] || 0) + 1; });
   const codes = currentTypeCodes.length ? currentTypeCodes : Object.keys(counts);
   const breakdown = codes.map((code) => `${projectTypeLabel(code)} ${counts[code] || 0}`).join(' · ');
-  el.textContent = `${total}/${PROJECT_MAX} projets` + (breakdown ? ' · ' + breakdown : '');
-  el.classList.toggle('project-count-full', total >= PROJECT_MAX);
-
-  const newBtn = document.getElementById('new-project-btn');
-  if (newBtn) {
-    newBtn.disabled = total >= PROJECT_MAX;
-    newBtn.title = total >= PROJECT_MAX ? `Maximum ${PROJECT_MAX} projets atteint.` : '';
-  }
+  el.textContent = `${total} projet${total > 1 ? 's' : ''}` + (breakdown ? ' · ' + breakdown : '');
 }
 
 function renderSkeleton() {
@@ -2311,10 +2298,6 @@ projectList.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('new-project-btn').addEventListener('click', () => {
-  if (projectsData.projects.length >= PROJECT_MAX) {
-    showToast(`Maximum ${PROJECT_MAX} projets atteint. Supprime-en un avant d'en ajouter un nouveau.`, 'error');
-    return;
-  }
   openEditor(null);
 });
 
