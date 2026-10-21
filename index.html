@@ -33,21 +33,21 @@
      been parsed. Self-hosted since Sept 2026; see "Typefaces" in style.css. -->
 <link rel="preload" href="fonts/big-shoulders-display-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/fragment-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=149">
+<link rel="stylesheet" href="style.css?v=150">
 <!-- The JSON this page renders from, fetched while the HTML is still parsing rather than
      once the scripts at the bottom of <body> get round to it (Sept 2026). crossorigin is
      what makes the preload's request match fetch()'s default same-origin credentials
      mode; without it the browser would download each file twice. -->
-<link rel="preload" href="data/projects.json?v=149" as="fetch" crossorigin>
-<link rel="preload" href="data/strings.json?v=149" as="fetch" crossorigin>
-<link rel="preload" href="data/settings.json?v=149" as="fetch" crossorigin>
+<link rel="preload" href="data/projects.json?v=150" as="fetch" crossorigin>
+<link rel="preload" href="data/strings.json?v=150" as="fetch" crossorigin>
+<link rel="preload" href="data/settings.json?v=150" as="fetch" crossorigin>
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, which
      is why this loads here in <head> rather than at the end of <body>), plus esc(),
      prefersReducedMotion() and observeReveals()
      used by the script at the bottom of this file. (withViewTransition() lives there too
      but is only used by project.html's lightbox now.) See site.js for the story on each. -->
-<script src="site.js?v=149"></script>
-<script src="i18n.js?v=149"></script>
+<script src="site.js?v=150"></script>
+<script src="i18n.js?v=150"></script>
 <!-- Prerenders a project page from its card (Sept 2026). In Chrome and Edge, hovering a
      card for a moment (or starting to tap it) loads that page
      invisibly, so the click shows it at once instead of waiting on its data and stills.
@@ -825,7 +825,7 @@
   // renderWorkGrid() needs both (project data plus the type labels i18n provides).
   Promise.all([
     loadI18n(),
-    fetch('data/projects.json?v=149').then((r) => r.json())
+    fetch('data/projects.json?v=150').then((r) => r.json())
   ])
     .then(([, data]) => {
       applyStrings();
@@ -842,7 +842,7 @@
   // from data/settings.json rather than hardcoded here. The bio went unrendered
   // between the Aug 2026 redesign and the Sept 2026 restructure (the admin kept saving
   // it throughout), and is back on the page now as .contact-bio.
-  fetch('data/settings.json?v=149')
+  fetch('data/settings.json?v=150')
     .then((r) => r.json())
     .then((s) => {
       if (s.photoFilename) {
