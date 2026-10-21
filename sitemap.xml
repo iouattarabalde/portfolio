@@ -171,6 +171,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://ismaelob.com/project.html?project=rekindle-the-magic</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://ismaelob.com/privacy/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
