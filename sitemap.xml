@@ -31,7 +31,17 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://ismaelob.com/project.html?project=rekindle-the-magic</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://ismaelob.com/project.html?project=heinz-x-thredup</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ismaelob.com/project.html?project=conversation-dans-le-noir</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -47,6 +57,11 @@
   </url>
   <url>
     <loc>https://ismaelob.com/project.html?project=gatees-pourries</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ismaelob.com/project.html?project=firsts</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -77,6 +92,11 @@
   </url>
   <url>
     <loc>https://ismaelob.com/project.html?project=groupe-de-soutien</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ismaelob.com/project.html?project=song-of-us</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -171,11 +191,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ismaelob.com/project.html?project=rekindle-the-magic</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://ismaelob.com/project.html?project=sort-le-sirop</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -186,22 +201,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ismaelob.com/project.html?project=firsts</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://ismaelob.com/project.html?project=chemistry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://ismaelob.com/project.html?project=conversation-dans-le-noir</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://ismaelob.com/project.html?project=song-of-us</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
