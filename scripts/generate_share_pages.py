@@ -62,7 +62,7 @@ SHARE_TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title_esc} — Ismael OB</title>
-<meta http-equiv="refresh" content="0; url=https://ismaelob.com/project.html?project={slug}">
+<meta http-equiv="refresh" content="0; url=https://ismaelob.com/project.html?project={slug}">{robots}
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ismaelob.com/project/{slug}.html">
@@ -125,6 +125,7 @@ def main():
     for project in data["projects"]:
         slug = project["id"]
 
+
         # OG image: crop the project's own cover thumbnail using its saved
         # focal point (same one used for the homepage grid), so the share
         # card frames the same subject the site already shows.
@@ -139,6 +140,9 @@ def main():
             slug=slug,
             title_esc=html.escape(project["title"]),
             desc_esc=html.escape(build_description(project, type_labels)),
+            # Hidden from the admin: the link still previews (it may be sent to a
+            # client), but search engines are asked to leave it out.
+            robots='\n<meta name="robots" content="noindex">' if project.get("hidden") else "",
         )
         with open(os.path.join(SHARE_OUT_DIR, f"{slug}.html"), "w") as f:
             f.write(html_out)

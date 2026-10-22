@@ -829,7 +829,8 @@
   ])
     .then(([, data]) => {
       applyStrings();
-      cachedProjects = data.projects;
+      // A project hidden from the admin (hidden: true) stays in the file but not on the site.
+      cachedProjects = data.projects.filter((p) => !p.hidden);
       renderCategoryFilter();
       renderFooterNav();
       renderWorkGrid();

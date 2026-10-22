@@ -242,6 +242,12 @@
     transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft);
   }
   @media (hover: hover) { .card-view:hover { border-color: var(--accent); color: var(--accent); } }
+  .card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .card-hide { background: none; padding: 0; cursor: pointer; }
+  /* A hidden project stays in the grid, dimmed, so it keeps its place in the order. */
+  .project-card.is-hidden .card-thumb { opacity: 0.3; }
+  .project-card.is-hidden .row-title { color: var(--fg-dim); }
+  .project-card .hidden-badge { color: var(--accent); }
 
   /* Skeleton cards while the project list loads on a returning visit, in place of the
      full-screen spinner that used to cover everything. */
@@ -2238,19 +2244,25 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
    those was another way of doing what dragging a card already does. A click anywhere on a
    card opens it; the small arrow opens it on the live site. */
 
+const ICON_EYE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>';
+const ICON_EYE_OFF = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.6 3.5M6.6 6.6C3.7 8.5 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_EXTERNAL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-// Live "X projets · AD n · MV n · ..." line. Falls back to the type codes that appear in
-// the data if currentTypeCodes hasn't loaded yet.
+// Live "X projets · AD n · MV n · ... · k masqués" line; the per-type counts are of what
+// the site shows. Falls back to the type codes that appear in the data if
+// currentTypeCodes hasn't loaded yet.
 function updateProjectCountSummary() {
   const el = document.getElementById('project-count-summary');
   if (!el || !projectsData) return;
-  const total = projectsData.projects.length;
+  const visible = projectsData.projects.filter((p) => !p.hidden);
+  const total = visible.length;
+  const hiddenCount = projectsData.projects.length - total;
   const counts = {};
-  projectsData.projects.forEach((p) => { counts[p.type] = (counts[p.type] || 0) + 1; });
+  visible.forEach((p) => { counts[p.type] = (counts[p.type] || 0) + 1; });
   const codes = currentTypeCodes.length ? currentTypeCodes : Object.keys(counts);
   const breakdown = codes.map((code) => `${projectTypeLabel(code)} ${counts[code] || 0}`).join(' · ');
-  el.textContent = `${total} projet${total > 1 ? 's' : ''}` + (breakdown ? ' · ' + breakdown : '');
+  el.textContent = `${total} projet${total > 1 ? 's' : ''}` + (breakdown ? ' · ' + breakdown : '')
+    + (hiddenCount ? ` · ${hiddenCount} masqué${hiddenCount > 1 ? 's' : ''}` : '');
 }
 
 function renderSkeleton() {
@@ -2270,14 +2282,17 @@ function renderDashboard() {
     return;
   }
   list.innerHTML = projectsData.projects.map((p) => `
-    <div class="project-card" tabindex="0" role="button" data-id="${esc(p.id)}" aria-label="Modifier ${esc(p.title)}">
+    <div class="project-card${p.hidden ? ' is-hidden' : ''}" tabindex="0" role="button" data-id="${esc(p.id)}" aria-label="Modifier ${esc(p.title)}${p.hidden ? ' (masqué)' : ''}">
       <div class="card-thumb" style="background-image:url('../assets/${esc(p.thumbnail)}')"></div>
       <div class="card-info">
         <div class="card-text">
           <div class="row-title">${esc(p.title)}</div>
-          <div class="row-meta">${esc(projectTypeLabel(p.type))} · ${p.gallery.length} stills</div>
+          <div class="row-meta">${esc(projectTypeLabel(p.type))} · ${p.gallery.length} stills${p.hidden ? ' · <span class="hidden-badge">Masqué</span>' : ''}</div>
         </div>
-        <a class="card-view" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener" title="Voir sur le site" aria-label="Voir ${esc(p.title)} sur le site">${ICON_EXTERNAL}</a>
+        <div class="card-actions">
+          <button class="card-view card-hide" type="button" title="${p.hidden ? 'Afficher sur le site' : 'Masquer du site'}" aria-label="${p.hidden ? 'Afficher' : 'Masquer'} ${esc(p.title)} sur le site" aria-pressed="${p.hidden ? 'true' : 'false'}">${p.hidden ? ICON_EYE_OFF : ICON_EYE}</button>
+          <a class="card-view" href="../project.html?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener" title="Voir sur le site" aria-label="Voir ${esc(p.title)} sur le site">${ICON_EXTERNAL}</a>
+        </div>
       </div>
     </div>
   `).join('');
@@ -2285,6 +2300,11 @@ function renderDashboard() {
 
 const projectList = document.getElementById('project-list');
 projectList.addEventListener('click', (e) => {
+  const hideBtn = e.target.closest('.card-hide');
+  if (hideBtn) {
+    toggleHidden(hideBtn.closest('.project-card').dataset.id);
+    return;
+  }
   if (e.target.closest('.card-view')) return;
   const card = e.target.closest('.project-card');
   if (card) openEditor(card.dataset.id);
@@ -2361,6 +2381,50 @@ async function commitOrderSession() {
 async function flushOrderSession() {
   if (orderSession) await commitOrderSession();
   else if (orderCommitInFlight) await orderCommitInFlight;
+}
+
+/* ---------- Masquer / afficher, Oct 2026 ----------
+   A hidden project keeps everything — its entry in data/projects.json (with
+   "hidden": true), its cover, its stills, its place in the order — but the site leaves it
+   out of the homepage grid and filter, "next project" and the sitemap. Its own page still
+   opens from a direct link (to send to a client), marked noindex. The eye on its card brings it back. One commit per click, no pause: it's a
+   rare action, and Annuler in the toast is just the opposite click. */
+function setHiddenFlag(project, hide) {
+  if (hide) project.hidden = true;
+  else delete project.hidden;
+}
+
+async function toggleHidden(id) {
+  const project = projectsData.projects.find((p) => p.id === id);
+  if (!project) return;
+  const hide = !project.hidden;
+  setHiddenFlag(project, hide);
+  renderDashboard();
+  savesInFlight++;
+  try {
+    await flushOrderSession();
+    await commitProjects(
+      (data) => {
+        const p = data.projects.find((q) => q.id === id);
+        if (p) setHiddenFlag(p, hide);
+        return data;
+      },
+      `Admin : ${hide ? 'masquer' : 'afficher'} ${project.title}`
+    );
+    renderDashboard();
+    showToast(hide ? `« ${project.title} » est masqué du site.` : `« ${project.title} » est de nouveau sur le site.`, 'success', {
+      duration: 6000,
+      action: { label: 'Annuler', onClick: () => toggleHidden(id) }
+    });
+  } catch (e) {
+    const current = projectsData.projects.find((p) => p.id === id);
+    if (current) setHiddenFlag(current, !hide);
+    renderDashboard();
+    setPill('error', 'Échec de l\'enregistrement');
+    showToast(`« ${project.title} » : changement non enregistré : ${e.message}`, 'error');
+  } finally {
+    savesInFlight--;
+  }
 }
 
 /* ---------- Deleting, with Annuler ----------
@@ -3344,7 +3408,9 @@ async function saveProject() {
           data.projects.push(entry);
         } else {
           if (i === -1) throw new Error('Ce projet a été supprimé depuis un autre appareil.');
-          data.projects[i] = entry;
+          // The form doesn't carry "hidden" (the card's eye does), so keep whatever the
+          // repo says rather than unhiding a project on every save.
+          data.projects[i] = data.projects[i].hidden ? { ...entry, hidden: true } : entry;
         }
         return data;
       }, message, changes, (done, total) => {

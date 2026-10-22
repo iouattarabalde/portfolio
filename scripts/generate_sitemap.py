@@ -46,6 +46,8 @@ def main():
     entries = [url_entry(f"{BASE_URL}/", "weekly", "1.0")]
 
     for project in data["projects"]:
+        if project.get("hidden"):  # hidden from the admin: reachable by link, not indexed
+            continue
         loc = f"{BASE_URL}/project.html?project={project['id']}"
         entries.append(url_entry(loc, "monthly", "0.8"))
 

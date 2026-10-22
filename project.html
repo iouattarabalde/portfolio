@@ -840,12 +840,22 @@
     .then(([, data]) => {
       applyStrings();
 
+      // A project hidden from the admin (hidden: true) is off the homepage and out of
+      // "next project", but its own page still opens from a direct link — e.g. one sent
+      // to a client — and asks search engines not to index it.
+      const projects = data.projects.filter((p) => !p.hidden);
       const project = data.projects.find((p) => p.id === projectId);
       if (!project) {
         document.getElementById('project-not-found').style.display = '';
         return;
       }
       currentProject = project;
+      if (project.hidden) {
+        const robots = document.createElement('meta');
+        robots.name = 'robots';
+        robots.content = 'noindex';
+        document.head.appendChild(robots);
+      }
 
       document.getElementById('page-title').textContent = project.title + ' — Ismael OB';
       document.getElementById('project-title').textContent = project.title;
@@ -864,9 +874,11 @@
       // Jump-to-next-project card — "next" is the following entry in projects.json's
       // own order, wrapping back to the first project after the last one. Hidden
       // entirely if there's only one project total (a link back to itself isn't useful).
-      if (data.projects.length > 1) {
-        const currentIndex = data.projects.findIndex((p) => p.id === projectId);
-        const nextProject = data.projects[(currentIndex + 1) % data.projects.length];
+      // On a hidden project's page, "next" is the first visible one after it.
+      const others = projects.filter((p) => p.id !== projectId);
+      if (others.length) {
+        const after = data.projects.slice(data.projects.indexOf(project) + 1);
+        const nextProject = after.find((p) => !p.hidden && p.id !== projectId) || others[0];
         const nextLink = document.getElementById('next-project');
         const nextThumb = document.getElementById('next-project-thumb');
         nextLink.href = `project.html?project=${encodeURIComponent(nextProject.id)}`;
