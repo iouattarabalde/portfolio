@@ -121,11 +121,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ismaelob.com/project.html?project=saturnides</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://ismaelob.com/project.html?project=theft</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -166,17 +161,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ismaelob.com/project.html?project=ville-de-montmagny-portrait-de-citoyen</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://ismaelob.com/project.html?project=bad-habit</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://ismaelob.com/project.html?project=les-battues</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
