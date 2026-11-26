@@ -1631,9 +1631,10 @@ body.same-doc-transition .site-nav {
   .gallery-item:hover img { transform: scale(1.03); }
 }
 
-/* Palette strip along the bottom of each still, Nov 2026: the swatches rise from the
-   edge on hover in a short left-to-right wave, using the lightbox's own rise timing, and
-   drop back together when the pointer leaves. Pointer devices only; on touch the
+/* Palette strip along the bottom of each still, Nov 2026: the whole strip rises from the
+   edge on hover in one movement, and drops back when the pointer leaves. (It first rose
+   swatch by swatch in a left-to-right wave, like the lightbox's; that read as busy for a
+   hover, so it went.) Pointer devices only; on touch the
    lightbox's strip is where the palette lives. */
 .gallery-palette {
   position: absolute;
@@ -1645,25 +1646,23 @@ body.same-doc-transition .site-nav {
   display: flex;
   pointer-events: none;
 }
-.gallery-palette > span {
-  flex: 1;
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transition: transform calc(var(--dur-palette-rise) * 0.6) var(--ease-out-soft);
+.gallery-palette {
+  transform: translateY(100%);
+  transition: transform calc(var(--dur-palette-rise) * 0.7) var(--ease-out-soft);
 }
+.gallery-palette > span { flex: 1; }
 @media (hover: none) {
   .gallery-palette { display: none; }
 }
 @media (hover: hover) {
-  .gallery-item:hover .gallery-palette > span,
-  .gallery-item:focus-visible .gallery-palette > span {
-    transform: scaleY(1);
+  .gallery-item:hover .gallery-palette,
+  .gallery-item:focus-visible .gallery-palette {
+    transform: translateY(0);
     transition: transform var(--dur-palette-rise) var(--ease-out);
-    transition-delay: calc(var(--i) * var(--palette-nav-stagger) * 2);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gallery-palette > span { transition: none !important; }
+  .gallery-palette { transition: none !important; }
 }
 
 @media (max-width: 700px) {
@@ -2018,12 +2017,14 @@ body.same-doc-transition .site-nav {
      computed from it, and a button's height would otherwise depend on the UA's default
      line-height for form controls, which differs between browsers. Same rendered size. */
   height: var(--lb-close-h);
-  padding: 0 14px;
+  padding: 0 18px 0 16px; /* Nov 2026: was 14px with a text ✕ a space away from the word, which read cramped */
+  gap: 9px;
   opacity: calc(1 - 3 * var(--lb-dismiss, 0)); /* gone a third of the way into a swipe-down, see .lightbox */
   display: inline-flex;
   align-items: center;
   cursor: pointer;
 }
+.lightbox-close-icon { width: 10px; height: 10px; flex-shrink: 0; }
 @media (hover: hover) {
   .lightbox-close:hover { color: var(--accent); border-color: var(--accent); }
 }

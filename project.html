@@ -135,7 +135,7 @@
      positioned absolute against .lightbox itself (unaffected by this nesting, since
      .lightbox-content has no position of its own and therefore isn't a containing block). -->
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
-  <button class="lightbox-close" id="lightbox-close" type="button">✕ <span data-key="lightbox.close"></span></button>
+  <button class="lightbox-close" id="lightbox-close" type="button"><svg class="lightbox-close-icon" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span data-key="lightbox.close"></span></button>
   <div class="lightbox-content">
     <img id="lightbox-img" src="" alt="">
     <div class="lightbox-palette" id="lightbox-palette" aria-hidden="true"></div>
@@ -985,7 +985,7 @@
         const colors = (palette || []).filter((c) => /^#[0-9a-f]{3,8}$/i.test(c));
         if (!colors.length) return '';
         return '<span class="gallery-palette" aria-hidden="true">' +
-          colors.map((c, j) => `<span style="background:${c};--i:${j}"></span>`).join('') +
+          colors.map((c) => `<span style="background:${c}"></span>`).join('') +
           '</span>';
       }
       // Read before the injection, not inside the map: one measurement for the whole
