@@ -32,7 +32,7 @@
 <!-- The two faces used above the fold, fetched alongside the stylesheet rather than once it has
      been parsed. Self-hosted since Sept 2026; see "Typefaces" in style.css. -->
 <link rel="preload" href="fonts/big-shoulders-display-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/fragment-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css?v=154">
 <!-- The JSON this page renders from, fetched while the HTML is still parsing rather than
      once the scripts at the bottom of <body> get round to it (Sept 2026). crossorigin is
@@ -41,6 +41,7 @@
 <link rel="preload" href="data/projects.json?v=154" as="fetch" crossorigin>
 <link rel="preload" href="data/strings.json?v=154" as="fetch" crossorigin>
 <link rel="preload" href="data/settings.json?v=154" as="fetch" crossorigin>
+<link rel="preload" href="data/reel.json?v=154" as="fetch" crossorigin>
 <!-- Shared behaviours for every page: the cycling accent colour (self-starting, which
      is why this loads here in <head> rather than at the end of <body>), plus esc(),
      prefersReducedMotion() and observeReveals()
@@ -133,6 +134,13 @@
           <path d="M18.5 6C20.2 7.7 21 9.8 21 12C21 14.2 20.2 16.3 18.5 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
       </button>
+      <!-- Names the project on screen, the way ShotDeck credits its homepage still
+           (Nov 2026). Filled by setupReelCaption() from data/reel.json; stays hidden
+           during shots that file doesn't attribute. -->
+      <a id="reel-caption" class="reel-caption" href="#" aria-hidden="true" tabindex="-1">
+        <span class="reel-caption-title"></span>
+        <span class="reel-caption-type"></span>
+      </a>
     </div>
   </div>
 </header>
@@ -835,8 +843,60 @@
       renderFooterNav();
       renderWorkGrid();
       scrollToHashTarget(); // grid just changed #work's height, which can shift #contact below it
+      setupReelCaption();
     })
     .catch((err) => console.error('Impossible de charger les données:', err));
+
+  // Reel caption, Nov 2026. data/reel.json lists every shot of the reel by its start
+  // time and the project it comes from (or null). While the reel plays, the caption in
+  // the reel's bottom-left corner names the current shot's project and links to it.
+  // Shots with no project, or whose project is hidden, show no caption. Checked once per
+  // video frame where requestVideoFrameCallback exists, so the caption changes on the
+  // cut itself; timeupdate (about 4 times a second) is the fallback.
+  function setupReelCaption() {
+    const video = document.getElementById('reel-video');
+    const caption = document.getElementById('reel-caption');
+    if (!video || !caption) return;
+    fetch('data/reel.json?v=154').then((r) => r.json()).then((data) => {
+      const byId = new Map(cachedProjects.map((p) => [p.id, p]));
+      const shots = (data.shots || [])
+        .map((s) => ({ start: s.start, project: s.project && byId.get(s.project) }))
+        .sort((a, b) => a.start - b.start);
+      if (!shots.some((s) => s.project)) return;
+      const titleEl = caption.querySelector('.reel-caption-title');
+      const typeEl = caption.querySelector('.reel-caption-type');
+      let shown = undefined; // the project object currently in the caption; null = hidden
+      function projectAt(t) {
+        let current = null;
+        for (const s of shots) { if (s.start <= t + 0.02) current = s.project; else break; }
+        return current || null;
+      }
+      function update(t) {
+        const p = projectAt(t);
+        if (p === shown) return;
+        shown = p;
+        if (!p) {
+          caption.classList.remove('is-visible');
+          caption.setAttribute('aria-hidden', 'true');
+          caption.tabIndex = -1;
+          return;
+        }
+        titleEl.textContent = p.title;
+        typeEl.textContent = projectTypeLabel(p.type);
+        caption.href = 'project.html?project=' + encodeURIComponent(p.id);
+        caption.removeAttribute('aria-hidden');
+        caption.tabIndex = 0;
+        caption.classList.add('is-visible');
+      }
+      if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+        const onFrame = (now, meta) => { update(meta.mediaTime); video.requestVideoFrameCallback(onFrame); };
+        video.requestVideoFrameCallback(onFrame);
+      } else {
+        video.addEventListener('timeupdate', () => update(video.currentTime));
+      }
+      update(video.currentTime);
+    }).catch(() => {}); // no caption is the safe failure: the reel itself is unaffected
+  }
 
   // Contact section: photo, bio, email, location, availability, Instagram — editable in
   // the admin ("Coordonnées" panel) without touching this file, since they're pulled
