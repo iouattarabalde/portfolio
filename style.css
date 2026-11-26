@@ -799,9 +799,8 @@ body.same-doc-transition .site-nav {
   transition: none;
 }
 
-/* Buttons floated over the reel: sound top-left (paired with the top-left bracket),
-   fullscreen bottom-right (paired with the bottom-right bracket) */
-#fullscreen-toggle,
+/* The sound button floated over the reel, top-left (paired with the top-left bracket).
+   Its fullscreen partner, bottom-right, was removed in Nov 2026 (see index.html). */
 #sound-toggle {
   position: absolute;
   z-index: 2;
@@ -817,9 +816,7 @@ body.same-doc-transition .site-nav {
   transition: border-color var(--dur-hover) var(--ease-out-soft), color var(--dur-hover) var(--ease-out-soft), background var(--dur-hover) var(--ease-out-soft);
 }
 #sound-toggle { top: 14px; left: 14px; }
-#fullscreen-toggle { bottom: 14px; right: 14px; }
 @media (hover: hover) {
-  #fullscreen-toggle:hover,
   #sound-toggle:hover {
     border-color: var(--accent);
     color: var(--accent);
@@ -827,17 +824,18 @@ body.same-doc-transition .site-nav {
   }
 }
 
-/* Reel caption, Nov 2026: the current shot's project, bottom-left of the reel, in the
-   spirit of ShotDeck's "Sweet Country (2018)" credit on its homepage still. Title in
-   white, type dimmed beside it. Fades between projects and out during unattributed shots;
-   see setupReelCaption() in index.html. Sits clear of the fullscreen button (bottom-right). */
+/* Reel caption, Nov 2026: the current shot's project, bottom-right of the reel, where
+   ShotDeck puts its "Sweet Country (2018)" credit on its homepage still. Title in white,
+   type dimmed beside it. Fades between projects and out during unattributed shots; see
+   setupReelCaption() in index.html. */
 .reel-caption {
   position: absolute;
   z-index: 2;
-  left: 18px;
+  right: 18px;
   bottom: 16px;
-  max-width: calc(100% - 100px);
+  max-width: calc(100% - 36px);
   display: flex;
+  justify-content: flex-end;
   align-items: baseline;
   gap: 8px;
   font-size: var(--text-sm);
@@ -856,7 +854,7 @@ body.same-doc-transition .site-nav {
   .reel-caption:hover .reel-caption-title { text-decoration: underline; text-underline-offset: 3px; }
 }
 @media (max-width: 480px) {
-  .reel-caption { left: 12px; bottom: 12px; font-size: var(--text-xs); }
+  .reel-caption { right: 12px; bottom: 12px; max-width: calc(100% - 24px); font-size: var(--text-xs); }
 }
 
 /* ---------- Work grid ---------- */
@@ -2116,7 +2114,7 @@ body.same-doc-transition .site-nav {
    that first instant.
 
    Two kinds of response, matched to the control:
-   - Framed buttons (FR/EN, the reel's sound and fullscreen, the lightbox's arrows and
+   - Framed buttons (FR/EN, the reel's sound button, the lightbox's arrows and
      close) sink to 94%. `scale` is the standalone property, not transform, so it
      composes with the translateY(-50%) that centres the desktop lightbox arrows instead of
      replacing it.
@@ -2136,7 +2134,6 @@ body.same-doc-transition .site-nav {
 
    The :active state on iOS depends on the empty touchstart listener in site.js. */
 #sound-toggle,
-#fullscreen-toggle,
 .lightbox-nav,
 .lightbox-close {
   transition:
@@ -2147,7 +2144,6 @@ body.same-doc-transition .site-nav {
     scale var(--dur-hover) var(--ease-out);
 }
 #sound-toggle:active,
-#fullscreen-toggle:active,
 .lightbox-nav:active,
 .lightbox-close:active {
   scale: 0.94;
@@ -2198,8 +2194,8 @@ body.same-doc-transition .site-nav {
    its scroll listener entirely for these users, and observeReveals() in site.js never
    creates an observer at all — so none of this is merely visually inert, the work isn't
    being done). Deliberately does NOT touch the hero reel's autoplay/loop — that's a
-   separate, deliberate choice (muted by default, full user control via the sound/
-   fullscreen buttons), not treated as the kind of incidental motion this addresses.
+   separate, deliberate choice (muted by default, full user control via the sound
+   button), not treated as the kind of incidental motion this addresses.
    Aug 2026. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

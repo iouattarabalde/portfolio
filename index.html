@@ -118,11 +118,6 @@
         <source src="video/reel.av1.mp4" type='video/mp4; codecs="av01.0.08M.10"'>
         <source src="video/reel.mp4" type="video/mp4">
       </video>
-      <button id="fullscreen-toggle" type="button" aria-label="Fullscreen">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 9V4H9M15 4H20V9M20 15V20H15M9 20H4V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
       <button id="sound-toggle" type="button" aria-label="Toggle sound">
         <svg id="icon-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M3 9V15H7L12 20V4L7 9H3Z" fill="currentColor"/>
@@ -430,19 +425,15 @@
   // a video decode nobody could see. Paused, it also stops pulling bytes it doesn't need.
   //
   // Only while muted. With the sound on, the visitor is watching — or listening while they
-  // browse — and pausing would cut them off. Never in fullscreen either, where the page's
-  // own layout says nothing about whether the video is visible.
+  // browse — and pausing would cut them off.
   let reelOnScreen = true;
-  function reelIsFullscreen() {
-    return document.fullscreenElement === reelVideo || (reelVideo && reelVideo.webkitDisplayingFullscreen);
-  }
   const heroSection = document.querySelector('.hero');
   if (reelVideo && heroSection && 'IntersectionObserver' in window) {
     new IntersectionObserver((entries) => {
       reelOnScreen = entries[entries.length - 1].isIntersecting;
       if (reelOnScreen) {
         if (reelVideo.paused) reelVideo.play().catch(() => {});
-      } else if (reelVideo.muted && !reelIsFullscreen()) {
+      } else if (reelVideo.muted) {
         reelVideo.pause();
       }
     }).observe(heroSection);
@@ -482,58 +473,18 @@
       syncSoundIcon();
     });
   }
-  // Keeps the custom mute icon truthful — needed because the fullscreen native controls
-  // (especially the iPhone player) let the viewer change mute/volume behind our back.
+  // Shows the icon that matches the video's current mute state.
   function syncSoundIcon() {
     iconMuted.style.display = reelVideo.muted ? 'block' : 'none';
     iconUnmuted.style.display = reelVideo.muted ? 'none' : 'block';
   }
 
-  // Fullscreen button next to the mute button. Standard requestFullscreen everywhere
-  // except iPhone Safari, which only exposes webkitEnterFullscreen (opens the native
-  // player, with its own controls and sound). The video keeps looping either way.
-  const fsBtn = document.getElementById('fullscreen-toggle');
-  if (reelVideo && fsBtn) {
-    fsBtn.addEventListener('click', () => {
-      if (reelVideo.requestFullscreen) reelVideo.requestFullscreen();
-      else if (reelVideo.webkitEnterFullscreen) reelVideo.webkitEnterFullscreen();
-    });
-    // Back from fullscreen: the hero loop must always be playing, even if the viewer
-    // paused it in there. Two exit events for the two fullscreen mechanisms:
-    // fullscreenchange (standard) and webkitendfullscreen (iPhone native player).
-    function onFullscreenExit() {
-      syncSoundIcon();
-      // Some browsers pause the video internally, once or more, during the fullscreen-exit
-      // transition (this varies by browser and isn't limited to iOS Safari). Keep resuming
-      // for a short window using both a 'pause' listener and a poll — relying on the event
-      // alone isn't reliable across engines. tryPlay() swallows the benign "play() request
-      // was interrupted by pause()" rejection some browsers throw when play/pause race.
-      function tryPlay() {
-        const p = reelVideo.play();
-        if (p && p.catch) p.catch(() => {});
-      }
-      const guardUntil = Date.now() + 1500;
-      function cleanup() {
-        reelVideo.removeEventListener('pause', resumeGuard);
-        clearInterval(pollId);
-      }
-      function resumeGuard() {
-        if (Date.now() < guardUntil) tryPlay();
-        else cleanup();
-      }
-      const pollId = setInterval(() => {
-        if (Date.now() >= guardUntil) { cleanup(); return; }
-        if (reelVideo.paused) tryPlay();
-      }, 150);
-      reelVideo.addEventListener('pause', resumeGuard);
-      tryPlay();
-      setTimeout(cleanup, 1500);
-    }
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) onFullscreenExit();
-    });
-    reelVideo.addEventListener('webkitendfullscreen', onFullscreenExit);
-  }
+  // The reel had a fullscreen button until Nov 2026. It was removed: in Chrome on a Mac,
+  // fullscreen intermittently showed a fully black screen once the page had been scrolled
+  // down and back, and nothing tried here fixed it (fullscreening a container instead of
+  // the <video>, the H.264 file instead of AV1, no off-screen pause, no parallax, nothing
+  // drawn behind the reel). A hero loop doesn't need fullscreen; the caption sits in its
+  // bottom-right corner now.
 
   // Work grid: fetched once from data/projects.json and cached, then rendered into
   // #work-grid. activeFilter holds a project type code (e.g. 'MV') to show only that
