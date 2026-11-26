@@ -38,10 +38,11 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-16.png">
 <link rel="alternate icon" href="../favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="../assets/favicon-180.png">
-<!-- Same two preloads as the public pages: the wordmark and titles use Big Shoulders,
-     everything else Fragment Mono, both declared in ../style.css. -->
+<!-- Same two preloads as the public pages: the wordmark uses Big Shoulders, everything
+     else Figtree, both declared in ../style.css. Since the Nov 2026 type pass the admin
+     follows the site's rules too: one sans, sentence case, nothing under 12px. -->
 <link rel="preload" href="../fonts/big-shoulders-display-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="../fonts/fragment-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../style.css?v=154">
 <!-- Shared behaviours (../site.js): the cycling accent colour, self-starting with its
      own randomised phase offset, plus esc() and prefersReducedMotion(). The accent was
@@ -77,10 +78,9 @@
   .admin-header h1 { font-size: clamp(22px, 4vw, 30px); }
 
   .btn {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
     background: transparent;
     border: 1px solid var(--line);
     color: var(--fg-dim);
@@ -131,7 +131,7 @@
   .admin-header .ob-mark { width: 31px; height: 28px; }
   #gate input {
     width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
-    color: var(--fg); font-family: var(--mono); font-size: 13px; padding: 12px; margin-bottom: 14px;
+    color: var(--fg); font-family: var(--sans); font-size: 13px; padding: 12px; margin-bottom: 14px;
   }
   #gate-error { color: #d97757; font-size: 12px; margin-top: 12px; min-height: 16px; }
   .gate-help { text-align: left; margin-top: 28px; border-top: 1px solid var(--line); padding-top: 18px; }
@@ -147,10 +147,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-family: var(--sans);
+    font-size: 12px;
     color: var(--fg-dim);
     border: 1px solid var(--line);
     border-radius: 999px;
@@ -173,8 +171,8 @@
   .tab-bar { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
   .tab-btn {
     background: none; border: none; border-bottom: 2px solid transparent;
-    color: var(--fg-dim); font-family: var(--mono); font-size: 13px;
-    letter-spacing: 0.06em; text-transform: uppercase; padding: 10px 14px; cursor: pointer;
+    color: var(--fg-dim); font-family: var(--sans); font-size: 15px; font-weight: 600;
+    padding: 10px 14px; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
   @media (hover: hover) { .tab-btn:hover { color: var(--fg); } }
@@ -231,8 +229,8 @@
     gap: 8px;
   }
   .project-card .card-text { min-width: 0; }
-  .project-card .row-title { font-family: var(--display); font-size: 18px; font-weight: 800; line-height: 1.1; letter-spacing: 0.02em; text-transform: uppercase; overflow-wrap: anywhere; } /* same treatment as the names on the site's own work cards */
-  .project-card .row-meta { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); text-transform: uppercase; margin-top: 2px; }
+  .project-card .row-title { font-family: var(--sans); font-size: 16px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; overflow-wrap: anywhere; } /* same treatment as the names on the site's own work cards */
+  .project-card .row-meta { font-family: var(--sans); font-size: 12px; color: var(--fg-dim); margin-top: 2px; }
   .card-view {
     flex-shrink: 0;
     width: 30px; height: 30px;
@@ -290,8 +288,8 @@
   }
   .settings-card h2 { font-size: 16px; margin-bottom: 16px; }
   .settings-card h3 {
-    font-size: 12px; color: var(--fg-dim); text-transform: uppercase;
-    letter-spacing: 0.08em; margin: 24px 0 12px;
+    font-size: 13px; font-weight: 600; color: var(--fg-dim);
+    margin: 24px 0 12px;
   }
   .settings-advanced > summary {
     cursor: pointer;
@@ -331,8 +329,126 @@
     margin-top: 4px;
     background: linear-gradient(to top, var(--bg) 70%, transparent);
   }
-  .settings-savebar .dirty-note { font-size: 11px; color: var(--fg-faint); }
+  .settings-savebar .dirty-note { font-size: 12px; color: var(--fg-dim); }
   .settings-savebar.is-dirty .dirty-note { color: #d9a757; }
+
+  /* ---------- Reel ---------- */
+  .reel-editor kbd {
+    font-family: inherit; font-size: 12px; padding: 1px 5px;
+    border: 1px solid var(--line); background: var(--bg);
+  }
+  .reel-player video {
+    display: block; width: 100%; max-height: 42vh; aspect-ratio: 16 / 9;
+    background: #000; margin-top: 14px;
+  }
+  .reel-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+  .reel-controls .btn { padding: 8px 12px; }
+  .reel-controls .btn:disabled { opacity: 0.35; cursor: default; }
+  .reel-controls-gap { flex: 1; }
+  .reel-time { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 9ch; color: var(--fg); }
+  .reel-zoom { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-dim); }
+  .reel-zoom input { width: 120px; }
+
+  /* The timeline: a ruler, one block per shot (its frame as background, a bar in its
+     project's colour), a handle per cut, and the playhead. Positions are set in px by
+     layoutReelTimeline() from the zoom level; the inner strip scrolls sideways when zoomed. */
+  .reel-timeline {
+    position: relative; overflow-x: auto; overflow-y: hidden;
+    border: 1px solid var(--line); background: var(--bg);
+    user-select: none; -webkit-user-select: none;
+  }
+  .reel-timeline-inner { position: relative; height: 104px; touch-action: none; }
+  .reel-ruler {
+    position: absolute; left: 0; right: 0; top: 0; height: 22px;
+    border-bottom: 1px solid var(--line); cursor: pointer;
+  }
+  .reel-tick {
+    position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line);
+    padding-left: 4px; font-size: 12px; line-height: 22px; color: var(--fg-dim);
+    font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap;
+  }
+  .reel-track { position: absolute; left: 0; right: 0; top: 22px; bottom: 0; cursor: pointer; }
+  .reel-seg {
+    position: absolute; top: 0; bottom: 0; overflow: hidden;
+    background: var(--bg-raised) center / cover no-repeat;
+    box-shadow: inset -1px 0 0 #000;
+  }
+  .reel-seg::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.1) 70%);
+  }
+  .reel-seg.is-current { box-shadow: inset 0 0 0 2px var(--fg); }
+  .reel-seg-label {
+    position: absolute; left: 5px; right: 5px; bottom: 9px;
+    font-size: 12px; line-height: 1.2; color: var(--fg);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .reel-seg-label.is-empty { color: var(--fg-dim); }
+  .reel-seg-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; }
+  .reel-cut {
+    position: absolute; top: 0; bottom: 0; width: 15px; margin-left: -7px;
+    cursor: col-resize; z-index: 2; touch-action: none;
+  }
+  .reel-cut::before {
+    content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 1px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+  /* The grab tab at the top of a cut shows only on hover or selection: drawn on all 94
+     cuts of the zoomed-out reel, it made a solid white band. */
+  .reel-cut::after {
+    content: ''; position: absolute; left: 3px; top: 0; width: 9px; height: 9px;
+    background: #fff; opacity: 0;
+  }
+  .reel-cut:hover::after, .reel-cut.is-selected::after, .reel-cut.is-new::after { opacity: 1; }
+  .reel-cut:hover::before { width: 3px; left: 6px; background: #fff; }
+  .reel-cut.is-new::before, .reel-cut.is-new::after { background: #d9a757; }
+  .reel-cut.is-selected::before { width: 3px; left: 6px; background: var(--accent); }
+  .reel-cut.is-selected::after { background: var(--accent); }
+  .reel-playhead {
+    position: absolute; top: 0; bottom: 0; width: 1px; margin-left: -0.5px;
+    background: #e5484d; z-index: 3; pointer-events: none;
+  }
+  .reel-playhead::before {
+    content: ''; position: absolute; top: 0; left: -5px;
+    border: 5px solid transparent; border-top: 7px solid #e5484d;
+  }
+  .reel-inspector { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--fg-dim); }
+  .reel-inspector b { color: var(--fg); font-weight: 600; }
+  .reel-inspector select { min-width: 240px; }
+
+  .reel-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap; margin: 4px 0 16px;
+  }
+  .reel-toolbar .field-hint { margin: 0; }
+  .reel-filter { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-dim); cursor: pointer; }
+  .reel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .reel-shot { border: 1px solid var(--line); background: var(--bg); }
+  .reel-shot.is-labelled { border-color: color-mix(in srgb, var(--fg) 30%, var(--line)); }
+  .reel-shot.is-changed { border-color: #d9a757; }
+  .reel-shot.is-current { box-shadow: 0 0 0 1px var(--fg); }
+  .reel-shot-frame {
+    position: relative; display: block; width: 100%; aspect-ratio: 16 / 9;
+    padding: 0; border: 0; background: var(--bg-raised); cursor: pointer; overflow: hidden;
+  }
+  .reel-shot-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .reel-shot-frame img:not([src]) { visibility: hidden; }
+  .reel-shot-meta {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    padding: 8px 10px 4px; font-size: 12px; color: var(--fg-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .reel-shot-meta b { color: var(--fg); font-weight: 600; }
+  .reel-shot select, .reel-inspector select {
+    background: var(--bg-raised); border: 1px solid var(--line); color: var(--fg);
+    font: inherit; font-size: 13px; padding: 8px;
+  }
+  .reel-shot select { display: block; width: calc(100% - 20px); margin: 0 10px 10px; }
+  .reel-shot select:focus, .reel-inspector select:focus { outline: none; border-color: var(--accent); }
 
   /* ---------- Footer ---------- */
   .admin-footer {
@@ -397,7 +513,7 @@
   .editor-top h2 { font-size: 18px; margin: 0; }
   .editor-bottom { border-top: 1px solid var(--line); }
   .editor-bar-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .kbd-hint { font-family: var(--mono); font-size: 10px; color: var(--fg-faint); }
+  .kbd-hint { font-family: var(--sans); font-size: 12px; color: var(--fg-dim); }
   .editor-body {
     flex: 1;
     min-height: 0;
@@ -421,16 +537,16 @@
   }
   .field { margin-bottom: 20px; }
   .field > label, .field-label {
-    display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    display: block; font-size: 13px; font-weight: 600;
     color: var(--fg-dim); margin-bottom: 8px;
   }
   .field input, .field select, .field textarea {
     width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
-    color: var(--fg); font-family: var(--mono); font-size: 14px; padding: 11px;
+    color: var(--fg); font-family: var(--sans); font-size: 14px; padding: 11px;
   }
   .field textarea { resize: vertical; }
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
-  .field-hint { font-size: 11px; color: var(--fg-faint); margin-top: 6px; }
+  .field-hint { font-size: 12px; color: var(--fg-dim); margin-top: 6px; }
 
   /* ---------- Thumbnail focal-point picker ----------
      The full uploaded image (never cropped here — background-size:contain) with a
@@ -454,7 +570,7 @@
   }
   .focal-stage .stage-empty {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 11px; color: var(--fg-faint); text-align: center; padding: 12px; pointer-events: none;
+    font-size: 12px; color: var(--fg-dim); text-align: center; padding: 12px; pointer-events: none;
   }
   .focal-reticle {
     position: absolute;
@@ -476,8 +592,8 @@
   .focal-preview-box { background-size: cover; background-color: var(--bg-raised); border: 1px solid var(--line); }
   .focal-preview-box.ratio-169 { width: 96px; aspect-ratio: 16 / 9; }
   .focal-preview-box.ratio-11 { width: 64px; aspect-ratio: 1 / 1; }
-  .focal-preview-label { font-family: var(--mono); font-size: 10px; color: var(--fg-faint); margin-top: 4px; text-align: center; }
-  .cover-status { font-size: 11px; color: var(--fg-faint); min-height: 16px; }
+  .focal-preview-label { font-family: var(--sans); font-size: 12px; color: var(--fg-dim); margin-top: 4px; text-align: center; }
+  .cover-status { font-size: 12px; color: var(--fg-dim); min-height: 16px; }
 
   /* ---------- Drop zones ----------
      Files dragged in from the Finder: onto the gallery to add, onto the cover to replace. */
@@ -490,10 +606,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     color: var(--accent);
     border: 1px dashed var(--accent);
     background: rgba(12, 12, 12, 0.82);
@@ -525,7 +639,7 @@
   .gallery-tile:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
   .gallery-tile .tile-index {
     position: absolute; left: 5px; bottom: 4px;
-    font-family: var(--mono); font-size: 10px; color: rgba(236, 236, 230, 0.85);
+    font-family: var(--sans); font-size: 12px; color: rgba(236, 236, 230, 0.85);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
     pointer-events: none;
   }
@@ -558,19 +672,19 @@
     display: none;
     align-items: center; justify-content: center;
     background: rgba(12, 12, 12, 0.55);
-    font-family: var(--mono); font-size: 10px; color: var(--fg);
+    font-family: var(--sans); font-size: 12px; color: var(--fg);
     pointer-events: none;
   }
   .gallery-tile.is-processing .tile-state,
   .gallery-tile.is-error .tile-state { display: flex; }
   .gallery-tile.is-error { border-color: #b5533f; }
   .gallery-tile.is-error .tile-state { color: #d97757; background: rgba(12, 12, 12, 0.8); }
-  .gallery-count { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); }
+  .gallery-count { font-family: var(--sans); font-size: 12px; color: var(--fg-dim); }
   .gallery-count.warn { color: #d9a757; }
   .gallery-count.ok { color: var(--accent); }
   .gallery-count.error { color: #b5533f; }
 
-  .save-status { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); }
+  .save-status { font-family: var(--sans); font-size: 12px; color: var(--fg-dim); }
   .save-status.error { color: #d97757; }
   .save-status.success { color: var(--accent); }
 
@@ -596,7 +710,7 @@
     border: 1px solid var(--line);
     border-left: 3px solid var(--accent);
     color: var(--fg);
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 12.5px;
     line-height: 1.4;
     padding: 12px 14px;
@@ -614,10 +728,8 @@
     background: none;
     border: 1px solid var(--line);
     color: var(--accent);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--sans);
+    font-size: 12px;
     padding: 6px 10px;
     cursor: pointer;
   }
@@ -671,7 +783,7 @@
   .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
   .prompt-input {
     width: 100%; background: var(--bg-raised); border: 1px solid var(--line);
-    color: var(--fg); font-family: var(--mono); font-size: 14px; padding: 11px;
+    color: var(--fg); font-family: var(--sans); font-size: 14px; padding: 11px;
     margin: -8px 0 22px;
   }
   .prompt-input:focus { outline: none; border-color: var(--accent); }
@@ -688,8 +800,8 @@
   }
   .field-error-msg {
     display: none;
-    font-family: var(--mono);
-    font-size: 11px;
+    font-family: var(--sans);
+    font-size: 12px;
     color: #d97757;
     margin: 6px 0 0;
   }
@@ -708,15 +820,15 @@
     margin-bottom: 8px;
   }
   .type-row .type-code {
-    font-family: var(--mono); font-size: 11px; color: var(--fg-dim); text-transform: uppercase;
+    font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
   }
   .type-row input {
     background: var(--bg); border: 1px solid var(--line); color: var(--fg);
-    font-family: var(--mono); font-size: 12px; padding: 8px;
+    font-family: var(--sans); font-size: 12px; padding: 8px;
   }
   .string-group-title {
-    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--fg-faint); margin: 16px 0 8px;
+    font-size: 12px;
+    color: var(--fg-dim); margin: 16px 0 8px;
   }
   .string-row {
     display: grid;
@@ -726,13 +838,13 @@
     margin-bottom: 6px;
   }
   .string-row .string-label {
-    font-family: var(--mono); font-size: 11px; color: var(--fg-dim);
+    font-family: var(--sans); font-size: 12px; color: var(--fg-dim);
     padding-top: 8px;
   }
   .string-row input,
   .string-row textarea {
     background: var(--bg); border: 1px solid var(--line); color: var(--fg);
-    font-family: var(--mono); font-size: 12px; padding: 8px;
+    font-family: var(--sans); font-size: 12px; padding: 8px;
     width: 100%;
   }
   .string-row textarea { resize: vertical; }
@@ -819,6 +931,7 @@
        L'onglet actif est mémorisé (localStorage) pour reprendre où on était. -->
   <div class="tab-bar" role="tablist">
     <button class="tab-btn" data-tab="projets" role="tab">Projets</button>
+    <button class="tab-btn" data-tab="reel" role="tab">Reel</button>
     <button class="tab-btn" data-tab="reglages" role="tab">Réglages</button>
   </div>
 
@@ -833,6 +946,60 @@
     </div>
     <div id="project-list"></div>
   </div><!-- /tab-projets -->
+
+  <!-- Reel : les coupes du reel et le projet de chaque plan. Sur la page d'accueil, la légende
+       en bas à gauche du reel nomme ce projet pendant le plan. Édite data/reel.json. Coupes
+       et projets se modifient ici (frise + liste) ; tout reste en brouillon sur cet appareil
+       jusqu'à « Publier ». scripts/reel_shots.py ne sert qu'à la première détection. -->
+  <div class="tab-panel" id="tab-reel" role="tabpanel">
+    <section class="settings-card reel-editor" id="reel-editor">
+      <h2>Coupes du reel</h2>
+      <p class="field-hint">Glisse une coupe pour la déplacer (elle s'aligne sur l'image près), clique la frise pour te placer. <kbd>Espace</kbd> lecture · <kbd>←</kbd> <kbd>→</kbd> image par image (<kbd>⇧</kbd> : 1 s) · <kbd>⌥</kbd> <kbd>←</kbd> <kbd>→</kbd> coupe précédente / suivante · <kbd>C</kbd> couper ici · <kbd>Suppr</kbd> supprimer la coupe choisie · <kbd>⌘</kbd> <kbd>Z</kbd> annuler.</p>
+      <div class="reel-player">
+        <video id="reel-player" muted playsinline preload="metadata"></video>
+      </div>
+      <div class="reel-controls">
+        <button type="button" class="btn" id="reel-play" aria-label="Lecture">Lecture</button>
+        <button type="button" class="btn" id="reel-prev-frame" aria-label="Image précédente">‹</button>
+        <button type="button" class="btn" id="reel-next-frame" aria-label="Image suivante">›</button>
+        <button type="button" class="btn" id="reel-sound">Son coupé</button>
+        <span class="reel-time" id="reel-time">00:00:00</span>
+        <span class="reel-controls-gap"></span>
+        <button type="button" class="btn" id="reel-add-cut">Couper ici</button>
+        <button type="button" class="btn" id="reel-remove-cut" disabled>Supprimer la coupe</button>
+        <button type="button" class="btn" id="reel-undo" disabled>Annuler</button>
+        <label class="reel-zoom">Zoom <input type="range" id="reel-zoom" min="0" max="100" value="0"></label>
+      </div>
+      <div class="reel-timeline" id="reel-timeline">
+        <div class="reel-timeline-inner" id="reel-timeline-inner">
+          <div class="reel-ruler" id="reel-ruler"></div>
+          <div class="reel-track" id="reel-track"></div>
+          <div class="reel-playhead" id="reel-playhead"></div>
+        </div>
+      </div>
+      <div class="reel-inspector" id="reel-inspector">
+        <span id="reel-current-label"></span>
+        <select id="reel-current-project" aria-label="Projet du plan en cours"></select>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <h2>Projet de chaque plan</h2>
+      <p class="field-hint">Le nom du projet choisi s'affiche en bas du reel pendant ce plan, avec un lien vers sa page. « Aucun » = pas de légende. Clique une image pour aller au plan dans la frise.</p>
+      <div class="reel-toolbar">
+        <span class="field-hint" id="reel-count"></span>
+        <label class="reel-filter"><input type="checkbox" id="reel-only-empty"> Seulement les plans sans projet</label>
+      </div>
+      <div class="reel-grid" id="reel-grid"><p class="field-hint">Chargement…</p></div>
+    </section>
+
+    <div class="settings-savebar" id="reel-savebar">
+      <span class="dirty-note" id="reel-dirty-note">Tout est publié</span>
+      <span class="save-status" id="reel-status"></span>
+      <button class="btn btn-quiet" id="reel-discard-btn" hidden>Annuler les changements</button>
+      <button class="btn btn-primary" id="reel-publish-btn">Publier</button>
+    </div>
+  </div><!-- /tab-reel -->
 
   <!-- Réglages : coordonnées en haut, le reste (types de projet, libellés du site)
        replié sous « Avancé » — édité quelques fois par an. Édite data/settings.json et
@@ -1730,7 +1897,7 @@ function renderTypesEditor(types) {
         <input type="text" id="${typeInputId(code, 'label')}" value="${esc(label)}" placeholder="Libellé" aria-label="Libellé du type ${code}">
       </div>
       <div style="display:flex; justify-content:flex-end; margin:-2px 0 20px;">
-        <button type="button" class="btn btn-danger" data-remove-type="${code}" style="font-size:10px; padding:6px 10px;">Retirer « ${code} »</button>
+        <button type="button" class="btn btn-danger" data-remove-type="${code}" style="font-size:12px; padding:6px 10px;">Retirer « ${code} »</button>
       </div>
     `;
   }).join('');
@@ -1904,6 +2071,627 @@ async function saveSettings() {
   }
 }
 document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+
+/* ---------- Reel (data/reel.json) ----------
+   The reel's cuts and the project behind each shot, edited on a small timeline (Nov 2026).
+
+   data/reel.json is a list of shots, each a start time in seconds and a project id (or
+   null). The admin edits a working copy, reelShots, which is also the draft: every change
+   is stored in this browser (localStorage) so cuts and projects can be worked on over
+   several visits and published once with « Publier ». Undo keeps the last 100 states.
+
+   Times are whole frames at REEL_FPS. A cut's time is the first frame of the shot after
+   it; the player is always parked mid-frame ((k + 0.5) / fps) so the frame it shows is
+   never ambiguous at a frame boundary.
+
+   Frames (the timeline's blocks and the list's images) are taken from the video in the
+   browser by a second, hidden <video>, so they follow cut edits without any script. Both
+   videos only start loading when the Reel tab is opened. */
+const REEL_DRAFT_KEY = 'iob_admin_reel_draft';
+const REEL_FPS = 24;
+const REEL_SRC = '../video/reel.mp4';
+const REEL_NOTE = 'Which project each shot of video/reel.mp4 comes from, for the caption on the homepage reel. Cuts and projects are edited in the admin, Reel tab; scripts/reel_shots.py only makes the first detection. start is in seconds; project is an id from data/projects.json, or null for no caption.';
+let reelData = null;       // data/reel.json as last read or published
+let reelSha = null;
+let reelPublished = [];    // reelData.shots, normalised — what « dirty » is measured against
+let reelShots = null;      // the working copy / draft: [{ start, project }], sorted
+let reelHistory = [];
+let reelSelectedCut = -1;  // index of the shot whose start is the selected cut (>= 1)
+let reelDuration = 0;
+let reelPps = 1;           // timeline pixels per second
+let reelCurrent = -1;      // index of the shot under the playhead
+let savingReel = false;
+const reelPlayer = document.getElementById('reel-player');
+const reelTimelineEl = document.getElementById('reel-timeline');
+const reelInner = document.getElementById('reel-timeline-inner');
+const reelTrack = document.getElementById('reel-track');
+const reelRuler = document.getElementById('reel-ruler');
+const reelPlayhead = document.getElementById('reel-playhead');
+
+const reelFrameOf = (t) => Math.round(t * REEL_FPS);
+const reelTimeOfFrame = (k) => Math.round((k / REEL_FPS) * 1000) / 1000;
+function reelTc(t) { // mm:ss:ff, the timecode a colorist reads
+  const k = Math.max(0, reelFrameOf(t));
+  const s = Math.floor(k / REEL_FPS), f = k % REEL_FPS;
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0') + ':' + String(f).padStart(2, '0');
+}
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+function reelTabActive() { return document.getElementById('tab-reel').classList.contains('active'); }
+
+function normalizeReelShots(list) {
+  const sorted = (Array.isArray(list) ? list : [])
+    .filter((s) => s && Number.isFinite(Number(s.start)))
+    .map((s) => ({ start: reelTimeOfFrame(reelFrameOf(Number(s.start))), project: s.project || null }))
+    .sort((a, b) => a.start - b.start);
+  const out = [];
+  for (const s of sorted) {
+    if (out.length && reelFrameOf(out[out.length - 1].start) === reelFrameOf(s.start)) continue;
+    out.push(s);
+  }
+  if (out.length && out[0].start !== 0) out.unshift({ start: 0, project: null });
+  return out;
+}
+function reelDirty() {
+  return !!reelShots && JSON.stringify(reelShots) !== JSON.stringify(reelPublished);
+}
+function storeReelDraft() {
+  try {
+    if (reelDirty()) localStorage.setItem(REEL_DRAFT_KEY, JSON.stringify({ baseSha: reelSha, shots: reelShots }));
+    else localStorage.removeItem(REEL_DRAFT_KEY);
+  } catch (e) { /* private mode: the draft lives only as long as the tab */ }
+}
+function loadReelDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(REEL_DRAFT_KEY) || 'null');
+    return d && Array.isArray(d.shots) ? d : null;
+  } catch (e) { return null; }
+}
+
+async function loadReel() {
+  const file = await ghGetFile('data/reel.json');
+  reelSha = file ? file.sha : null;
+  reelData = file ? decodeJsonFile(file) : { shots: [] };
+  reelPublished = normalizeReelShots(reelData.shots);
+  reelShots = reelPublished.map((s) => ({ ...s }));
+  reelHistory = [];
+  const draft = loadReelDraft();
+  if (draft) {
+    const shots = normalizeReelShots(draft.shots);
+    if (shots.length) {
+      reelShots = shots;
+      if (draft.baseSha && draft.baseSha !== reelSha) {
+        showToast('Brouillon du reel repris, mais la version en ligne a changé depuis : vérifie avant de publier.', 'error');
+      }
+    }
+  }
+  storeReelDraft();
+  renderReel();
+}
+
+// One undoable step: snapshot, change, then store and redraw.
+function reelEdit(change, { rebuild = true } = {}) {
+  reelHistory.push(JSON.stringify(reelShots));
+  if (reelHistory.length > 100) reelHistory.shift();
+  change();
+  storeReelDraft();
+  if (rebuild) renderReel(); else updateReelState();
+}
+function reelUndo() {
+  if (!reelHistory.length) return;
+  reelShots = JSON.parse(reelHistory.pop());
+  reelSelectedCut = -1;
+  storeReelDraft();
+  renderReel();
+}
+
+function reelShotEnd(i) {
+  return i + 1 < reelShots.length ? reelShots[i + 1].start : (reelDuration || reelShots[i].start + 2);
+}
+function reelShotAt(t) {
+  const k = Math.floor(t * REEL_FPS + 1e-6);
+  let i = 0;
+  for (let j = 0; j < reelShots.length; j++) { if (reelFrameOf(reelShots[j].start) <= k) i = j; else break; }
+  return i;
+}
+function reelProjectsSorted() {
+  return (projectsData ? projectsData.projects : []).slice()
+    .sort((a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }));
+}
+function reelProjectTitle(id) {
+  const p = projectsData && projectsData.projects.find((x) => x.id === id);
+  return p ? p.title : id;
+}
+function reelProjectColor(id) { // a stable hue per project, for the bar under its shots
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return `hsl(${h % 360} 55% 58%)`;
+}
+function reelOptionsHtml(current) {
+  const projects = reelProjectsSorted();
+  const known = new Set(projects.map((p) => p.id));
+  const missing = current && !known.has(current)
+    ? `<option value="${escapeHtml(current)}">${escapeHtml(current)} (introuvable)</option>` : '';
+  return '<option value="">— Aucun</option>' + missing + projects.map((p) =>
+    `<option value="${escapeHtml(p.id)}">${escapeHtml(p.title)}${p.hidden ? ' (masqué)' : ''}</option>`).join('');
+}
+
+/* --- Player --- */
+function ensureReelPlayer() {
+  if (!reelPlayer.getAttribute('src')) reelPlayer.src = REEL_SRC;
+}
+reelPlayer.addEventListener('loadedmetadata', () => {
+  reelDuration = reelPlayer.duration;
+  renderReel();
+});
+function reelSeekFrame(k) {
+  const last = reelDuration ? Math.floor(reelDuration * REEL_FPS) - 1 : k;
+  k = Math.max(0, Math.min(k, last));
+  reelPlayer.currentTime = (k + 0.5) / REEL_FPS;
+  reelOnTime();
+}
+function reelCurrentFrame() { return Math.floor(reelPlayer.currentTime * REEL_FPS + 1e-6); }
+function reelTogglePlay() {
+  ensureReelPlayer();
+  if (reelPlayer.paused) reelPlayer.play().catch(() => {});
+  else reelPlayer.pause();
+}
+function stopReelPreview() { if (!reelPlayer.paused) reelPlayer.pause(); }
+let reelRaf = 0;
+reelPlayer.addEventListener('play', () => {
+  document.getElementById('reel-play').textContent = 'Pause';
+  const loop = () => { reelOnTime(true); if (!reelPlayer.paused) reelRaf = requestAnimationFrame(loop); };
+  reelRaf = requestAnimationFrame(loop);
+});
+reelPlayer.addEventListener('pause', () => {
+  document.getElementById('reel-play').textContent = 'Lecture';
+  cancelAnimationFrame(reelRaf);
+  reelOnTime();
+});
+reelPlayer.addEventListener('seeked', () => reelOnTime());
+
+// Playhead, timecode, and which shot is current, after any change of time.
+function reelOnTime(follow = false) {
+  if (!reelShots) return;
+  const t = reelPlayer.currentTime || 0;
+  document.getElementById('reel-time').textContent = reelTc(t);
+  const x = t * reelPps;
+  reelPlayhead.style.left = x + 'px';
+  if (follow) { // keep the playhead on screen while playing
+    const left = reelTimelineEl.scrollLeft, w = reelTimelineEl.clientWidth;
+    if (x < left || x > left + w - 40) reelTimelineEl.scrollLeft = x - w * 0.2;
+  }
+  const i = reelShots.length ? reelShotAt(t) : -1;
+  if (i !== reelCurrent) {
+    reelCurrent = i;
+    reelTrack.querySelectorAll('.reel-seg').forEach((el) => el.classList.toggle('is-current', Number(el.dataset.i) === i));
+    document.querySelectorAll('#reel-grid .reel-shot').forEach((el) => el.classList.toggle('is-current', Number(el.dataset.i) === i));
+    renderReelInspector();
+  }
+}
+function renderReelInspector() {
+  const label = document.getElementById('reel-current-label');
+  const select = document.getElementById('reel-current-project');
+  const i = reelCurrent;
+  if (!reelShots || i < 0 || i >= reelShots.length) { label.textContent = ''; select.hidden = true; return; }
+  const s = reelShots[i], end = reelShotEnd(i);
+  label.innerHTML = `<b>Plan ${i + 1}</b> · ${reelTc(s.start)} → ${reelTc(end)} · ${((end - s.start)).toFixed(2)} s`;
+  select.hidden = false;
+  select.innerHTML = reelOptionsHtml(s.project);
+  select.value = s.project || '';
+}
+
+/* --- Timeline --- */
+function reelComputePps() {
+  const w = reelTimelineEl.clientWidth || 800;
+  const fit = w / Math.max(reelDuration || 1, 1);
+  const zoom = 2 ** ((Number(document.getElementById('reel-zoom').value) / 100) * 5); // 1x to 32x
+  reelPps = fit * zoom;
+}
+function buildReelTimeline() {
+  reelTrack.innerHTML = '';
+  reelShots.forEach((s, i) => {
+    const seg = document.createElement('div');
+    seg.className = 'reel-seg';
+    seg.dataset.i = i;
+    const thumb = reelThumbFrame(i);
+    seg.dataset.thumb = thumb;
+    if (reelThumbs.has(thumb)) seg.style.backgroundImage = `url(${reelThumbs.get(thumb)})`;
+    else requestReelThumb(thumb);
+    seg.innerHTML = (s.project
+      ? `<span class="reel-seg-label">${escapeHtml(reelProjectTitle(s.project))}</span><span class="reel-seg-bar" style="background:${reelProjectColor(s.project)}"></span>`
+      : '<span class="reel-seg-label is-empty">—</span>');
+    reelTrack.appendChild(seg);
+    if (i > 0) {
+      const cut = document.createElement('div');
+      cut.className = 'reel-cut';
+      cut.dataset.i = i;
+      cut.title = 'Coupe ' + reelTc(s.start);
+      reelTrack.appendChild(cut);
+    }
+  });
+  reelCurrent = -1; // force the current-shot highlight to be redrawn
+  layoutReelTimeline();
+}
+function layoutReelTimeline() {
+  reelComputePps();
+  const width = Math.max(reelDuration || 0, reelShots.length ? reelShotEnd(reelShots.length - 1) : 0) * reelPps;
+  reelInner.style.width = width + 'px';
+  reelTrack.querySelectorAll('.reel-seg').forEach((el) => {
+    const i = Number(el.dataset.i);
+    el.style.left = reelShots[i].start * reelPps + 'px';
+    el.style.width = Math.max(1, (reelShotEnd(i) - reelShots[i].start) * reelPps) + 'px';
+  });
+  const published = new Set(reelPublished.map((s) => reelFrameOf(s.start)));
+  reelTrack.querySelectorAll('.reel-cut').forEach((el) => {
+    const i = Number(el.dataset.i);
+    el.style.left = reelShots[i].start * reelPps + 'px';
+    el.classList.toggle('is-selected', i === reelSelectedCut);
+    el.classList.toggle('is-new', !published.has(reelFrameOf(reelShots[i].start)));
+  });
+  // Ruler: the smallest step that leaves ~70px between labels.
+  const steps = [1 / REEL_FPS, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60];
+  const step = steps.find((s) => s * reelPps >= 70) || 60;
+  let ticks = '';
+  for (let t = 0; t <= (reelDuration || 0); t += step) {
+    ticks += `<span class="reel-tick" style="left:${t * reelPps}px">${step < 1 ? reelTc(t) : reelTc(t).slice(0, 5)}</span>`;
+  }
+  reelRuler.innerHTML = ticks;
+  reelOnTime();
+}
+document.getElementById('reel-zoom').addEventListener('input', () => {
+  const t = reelPlayer.currentTime || 0;
+  const offset = t * reelPps - reelTimelineEl.scrollLeft; // keep the playhead where it was on screen
+  layoutReelTimeline();
+  reelTimelineEl.scrollLeft = t * reelPps - offset;
+});
+window.addEventListener('resize', () => { if (reelShots && reelTabActive()) layoutReelTimeline(); });
+
+function reelTimeAt(clientX) {
+  const rect = reelInner.getBoundingClientRect();
+  return Math.max(0, (clientX - rect.left) / reelPps);
+}
+function reelSelectCut(i) {
+  reelSelectedCut = i;
+  reelTrack.querySelectorAll('.reel-cut').forEach((el) => el.classList.toggle('is-selected', Number(el.dataset.i) === i));
+  updateReelState();
+}
+
+// Dragging: a cut handle moves that cut (snapped to frames, kept a frame clear of its
+// neighbours, the player showing the first frame of the shot it starts); anywhere else
+// scrubs the playhead.
+let reelDrag = null;
+reelInner.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || !reelShots) return;
+  ensureReelPlayer();
+  reelPlayer.pause();
+  const cutEl = e.target.closest('.reel-cut');
+  reelInner.setPointerCapture(e.pointerId);
+  if (cutEl) {
+    const i = Number(cutEl.dataset.i);
+    reelSelectCut(i);
+    reelDrag = { kind: 'cut', i, before: JSON.stringify(reelShots), startFrame: reelFrameOf(reelShots[i].start), grab: reelTimeAt(e.clientX) - reelShots[i].start };
+    reelSeekFrame(reelFrameOf(reelShots[i].start));
+  } else {
+    reelSelectCut(-1);
+    reelDrag = { kind: 'scrub' };
+    reelSeekFrame(Math.floor(reelTimeAt(e.clientX) * REEL_FPS));
+  }
+  e.preventDefault();
+});
+reelInner.addEventListener('pointermove', (e) => {
+  if (!reelDrag) return;
+  if (reelDrag.kind === 'scrub') { reelSeekFrame(Math.floor(reelTimeAt(e.clientX) * REEL_FPS)); return; }
+  const i = reelDrag.i;
+  const min = reelFrameOf(reelShots[i - 1].start) + 1;
+  const max = (i + 1 < reelShots.length ? reelFrameOf(reelShots[i + 1].start) : Math.floor((reelDuration || 0) * REEL_FPS)) - 1;
+  const k = Math.max(min, Math.min(max, Math.round((reelTimeAt(e.clientX) - reelDrag.grab) * REEL_FPS)));
+  if (k === reelFrameOf(reelShots[i].start)) return;
+  reelShots[i].start = reelTimeOfFrame(k);
+  layoutReelTimeline();
+  reelSeekFrame(k);
+});
+function endReelDrag() {
+  if (!reelDrag) return;
+  const drag = reelDrag;
+  reelDrag = null;
+  if (drag.kind === 'cut' && reelFrameOf(reelShots[drag.i].start) !== drag.startFrame) {
+    reelHistory.push(drag.before);
+    if (reelHistory.length > 100) reelHistory.shift();
+    storeReelDraft();
+    renderReel(); // new frames for the two shots either side of the cut
+  }
+}
+reelInner.addEventListener('pointerup', endReelDrag);
+reelInner.addEventListener('pointercancel', endReelDrag);
+
+function reelAddCut() {
+  if (!reelShots) return;
+  const k = reelCurrentFrame();
+  if (k <= 0 || reelShots.some((s) => reelFrameOf(s.start) === k)) {
+    showToast('Il y a déjà une coupe sur cette image.', 'error');
+    return;
+  }
+  const i = reelShotAt(k / REEL_FPS);
+  reelEdit(() => {
+    // The new shot starts with the project of the shot it was cut from.
+    reelShots.splice(i + 1, 0, { start: reelTimeOfFrame(k), project: reelShots[i].project });
+    reelSelectedCut = i + 1;
+  });
+}
+function reelRemoveCut() {
+  const i = reelSelectedCut;
+  if (!reelShots || i < 1 || i >= reelShots.length) return;
+  reelEdit(() => {
+    // The merged shot keeps the earlier shot's project, or the later one's if it had none.
+    reelShots[i - 1].project = reelShots[i - 1].project || reelShots[i].project;
+    reelShots.splice(i, 1);
+    reelSelectedCut = -1;
+  });
+}
+function reelJumpCut(dir) {
+  if (!reelShots || !reelShots.length) return;
+  const k = reelCurrentFrame();
+  const frames = reelShots.map((s) => reelFrameOf(s.start));
+  const target = dir > 0 ? frames.find((f) => f > k) : frames.slice().reverse().find((f) => f < k);
+  if (target === undefined) return;
+  reelSeekFrame(target);
+  const i = frames.indexOf(target);
+  reelSelectCut(i >= 1 ? i : -1);
+}
+
+document.getElementById('reel-play').addEventListener('click', reelTogglePlay);
+document.getElementById('reel-sound').addEventListener('click', (e) => {
+  reelPlayer.muted = !reelPlayer.muted;
+  e.currentTarget.textContent = reelPlayer.muted ? 'Son coupé' : 'Son activé';
+});
+document.getElementById('reel-prev-frame').addEventListener('click', () => { reelPlayer.pause(); reelSeekFrame(reelCurrentFrame() - 1); });
+document.getElementById('reel-next-frame').addEventListener('click', () => { reelPlayer.pause(); reelSeekFrame(reelCurrentFrame() + 1); });
+document.getElementById('reel-add-cut').addEventListener('click', reelAddCut);
+document.getElementById('reel-remove-cut').addEventListener('click', reelRemoveCut);
+document.getElementById('reel-undo').addEventListener('click', reelUndo);
+
+// Keyboard, while the Reel tab is showing and focus isn't in a field.
+document.addEventListener('keydown', (e) => {
+  if (!reelShots || !reelTabActive() || dashboard.style.display === 'none' || editorOpen || dialogOpen()) return;
+  if (e.target.closest('input, select, textarea')) return;
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); reelUndo(); return; }
+  if (mod) return;
+  if (e.key === ' ') { e.preventDefault(); reelTogglePlay(); }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    const dir = e.key === 'ArrowRight' ? 1 : -1;
+    reelPlayer.pause();
+    if (e.altKey) reelJumpCut(dir);
+    else reelSeekFrame(reelCurrentFrame() + dir * (e.shiftKey ? REEL_FPS : 1));
+  } else if (e.key.toLowerCase() === 'c' && !e.altKey) { e.preventDefault(); reelAddCut(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { if (reelSelectedCut >= 1) { e.preventDefault(); reelRemoveCut(); } }
+  else if (e.key === 'Escape') reelSelectCut(-1);
+});
+
+/* --- Frames, taken from the video in the browser --- */
+const reelThumbs = new Map(); // frame number -> JPEG data URL
+const reelThumbVideo = document.createElement('video');
+reelThumbVideo.muted = true;
+reelThumbVideo.playsInline = true;
+reelThumbVideo.preload = 'auto';
+const reelThumbCanvas = document.createElement('canvas');
+reelThumbCanvas.width = 256;
+reelThumbCanvas.height = 144;
+let reelThumbQueue = [];
+let reelThumbBusy = false;
+function reelThumbFrame(i) { // the middle frame of shot i
+  return Math.floor(((reelShots[i].start + reelShotEnd(i)) / 2) * REEL_FPS);
+}
+function requestReelThumb(frame) {
+  if (!reelTabActive() || reelThumbs.has(frame) || reelThumbQueue.includes(frame)) return;
+  reelThumbQueue.push(frame);
+  pumpReelThumbs();
+}
+function reelThumbSeek(t) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, 10000);
+    const done = () => { cleanup(); resolve(); };
+    const fail = () => { cleanup(); reject(new Error('error')); };
+    function cleanup() {
+      clearTimeout(timer);
+      reelThumbVideo.removeEventListener('seeked', done);
+      reelThumbVideo.removeEventListener('error', fail);
+    }
+    reelThumbVideo.addEventListener('seeked', done);
+    reelThumbVideo.addEventListener('error', fail);
+    if (reelThumbVideo.readyState >= 1) reelThumbVideo.currentTime = t;
+    else reelThumbVideo.addEventListener('loadedmetadata', () => { reelThumbVideo.currentTime = t; }, { once: true });
+  });
+}
+async function pumpReelThumbs() {
+  if (reelThumbBusy) return;
+  reelThumbBusy = true;
+  if (!reelThumbVideo.getAttribute('src')) reelThumbVideo.src = REEL_SRC;
+  try {
+    while (reelThumbQueue.length) {
+      const frame = reelThumbQueue.shift();
+      if (reelThumbs.has(frame)) continue;
+      try {
+        await reelThumbSeek((frame + 0.5) / REEL_FPS);
+        reelThumbCanvas.getContext('2d').drawImage(reelThumbVideo, 0, 0, reelThumbCanvas.width, reelThumbCanvas.height);
+        reelThumbs.set(frame, reelThumbCanvas.toDataURL('image/jpeg', 0.75));
+        const url = reelThumbs.get(frame);
+        document.querySelectorAll(`[data-thumb="${frame}"]`).forEach((el) => {
+          if (el.tagName === 'IMG') el.src = url;
+          else el.style.backgroundImage = `url(${url})`;
+        });
+      } catch (e) { /* that frame stays blank; the others carry on */ }
+    }
+  } finally {
+    reelThumbBusy = false;
+  }
+}
+
+/* --- The list of shots, for choosing projects --- */
+function renderReelGrid() {
+  const grid = document.getElementById('reel-grid');
+  if (!reelShots.length) {
+    grid.innerHTML = '<p class="field-hint">Aucun plan. Lance <code>python3 scripts/reel_shots.py</code> pour une première détection des coupes, ou ajoute-les dans la frise avec « Couper ici ».</p>';
+    return;
+  }
+  const options = reelOptionsHtml(null);
+  grid.innerHTML = reelShots.map((s, i) => {
+    const end = reelShotEnd(i);
+    const thumb = reelThumbFrame(i);
+    const src = reelThumbs.has(thumb) ? ` src="${reelThumbs.get(thumb)}"` : '';
+    const missing = s.project && !reelProjectsSorted().some((p) => p.id === s.project)
+      ? `<option value="${escapeHtml(s.project)}">${escapeHtml(s.project)} (introuvable)</option>` : '';
+    return `
+      <div class="reel-shot" data-i="${i}">
+        <button type="button" class="reel-shot-frame" aria-label="Aller au plan ${i + 1}">
+          <img data-thumb="${thumb}"${src} alt="">
+        </button>
+        <div class="reel-shot-meta"><b>${i + 1}</b><span>${reelTc(s.start)} · ${(end - s.start).toFixed(1)} s</span></div>
+        <select aria-label="Projet du plan ${i + 1}">${missing ? options.replace('</option>', '</option>' + missing) : options}</select>
+      </div>`;
+  }).join('');
+  grid.querySelectorAll('.reel-shot').forEach((card) => {
+    const i = Number(card.dataset.i);
+    card.querySelector('select').value = reelShots[i].project || '';
+    const thumb = reelThumbFrame(i);
+    if (!reelThumbs.has(thumb)) requestReelThumb(thumb);
+  });
+}
+function reelSetProject(i, value) {
+  if ((reelShots[i].project || null) === value) return;
+  reelEdit(() => { reelShots[i].project = value; }, { rebuild: false });
+  buildReelTimeline(); // the label and colour bar on the timeline
+  const card = document.querySelector(`#reel-grid .reel-shot[data-i="${i}"] select`);
+  if (card && card.value !== (value || '')) card.value = value || '';
+  if (i === reelCurrent) renderReelInspector();
+  updateReelState();
+}
+document.getElementById('reel-grid').addEventListener('change', (e) => {
+  const select = e.target.closest('select');
+  if (!select) return;
+  reelSetProject(Number(select.closest('.reel-shot').dataset.i), select.value || null);
+});
+document.getElementById('reel-current-project').addEventListener('change', (e) => {
+  if (reelCurrent >= 0) reelSetProject(reelCurrent, e.target.value || null);
+});
+document.getElementById('reel-grid').addEventListener('click', (e) => {
+  const frame = e.target.closest('.reel-shot-frame');
+  if (!frame) return;
+  const i = Number(frame.closest('.reel-shot').dataset.i);
+  ensureReelPlayer();
+  reelPlayer.pause();
+  reelSeekFrame(reelFrameOf(reelShots[i].start));
+  reelSelectCut(i >= 1 ? i : -1);
+  const x = reelShots[i].start * reelPps;
+  reelTimelineEl.scrollLeft = x - reelTimelineEl.clientWidth * 0.3;
+  document.getElementById('reel-editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+document.getElementById('reel-only-empty').addEventListener('change', updateReelState);
+
+/* --- Drawing it all --- */
+function renderReel() {
+  if (!reelShots) return;
+  if (reelTabActive()) ensureReelPlayer();
+  if (reelSelectedCut >= reelShots.length) reelSelectedCut = -1;
+  buildReelTimeline();
+  renderReelGrid();
+  reelCurrent = -1;
+  reelOnTime();
+  updateReelState();
+}
+function updateReelState() {
+  if (!reelShots) return;
+  const publishedIndex = new Map(reelPublished.map((s, j) => [reelFrameOf(s.start), j]));
+  const onlyEmpty = document.getElementById('reel-only-empty').checked;
+  let labelled = 0;
+  document.querySelectorAll('#reel-grid .reel-shot').forEach((card) => {
+    const i = Number(card.dataset.i);
+    const s = reelShots[i];
+    if (!s) return;
+    if (s.project) labelled++;
+    // Changed = not in the published version with the same start, end and project.
+    const j = publishedIndex.get(reelFrameOf(s.start));
+    const end = i + 1 < reelShots.length ? reelShots[i + 1].start : 'end';
+    const publishedEnd = j === undefined ? null : (j + 1 < reelPublished.length ? reelPublished[j + 1].start : 'end');
+    const changed = j === undefined || reelPublished[j].project !== s.project || publishedEnd !== end;
+    card.classList.toggle('is-labelled', !!s.project);
+    card.classList.toggle('is-changed', changed);
+    card.hidden = onlyEmpty && !!s.project;
+  });
+  document.getElementById('reel-count').textContent = `${labelled} / ${reelShots.length} plans avec un projet`;
+  const dirty = reelDirty();
+  document.getElementById('reel-savebar').classList.toggle('is-dirty', dirty);
+  document.getElementById('reel-dirty-note').textContent = dirty
+    ? 'Modifications non publiées (brouillon gardé sur cet appareil)'
+    : 'Tout est publié';
+  document.getElementById('reel-discard-btn').hidden = !dirty;
+  document.getElementById('reel-undo').disabled = reelHistory.length === 0;
+  document.getElementById('reel-remove-cut').disabled = reelSelectedCut < 1;
+}
+
+document.getElementById('reel-discard-btn').addEventListener('click', async () => {
+  const ok = await confirmDialog('Annuler toutes les modifications non publiées du reel (coupes et projets) et revenir à la version en ligne ?');
+  if (!ok) return;
+  reelShots = reelPublished.map((s) => ({ ...s }));
+  reelHistory = [];
+  reelSelectedCut = -1;
+  storeReelDraft();
+  renderReel();
+});
+
+function reelJsonText(shots) {
+  const text = JSON.stringify({ _note: REEL_NOTE, shots }, null, 2);
+  // One shot per line, the same layout scripts/reel_shots.py writes.
+  return text.replace(/\{\n\s+"n": (\d+),\n\s+"start": ([\d.]+),\n\s+"project": (null|"[^"]*")\n\s+\}/g,
+    '{ "n": $1, "start": $2, "project": $3 }') + '\n';
+}
+
+async function publishReel() {
+  if (savingReel || !reelShots) return;
+  if (!reelDirty()) { showToast('Rien à publier.'); return; }
+  const btn = document.getElementById('reel-publish-btn');
+  const statusEl = document.getElementById('reel-status');
+  savingReel = true;
+  setBtnLoading(btn, true);
+  statusEl.textContent = '';
+  statusEl.className = 'save-status';
+  try {
+    const file = await ghGetFile('data/reel.json');
+    if (file && file.sha !== reelSha) {
+      setBtnLoading(btn, false);
+      const ok = await confirmDialog('data/reel.json a changé ailleurs depuis le chargement de cette page (autre appareil, ou script relancé). Publier quand même ta version par-dessus ?');
+      if (!ok) return;
+      setBtnLoading(btn, true);
+    }
+    const shots = normalizeReelShots(reelShots).map((s, n) => ({ n, start: s.start, project: s.project }));
+    const text = reelJsonText(shots);
+    savesInFlight++;
+    try {
+      await ghCommitBatch([{ path: 'data/reel.json', content: b64EncodeUnicode(text) }], 'Admin : coupes et légendes du reel');
+    } finally {
+      savesInFlight--;
+    }
+    reelData = { _note: REEL_NOTE, shots };
+    reelSha = await gitBlobSha(text);
+    reelPublished = normalizeReelShots(shots);
+    reelShots = reelPublished.map((s) => ({ ...s }));
+    storeReelDraft();
+    renderReel();
+    showToast('Reel publié.');
+    trackPublish('data/reel.json', text);
+  } catch (e) {
+    statusEl.textContent = 'Erreur : ' + e.message;
+    statusEl.className = 'save-status error';
+    showToast('Erreur : ' + e.message, 'error');
+  } finally {
+    savingReel = false;
+    setBtnLoading(btn, false);
+  }
+}
+document.getElementById('reel-publish-btn').addEventListener('click', publishReel);
 
 /* ---------- Image compression ----------
    Client-side resize + re-encode via <canvas>, since there's no ffmpeg here — this is
@@ -2188,6 +2976,10 @@ async function tryConnect(t, { isBoot = false } = {}) {
     dashboard.style.display = '';
     renderDashboard();
     updateTokenNote();
+    loadReel().catch((e) => {
+      console.error('Impossible de charger le reel:', e);
+      document.getElementById('reel-grid').innerHTML = '<p class="field-hint">Reel non chargé : ' + escapeHtml(e.message) + '</p>';
+    });
     Promise.all([loadSettingsIntoForm(), loadStringsIntoForm()])
       .then(() => {
         settingsBaseline = settingsFormState();
@@ -3459,6 +4251,7 @@ document.addEventListener('keydown', (e) => {
     if (dialogOpen()) return;
     if (editorOpen) saveProject();
     else if (document.getElementById('tab-reglages').classList.contains('active')) saveSettings();
+    else if (document.getElementById('tab-reel').classList.contains('active')) publishReel();
     return;
   }
   if (e.key === 'Escape' && editorOpen && !dialogOpen()) {
@@ -3473,7 +4266,7 @@ document.addEventListener('keydown', (e) => {
    window, or a commit still on its way. */
 function hasUnsavedWork() {
   return editorDirty() || settingsDirty() || !!orderSession || pendingDeletes.size > 0
-    || savesInFlight > 0 || savingProject || savingSettings;
+    || savesInFlight > 0 || savingProject || savingSettings || savingReel;
 }
 window.addEventListener('beforeunload', (e) => {
   if (leavingOnPurpose || !hasUnsavedWork()) return;
@@ -3514,6 +4307,8 @@ function showTab(name) {
   }
   for (const p of document.querySelectorAll('.tab-panel')) p.classList.toggle('active', p.id === 'tab-' + name);
   localStorage.setItem(TAB_KEY, name);
+  if (name === 'reel') renderReel(); // project titles may have changed since it was drawn
+  else stopReelPreview();
 }
 document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 const savedTab = ({ textes: 'reglages', design: 'reglages' })[localStorage.getItem(TAB_KEY)] || localStorage.getItem(TAB_KEY);

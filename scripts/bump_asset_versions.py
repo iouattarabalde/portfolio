@@ -66,7 +66,7 @@ ASSETS = ["style.css", "site.js", "i18n.js"]
 # is busted by i18n.js's number without anything here. The preloads in index.html and
 # project.html do sit in the HTML though, and have to move on the same counter or they
 # stop matching the request they exist to warm.
-OPTIONAL_ASSETS = ["data/projects.json", "data/settings.json", "data/strings.json"]
+OPTIONAL_ASSETS = ["data/projects.json", "data/settings.json", "data/strings.json", "data/reel.json"]
 
 VERSIONED = ASSETS + OPTIONAL_ASSETS
 PATTERN = re.compile(r'(%s)(\?v=)(\d+)' % "|".join(re.escape(a) for a in VERSIONED))
