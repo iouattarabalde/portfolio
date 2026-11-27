@@ -842,14 +842,14 @@ body.same-doc-transition .site-nav {
   line-height: 1.3;
   color: var(--fg);
   text-decoration: none;
-  text-shadow: 0 1px 3px rgba(12, 12, 12, 0.6);
+  text-shadow: 0 1px 3px rgba(8, 8, 8, 0.7), 0 0 10px rgba(8, 8, 8, 0.35);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--dur-ui) var(--ease-out-soft);
 }
 .reel-caption.is-visible { opacity: 1; pointer-events: auto; }
 .reel-caption-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.reel-caption-type { color: rgba(236, 236, 230, 0.7); white-space: nowrap; }
+.reel-caption-type { color: rgba(236, 236, 230, 0.8); white-space: nowrap; }
 @media (hover: hover) {
   .reel-caption:hover .reel-caption-title { text-decoration: underline; text-underline-offset: 3px; }
 }
